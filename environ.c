@@ -1,15 +1,10 @@
-#include <proto/exec.h>
-#include <proto/dos.h>
-#include <proto/utility.h>
-
+#include "sh.h"
 #include <utility/hooks.h>
 #include <dos/dos.h>
 #include <dos/var.h>
-
-#ifdef __amigaos4__
-#include <inline4/exec.h>
-#include <inline4/dos.h>
-#endif
+#include <proto/exec.h>
+#include <proto/dos.h>
+#include <proto/utility.h>
 
 #ifdef AUTOINIT
 #ifdef __GNUC__
