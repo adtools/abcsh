@@ -120,7 +120,6 @@ int pipe(int filedes[2])
 
         sprintf(pipe_name, "/PIPE/%x%08x/4096/0\n", pipenum++,GetUniqueID());
 
-        adebug("Creating pipe %s\n",pipe_name);
 
 /*      printf("pipe: %s \n", pipe_name);*/
 
@@ -131,7 +130,6 @@ int pipe(int filedes[2])
         filedes[1] = Open(pipe_name, MODE_NEWFILE);
         filedes[0] = Open(pipe_name, MODE_OLDFILE);
 #endif/*CLIBHACK*/
-    adebug("pipe descriptors %ld %ld\n",filedes[0],filedes[1]);
     if (filedes[0] == -1 || filedes[1] == -1)
         {
 #ifdef CLIBHACK
@@ -456,7 +454,6 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 #else
 
             if (fname){
-            adebug("command: %s %s",fname,full);
 
                 BPTR seglist = LoadSeg(fname);
                 if(seglist)
@@ -609,7 +606,6 @@ exchild(t, flags, close_fd)
             if(close_fd == i) amigafd_close[i] = TRUE;
 
         }
-        adebug("close_fd %ld\n",close_fd);
 #else
     if (t->type == 21)
         {
@@ -679,11 +675,8 @@ exchild(t, flags, close_fd)
                     char buffer[256];
                     int n,t;
                     t = 0;
-                    adebug("draining pipe! .. ");
                     while((n = read(i,buffer,255)) > 0) t +=n;
-                    adebug("%ld bytes drained\n",t);
                 }
-                adebug("closing fd %ld\n",i);
 
                 close(i);
             }
