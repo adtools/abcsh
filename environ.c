@@ -13,57 +13,64 @@ void ___freeenviron() __attribute__((destructor));
 
 char **environ = NULL;
 
-uint32 
+uint32
 size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 {
-        uint32 size = (uint32)hook->h_Data;
-        
-        size += strlen(message->sv_Name) + 1 + message->sv_VarLen + 1;
-        hook->h_Data = (APTR)size;
-        
+        if(strlen(message->sv_GDir) == 4)
+        {
+                (uint32)hook->h_Data++;
+        }
         return 0;
 }
 
-uint32 
+uint32
 copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 {
-        char *env = (char *)hook->h_Data;
-        char buffer[1000];
-        
-        snprintf(buffer, 999, "%s=%s\n", message->sv_Name, message->sv_Var);
-        buffer[998] = '\n';
-        buffer[999] = 0;
-        
-        strcpy(buffer, env);
-        env += strlen(buffer);
-        
-        hook->h_Data = (APTR)env;
+        if(strlen(message->sv_GDir) == 4)
+        {
+                char **env = (char **)hook->h_Data;
+                uint32 size = strlen(message->sv_Name) + 1 + message->sv_VarLen + 1 + 1;
+                char *buffer=(char *)IExec->AllocVec((uint32)size,MEMF_ANY|MEMF_CLEAR);
 
+                sprintf(buffer, "%s=%s\n", message->sv_Name, message->sv_Var);
+
+                *env  = buffer;
+                env++;
+                hook->h_Data = env;
+        }
         return 0;
 }
 
 void
-___makeenviron() 
+___makeenviron()
 {
         struct Hook hook;
-        
+
         hook.h_Entry = size_env;
         hook.h_Data = 0;
-        
-        IDOS->ScanVars(&hook, 0, 0);
-        
-        environ = (char **)IExec->AllocVec((uint32)hook.h_Data, MEMF_ANY);
+
+        IDOS->ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
+        hook.h_Data++;
+
+        environ = (char **)IExec->AllocVec((uint32)hook.h_Data*sizeof(char **), MEMF_ANY|MEMF_CLEAR );
         if (!environ)
+        {
                 return;
-        
+        }
         hook.h_Entry = copy_env;
         hook.h_Data = environ;
-        
-        IDOS->ScanVars(&hook, 0, 0);
+
+        IDOS->ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
 }
 
 void
 ___freeenviron()
 {
+        char **i;
+        for(i=environ;*i!=NULL;i++)
+        {
+                IExec->FreeVec(*i);
+        }
+
         IExec->FreeVec(environ);
 }

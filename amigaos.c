@@ -288,14 +288,28 @@ int pause(void)
         return -1;
 }
 
+struct userdata
+{
+        struct op *t;
+        int flags;
+        struct Task *parent;
+};
+
 LONG execute_child(STRPTR args, int len)
 {
         struct op *t;
         int flags;
         struct Task *parent;
+        struct Task *this;
+        this = IExec->FindTask(0);
                 
-        sscanf(args, "%08lx %08lx %08lx", &t, &flags, &parent);
-        execute(t, flags & (XEXEC | XERROK));
+        t = ((struct userdata *)this->tc_UserData)->t;
+        flags = ((struct userdata*)this->tc_UserData)->flags;
+        parent = ((struct userdata*)this->tc_UserData)->parent;
+
+//      sscanf(args, "%08lx %08lx %08lx", &t, &flags, &parent);
+
+	execute(t, flags & (XEXEC | XERROK));
 
         IExec->Signal(parent, SIGBREAKF_CTRL_F);
         return 0;
@@ -318,6 +332,8 @@ exchild(t, flags, close_fd)
 
         char args[30];
         struct Task *thisTask = IExec->FindTask(0);
+        struct userdata taskdata;
+
         FUNC;
 #if 0   
 //      printf("close_fd = %d", close_fd);fflush(stdout);
@@ -336,7 +352,11 @@ exchild(t, flags, close_fd)
         printf("\n"); fflush(stdout);
 #endif
         
-        sprintf(args, "%08lx %08lx %08lx", t, flags & (XEXEC | XERROK), thisTask);
+//      sprintf(args, "%08lx %08lx %08lx", t, flags & (XEXEC | XERROK), thisTask);
+        taskdata.t      = t;
+        taskdata.flags  = flags & (XEXEC | XERROK);
+        taskdata.parent = thisTask;
+
 /*      pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
         pipei = (flags & XPIPEI);*/
         close_fd_i = TRUE;
@@ -374,7 +394,8 @@ exchild(t, flags, close_fd)
                         NP_CloseOutput,         close_fd_o,
 //                      NP_Error,               IDOS->ErrorOutput(),
 //                      NP_CloseError,          FALSE,
-                        NP_Arguments,           args,
+//                      NP_Arguments,           args,
+                        NP_UserData,            (int)&taskdata,
                         TAG_DONE);
 
                         
