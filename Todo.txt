@@ -1,0 +1,2 @@
+- piping doesn't work
+- import environment on shell startup
