@@ -198,7 +198,8 @@ alloc(size, ap)
                 acells += ICELLS;
         }
         if (bp == 0) {
-                bp = (Block*) malloc(offsetof(Block, cell[acells]));
+                bp = (Block*) malloc(offsetof(Block, cell) +
+                                     acells * sizeof(Cell));
                 if (bp == NULL)
                         aerror(ap, "cannot allocate");
                 if (ap->freelist == &aempty) {
@@ -291,7 +292,8 @@ aresize(ptr, size, ap)
                 if (bp->freelist != bp->last)
                         aerror(ap, "allocation resizing free pointer");
                 nbp = realloc((void *) bp,
-                              offsetof(Block, cell[cells + NOBJECT_FIELDS]));
+                              offsetof(Block, cell) +
+                              (cells + NOBJECT_FIELDS) * sizeof(Cell));
                 if (!nbp) {
                         /* Have to clean up... */
                         /* NOTE: If this code changes, similar changes may be
