@@ -167,7 +167,7 @@ main(argc, argv)
         /* import enviroment */
         if (environ != NULL)
                 for (wp = environ; *wp != NULL; wp++)
-                        typeset(*wp, IMPORT|EXPORT, 0, 0, 0);
+                        typeset(*wp, IMPORTV|EXPORTV, 0, 0, 0);
 
         kshpid = procpid = getpid();
         typeset(initifs, 0, 0, 0, 0);   /* for security */

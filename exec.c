@@ -545,10 +545,10 @@ comexec(t, tp, ap, flags)
                     && !(tp->flag & FKSH))
                         type_flags = 0;
                 else
-                        type_flags = LOCAL|LOCAL_COPY|EXPORT;
+                        type_flags = LOCAL|LOCAL_COPY|EXPORTV;
         }
         if (Flag(FEXPORT))
-                type_flags |= EXPORT;
+                type_flags |= EXPORTV;
         for (i = 0; t->vars[i]; i++) {
                 cp = evalstr(t->vars[i], DOASNTILDE);
                 if (Flag(FXTRACE)) {
@@ -706,7 +706,7 @@ comexec(t, tp, ap, flags)
 #ifdef KSH
                 /* set $_ to program's full path */
                 /* setstr() can't fail here */
-                setstr(typeset("_", LOCAL|EXPORT, 0, INTEGER, 0), tp->val.s,
+                setstr(typeset("_", LOCAL|EXPORTV, 0, INTEGER, 0), tp->val.s,
                        KSH_RETURN_ERROR);
 #endif /* KSH */
 

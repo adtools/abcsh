@@ -11,7 +11,7 @@
  *
  * if (flag&INTEGER), val.i contains integer value, and type contains base.
  * otherwise, (val.s + type) contains string value.
- * if (flag&EXPORT), val.s contains "name=value" for E-Z exporting.
+ * if (flag&EXPORTV), val.s contains "name=value" for E-Z exporting.
  */
 static  struct tbl vtemp;
 static  struct table specials;
@@ -257,7 +257,7 @@ local(n, copy)
                 while ((ll = ll->next) && !(vq = tsearch(&ll->vars, n, h)))
                         ;
                 if (vq) {
-                        vp->flag |= vq->flag & (EXPORT|INTEGER|RDONLY
+                        vp->flag |= vq->flag & (EXPORTV|INTEGER|RDONLY
                                                 |LJUST|RJUST|ZEROFIL
                                                 |LCASEV|UCASEV_AL|INT_U|INT_L);
                         if (vq->flag & INTEGER)
@@ -366,7 +366,7 @@ setstr(vq, s, error_ok)
                 vq->type = 0;
                 if (s && (vq->flag & (UCASEV_AL|LCASEV|LJUST|RJUST)))
                         s = formatstr(vq, s);
-                if ((vq->flag&EXPORT))
+                if ((vq->flag&EXPORTV))
                         export(vq, s);
                 else {
                         vq->val.s = str_save(s, vq->areap);
@@ -571,7 +571,7 @@ export(vp, val)
 
 /*
  * lookup variable (according to (set&LOCAL)),
- * set its attributes (INTEGER, RDONLY, EXPORT, TRACE, LJUST, RJUST, ZEROFIL,
+ * set its attributes (INTEGER, RDONLY, EXPORTV, TRACE, LJUST, RJUST, ZEROFIL,
  * LCASEV, UCASEV_AL), and optionally set its value if an assignment.
  */
 struct tbl *
@@ -595,13 +595,13 @@ typeset(var, set, clr, field, base)
                 len = array_ref_len(val);
                 if (len == 0)
                         return NULL;
-                /* IMPORT is only used when the shell starts up and is
+                /* IMPORTV is only used when the shell starts up and is
                  * setting up its environment.  Allow only simple array
                  * references at this time since parameter/command substitution
                  * is preformed on the [expression], which would be a major
                  * security hole.
                  */
-                if (set & IMPORT) {
+                if (set & IMPORTV) {
                         int i;
                         for (i = 1; i < len - 1; i++)
                                 if (!digit(val[i]))
@@ -613,7 +613,7 @@ typeset(var, set, clr, field, base)
                 tvar = str_nsave(var, val++ - var, ATEMP);
         else {
                 /* Importing from original envirnment: must have an = */
-                if (set & IMPORT)
+                if (set & IMPORTV)
                         return NULL;
                 tvar = (char *) var;
                 val = NULL;
@@ -630,7 +630,7 @@ typeset(var, set, clr, field, base)
          * (-L/-R/-Z/-i).
          */
         if ((vpbase->flag&RDONLY)
-            && (val || clr || (set & ~EXPORT)))
+            && (val || clr || (set & ~EXPORTV)))
                 /* XXX check calls - is error here ok by POSIX? */
                 errorf("%s: is read only", tvar);
         if (val)
@@ -712,7 +712,7 @@ typeset(var, set, clr, field, base)
         }
 
         /* only x[0] is ever exported, so use vpbase */
-        if ((vpbase->flag&EXPORT) && !(vpbase->flag&INTEGER)
+        if ((vpbase->flag&EXPORTV) && !(vpbase->flag&INTEGER)
             && vpbase->type == 0)
                 export(vpbase, (vpbase->flag&ISSET) ? vpbase->val.s : null);
 
@@ -837,7 +837,7 @@ makenv()
         for (l = e->loc; l != NULL; l = l->next)
                 for (vpp = l->vars.tbls, i = l->vars.size; --i >= 0; )
                         if ((vp = *vpp++) != NULL
-                            && (vp->flag&(ISSET|EXPORT)) == (ISSET|EXPORT)) {
+                            && (vp->flag&(ISSET|EXPORTV))==(ISSET|EXPORTV)) {
                                 register struct block *l2;
                                 register struct tbl *vp2;
                                 unsigned h = hash(vp->name);
@@ -846,7 +846,7 @@ makenv()
                                 for (l2 = l->next; l2 != NULL; l2 = l2->next) {
                                         vp2 = tsearch(&l2->vars, vp->name, h);
                                         if (vp2 != NULL)
-                                                vp2->flag &= ~EXPORT;
+                                                vp2->flag &= ~EXPORTV;
                                 }
                                 if ((vp->flag&INTEGER)) {
                                         /* integer to string */

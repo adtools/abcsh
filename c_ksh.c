@@ -480,8 +480,8 @@ c_whence(wp)
                   case CALIAS:
                         if (vflag)
                                 shprintf(" is an %salias for ",
-                                        (tp->flag & EXPORT) ? "exported "
-                                                            : null);
+                                        (tp->flag & EXPORTV) ? "exported "
+                                                             : null);
                         if (!iam_whence && !vflag)
                                 shprintf("alias %s=", id);
                         print_value_quoted(tp->val.s);
@@ -489,7 +489,7 @@ c_whence(wp)
                   case CFUNC:
                         if (vflag) {
                                 shprintf(" is a");
-                                if (tp->flag & EXPORT)
+                                if (tp->flag & EXPORTV)
                                         shprintf("n exported");
                                 if (tp->flag & TRACE)
                                         shprintf(" traced");
@@ -515,8 +515,8 @@ c_whence(wp)
                                         if (tp->type == CTALIAS)
                                                 shprintf(
                                                     "a tracked %salias for ",
-                                                        (tp->flag & EXPORT) ?
-                                                                "exported "
+                                                        (tp->flag & EXPORTV) ?
+                                                              "exported "
                                                               : null);
                                 }
                                 shprintf("%s", tp->val.s);
@@ -565,7 +565,7 @@ c_typeset(wp)
 
         switch (**wp) {
           case 'e':             /* export */
-                fset |= EXPORT;
+                fset |= EXPORTV;
                 options = "p";
                 break;
           case 'r':             /* readonly */
@@ -638,7 +638,7 @@ c_typeset(wp)
                         flag = UCASEV_AL;       /* upper case / autoload */
                         break;
                   case 'x':
-                        flag = EXPORT;
+                        flag = EXPORTV;
                         break;
                   case '?':
                         return 1;
@@ -670,7 +670,7 @@ c_typeset(wp)
                 builtin_opt.optind++;
         }
 
-        if (func && ((fset|fclr) & ~(TRACE|UCASEV_AL|EXPORT))) {
+        if (func && ((fset|fclr) & ~(TRACE|UCASEV_AL|EXPORTV))) {
                 bi_errorf("only -t, -u and -x options may be used with -f");
                 return 1;
         }
@@ -791,7 +791,7 @@ c_typeset(wp)
                             shprintf("typeset ");
                             if ((vp->flag&INTEGER))
                                 shprintf("-i ");
-                            if ((vp->flag&EXPORT))
+                            if ((vp->flag&EXPORTV))
                                 shprintf("-x ");
                             if ((vp->flag&RDONLY))
                                 shprintf("-r ");
@@ -815,7 +815,7 @@ c_typeset(wp)
                         } else {
                             if (pflag)
                                 shprintf("%s ",
-                                    (flag & EXPORT) ?  "export" : "readonly");
+                                    (flag & EXPORTV) ?  "export" : "readonly");
                             if ((vp->flag&ARRAY) && any_set)
                                 shprintf("%s[%d]", vp->name, vp->index);
                             else
@@ -877,7 +877,7 @@ c_alias(wp)
                         Uflag = 1;
                         break;
                   case 'x':
-                        xflag = EXPORT;
+                        xflag = EXPORTV;
                         break;
                   case '?':
                         return 1;
@@ -1017,7 +1017,7 @@ c_unalias(wp)
                         ap->flag &= ~(ALLOC|ISSET);
                         afree((void*)ap->val.s, APERM);
                 }
-                ap->flag &= ~(DEFINED|ISSET|EXPORT);
+                ap->flag &= ~(DEFINED|ISSET|EXPORTV);
         }
 
         if (all) {
@@ -1028,7 +1028,7 @@ c_unalias(wp)
                                 ap->flag &= ~(ALLOC|ISSET);
                                 afree((void*)ap->val.s, APERM);
                         }
-                        ap->flag &= ~(DEFINED|ISSET|EXPORT);
+                        ap->flag &= ~(DEFINED|ISSET|EXPORTV);
                 }
         }
 
@@ -1340,7 +1340,7 @@ c_getopts(wp)
         if (!setstr(vq, buf, KSH_RETURN_ERROR))
             ret = 1;
         if (Flag(FEXPORT))
-                typeset(var, EXPORT, 0, 0, 0);
+                typeset(var, EXPORTV, 0, 0, 0);
 
         return optc < 0 ? 1 : ret;
 }

@@ -413,7 +413,7 @@ c_read(wp)
                         return 1;
                 }
                 if (Flag(FEXPORT))
-                        typeset(*wp, EXPORT, 0, 0, 0);
+                        typeset(*wp, EXPORTV, 0, 0, 0);
                 if (!setstr(vp, Xstring(cs, cp), KSH_RETURN_ERROR)) {
 #ifndef __amigaos4__
                         shf_flush(shf);

@@ -4,16 +4,6 @@
  * generic hashed associative table for commands and variables.
  */
 
-#ifdef __amigaos4__
-/* exec/types.h defines the macro IMPORT. Undefine it here as it will
- * be redefined below
- */
-# ifdef IMPORT
-#  undef IMPORT
-# endif
-
-#endif
-
 
 struct table {
         Area   *areap;          /* area to allocate entries */
@@ -24,7 +14,7 @@ struct table {
 struct tbl {                    /* table item */
         Tflag   flag;           /* flags */
         int     type;           /* command type (see below), base (if INTEGER),
-                                 * or offset from val.s of value (if EXPORT) */
+                                 * or offset from val.s of value (if EXPORTV) */
         Area    *areap;         /* area to allocate from */
         union {
                 char *s;        /* string */
@@ -48,7 +38,7 @@ struct tbl {                    /* table item */
 #define ALLOC           BIT(0)  /* val.s has been allocated */
 #define DEFINED         BIT(1)  /* is defined in block */
 #define ISSET           BIT(2)  /* has value, vp->val.[si] */
-#define EXPORT          BIT(3)  /* exported variable/function */
+#define EXPORTV         BIT(3)  /* exported variable/function */
 #define TRACE           BIT(4)  /* var: user flagged, func: execution tracing */
 /* (start non-common flags at 8) */
 /* flag bits used for variables */
@@ -64,7 +54,7 @@ struct tbl {                    /* table item */
 #define UCASEV_AL       BIT(18)/* convert to upper case / autoload function */
 #define INT_U           BIT(19) /* unsigned integer */
 #define INT_L           BIT(20) /* long integer (no-op) */
-#define IMPORT          BIT(21) /* flag to typeset(): no arrays, must have = */
+#define IMPORTV         BIT(21) /* flag to typeset(): no arrays, must have = */
 #define LOCAL_COPY      BIT(22) /* with LOCAL - copy attrs from existing var */
 #define EXPRINEVAL      BIT(23) /* contents currently being evaluated */
 #define EXPRLVALUE      BIT(24) /* useable as lvalue (temp flag) */
@@ -78,7 +68,7 @@ struct tbl {                    /* table item */
 /* Attributes that can be set by the user (used to decide if an unset param
  * should be repoted by set/typeset).  Does not include ARRAY or LOCAL.
  */
-#define USERATTRIB      (EXPORT|INTEGER|RDONLY|LJUST|RJUST|ZEROFIL\
+#define USERATTRIB      (EXPORTV|INTEGER|RDONLY|LJUST|RJUST|ZEROFIL\
                          |LCASEV|UCASEV_AL|INT_U|INT_L)
 
 /* command types */
