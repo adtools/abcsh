@@ -23,7 +23,7 @@ int amigain = -1, amigaout = -1;
 char amigaos_getc(int fd)
 {
         char c;
-        
+
         return FGetC(fd);
 }
 
@@ -55,7 +55,7 @@ int amigaos_isabspath(const char *path)
                 FUNCX;
                 return 1;
         }
-                
+
         while (*path)
         {
                 if (*path == ':')
@@ -68,9 +68,9 @@ int amigaos_isabspath(const char *path)
                         FUNCX;
                         return 0;
                 }
-                path++; 
+                path++;
         }
-        
+
         FUNCX;
         return 0;
 }
@@ -118,7 +118,7 @@ int pipe(int filedes[2])
 
 #ifdef CLIBHACK
         filedes[1] = open(pipe_name, O_WRONLY|O_CREAT);
-        filedes[0] = open(pipe_name, O_RDONLY); 
+        filedes[0] = open(pipe_name, O_RDONLY);
 #else
         filedes[1] = Open(pipe_name, MODE_NEWFILE);
         filedes[0] = Open(pipe_name, MODE_OLDFILE);
@@ -126,7 +126,7 @@ int pipe(int filedes[2])
 
     if (filedes[0] == -1 || filedes[1] == -1)
         {
-#ifdef CLIBHACK      
+#ifdef CLIBHACK
                 if (filedes[0] != -1)
                     close(filedes[0]);
                 if (filedes[1] != -1)
@@ -153,10 +153,10 @@ int pipe(int filedes[2])
         char pipe_name[1024];
         FUNC;
         int mystdin, mystdout;
-    
+
         mystdin = Open("CONSOLE:", MODE_OLDFILE);
         mystdout = Open("CONSOLE:", MODE_OLDFILE);
-    
+
         ksh_dup2(mystdin, 0, FALSE);
         ksh_dup2(mystdout, 1, FALSE);
         FUNCX;
@@ -190,14 +190,14 @@ char *convert_path(const char *filename)
             FUNCX;
             return 0;
         }
-                   
+
         if (strcmp(filename, "/dev/null") == 0)
         {
             out = newname =  strdup( "NIL:");;
             FUNCX;
             return out;
         }
-    
+
         abs = filename[0] == '/';
 
         newname = malloc(strlen(filename) + 1);
@@ -207,28 +207,60 @@ char *convert_path(const char *filename)
                 FUNCX;
                 return 0;
         }
-        
+
         if (abs)
         {
                 filename++;
                 while ((*filename != '/') && *filename )
                     *out++ = *filename++;
-                        
+
                 *out++ = ':';
                 if (*filename)
                     filename++;
         }
-                
+
         while (*filename)
                 *out++ = *filename++;
-        
+
         *out = 0;
-        
+
         FUNCX;
         return newname;
 }
-                
-        
+
+static createvars(char **envp)
+{
+    while(*envp != NULL)
+    {
+        int len;
+        char *var;
+        char *val;
+        /* Set a loal var to indicate to any subsequent sh that it is not */
+        /* The top level shell and so should only inherit local amigaos vars */
+
+        SetVar("ABCSH_IMPORT_LOCAL","TRUE",5,GVF_LOCAL_ONLY);
+
+        if(len = strlen(*envp)){
+            if(var = (char *)malloc(len+1))
+            {
+                strcpy(var,*envp);
+
+                val = strchr(var,'=');
+                if(val)
+                {
+                    *val++='\0';
+                    if (*val)
+                    {
+                        SetVar(var,val,strlen(val)+1,GVF_LOCAL_ONLY);
+                    }
+                }
+                free(var);
+            }
+        }
+        envp++;
+    }
+}
+
 int execve(const char *filename, char *const argv[], char *const envp[])
 {
         FILE *fh;
@@ -242,9 +274,9 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         char *tmp = 0;
         int tmpint;
         uint32 error;
-        
+
         FUNC;
-        
+
         /* Calculate the size of filename and all args, including spaces and quotes */
         size = 0;//strlen(filename) + 1;
         for (cur = (char **)argv+1; *cur; cur++)
@@ -272,7 +304,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                             size += strlen(interpreter) + 1;
                         }
                 }
-        
+
                 fclose(fh);
         }
 
@@ -300,24 +332,27 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 if(filename_conv)
                     free(filename_conv);
             }
-                        
+
             for (cur = (char**)argv+1; *cur != 0; cur++)
             {
                 strcat(full, *cur);
                 strcat(full, " ");
             }
+
+            createvars(envp);
+
             SystemTags(full, TAG_DONE);
 
             free(full);
             FUNCX;
             return 0;
         }
-        
+
         if(interpreter)
             free(interpreter);
         if(filename_conv)
             free(filename_conv);
-        
+
         errno = ENOMEM;
         FUNCX;
         return -1;
@@ -326,7 +361,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 int pause(void)
 {
         fprintf(stderr,"Pause not implemented\n");
-        
+
         errno = EINTR;
         return -1;
 }
@@ -432,7 +467,7 @@ exchild(t, flags, close_fd)
 
         if(t->str)
             name = strdup(t->str);
-        
+
         proc = CreateNewProcTags(
             NP_Entry,               execute_child,
 /*          NP_Child,               TRUE, */

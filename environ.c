@@ -27,7 +27,7 @@ void ___freeenviron() __attribute__((destructor));
 uint32
 size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 {
-        if(strlen(message->sv_GDir) == 4)
+        if(strlen(message->sv_GDir) <= 4)
         {
                 hook->h_Data = (APTR)(((uint32)hook->h_Data) + 1);
         }
@@ -37,13 +37,13 @@ size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 uint32
 copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 {
-        if(strlen(message->sv_GDir) == 4)
+        if(strlen(message->sv_GDir) <= 4)
         {
                 char **env = (char **)hook->h_Data;
                 uint32 size = strlen(message->sv_Name) + 1 + message->sv_VarLen + 1 + 1;
                 char *buffer=(char *)AllocVec((uint32)size,MEMF_ANY|MEMF_CLEAR);
 
-                sprintf(buffer, "%s=%s", message->sv_Name, message->sv_Var);
+                snprintf(buffer,size-1,"%s=%s", message->sv_Name, message->sv_Var);
 
                 *env  = buffer;
                 env++;
@@ -57,10 +57,23 @@ ___makeenviron()
 {
         struct Hook hook;
 
+        char varbuf[8];
+        uint32 flags=0;
+
+        if(GetVar("ABCSH_IMPORT_LOCAL",varbuf,8,GVF_LOCAL_ONLY) > 0)
+        {
+            flags = GVF_LOCAL_ONLY;
+        }
+        else
+        {
+            flags = GVF_GLOBAL_ONLY;
+        }
+
+
         hook.h_Entry = size_env;
         hook.h_Data = 0;
 
-        ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
+        ScanVars(&hook, flags, 0);
         hook.h_Data = (APTR)(((uint32)hook.h_Data) + 1);
 
         environ = (char **)AllocVec((uint32)hook.h_Data*sizeof(char **), MEMF_ANY|MEMF_CLEAR );
@@ -71,7 +84,7 @@ ___makeenviron()
         hook.h_Entry = copy_env;
         hook.h_Data = environ;
 
-        ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
+        ScanVars(&hook, flags, 0);
 }
 
 void
