@@ -6,6 +6,11 @@
 #include <dos/dos.h>
 #include <dos/var.h>
 
+#ifdef __amigaos4__
+#include <inline4/exec.h>
+#include <inline4/dos.h>
+#endif
+
 #ifdef AUTOINIT
 #ifdef __GNUC__
 void ___makeenviron() __attribute__((constructor));
@@ -18,7 +23,6 @@ void ___freeenviron() __attribute__((destructor));
 #endif
 
 char **environ = NULL;
-
 
 uint32
 size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
