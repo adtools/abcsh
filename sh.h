@@ -184,6 +184,15 @@ typedef int bool_t;
 #define FALSE   0
 #define TRUE    1
 
+#ifndef __amigaos4__
+typedef unsigned char uint8;
+typedef   signed char  int8;
+typedef unsigned short uint16;
+typedef   signed short  int16;
+typedef unsigned long uint32;
+typedef   signed long  int32;
+#endif
+
 #define NELEM(a) (sizeof(a) / sizeof((a)[0]))
 #define sizeofN(type, n) (sizeof(type) * (n))
 #define BIT(i)  (1<<(i))        /* define bit in flag */
