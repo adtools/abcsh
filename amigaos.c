@@ -125,7 +125,7 @@ int pipe(int filedes[2])
                 if (filedes[0] != -1)
                         Close(filedes[0]);
                 if (filedes[1] != -1)
-                        Close(filedes[0]);
+                        Close(filedes[1]);
 
                 FUNCX;
                 return -1;
@@ -136,21 +136,22 @@ int pipe(int filedes[2])
         return 0;
 }
 
-int openstdinout()
+/*Jack: this one is wrong:
+ * int openstdinout()
 {
         char pipe_name[1024];
         FUNC;
         int mystdin, mystdout;
-
+	
         mystdin = Open("CONSOLE:", MODE_OLDFILE);
         mystdout = Open("CONSOLE:", MODE_OLDFILE);
-
+	
         ksh_dup2(mystdin, 0, FALSE);
         ksh_dup2(mystdout, 1, FALSE);
         FUNCX;
         return 0;
 }
-
+*/
 
 int fork(void)
 {
@@ -171,9 +172,14 @@ char *convert_path(const char *filename)
         int abs;
         char *newname;
         char *out;
-        
         FUNC;
-        
+        if (strcmp(filename, "/dev/null") == 0)
+        {
+            out = newname =  strdup( "NIL:");;
+            FUNCX;
+            return out;
+        }
+	
         abs = filename[0] == '/';
 
         if (!filename)
@@ -193,11 +199,12 @@ char *convert_path(const char *filename)
         if (abs)
         {
                 filename++;
-                while (*filename != '/')
-                        *out++ = *filename++;
+                while ((*filename != '/') && *filename )
+                    *out++ = *filename++;
                         
                 *out++ = ':';
-                filename++;
+                if (*filename)
+                    filename++;
         }
                 
         while (*filename)
@@ -341,6 +348,8 @@ exchild(t, flags, close_fd)
         struct Task *thisTask = FindTask(0);
         struct userdata taskdata;
 
+        char *name;
+
         FUNC;
 #if 0   
 //      printf("close_fd = %d", close_fd);fflush(stdout);
@@ -392,6 +401,11 @@ exchild(t, flags, close_fd)
                         inputfd = Open("CONSOLE:",MODE_OLDFILE);
         }
 
+#if 1
+        name = strdup(t->str);
+#else
+        name = convert_path(t->str);
+#endif
         proc = CreateNewProcTags(
                         NP_Entry,               execute_child,
 /*                      NP_Child,               TRUE, */
@@ -402,10 +416,12 @@ exchild(t, flags, close_fd)
 //                      NP_Error,               ErrorOutput(),
 //                      NP_CloseError,          FALSE,
 //                      NP_Arguments,           args,
+                        NP_Name,                name,
 #ifdef __amigaos4__
                         NP_UserData,            (int)&taskdata,
 #endif
                         TAG_DONE);
+        free(name);
 
 #ifndef __amigaos4__
         proc->pr_Task.tc_UserData = &taskdata;
@@ -423,3 +439,4 @@ exchild(t, flags, close_fd)
         FUNCX;          
         return 0;
 }
+
