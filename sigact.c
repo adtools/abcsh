@@ -121,19 +121,19 @@
  *
  */
 /* Changes to sigact.c for pdksh, Michael Rendell <michael@cs.mun.ca>:
- *	- sigsuspend(): pass *mask to bsd4.2 sigpause instead of mask.
- *	- changed SIG_HDLR to void for use with GNU autoconf
- *	- include sh.h instead of signal.h (to get *_SIGNALS macros)
- *	- changed if !SA_NOCLDSTOP ... to USE_FAKE_SIGACT to avoid confusion
- *	- set the USE_* defines using the *_SIGNALS defines from autoconf
- *	- sigaction(): if using BSD signals, use sigvec() (used to use
- *	  signal()) and set the SV_INTERRUPT flag (POSIX says syscalls
- *	  are interrupted and pdksh needs this behaviour).
- *	- define IS_KSH before including anything; ifdef out routines
- *	  not used in ksh if IS_KSH is defined (same in sigact.h).
- *	- use ARGS() instead of __P()
- *	- sigaction(),sigsuspend(),Signal(),signal(): use handler_t typedef
- *	  instead of explicit type.
+ *        - sigsuspend(): pass *mask to bsd4.2 sigpause instead of mask.
+ *        - changed SIG_HDLR to void for use with GNU autoconf
+ *        - include sh.h instead of signal.h (to get *_SIGNALS macros)
+ *        - changed if !SA_NOCLDSTOP ... to USE_FAKE_SIGACT to avoid confusion
+ *        - set the USE_* defines using the *_SIGNALS defines from autoconf
+ *        - sigaction(): if using BSD signals, use sigvec() (used to use
+ *          signal()) and set the SV_INTERRUPT flag (POSIX says syscalls
+ *          are interrupted and pdksh needs this behaviour).
+ *        - define IS_KSH before including anything; ifdef out routines
+ *          not used in ksh if IS_KSH is defined (same in sigact.h).
+ *        - use ARGS() instead of __P()
+ *        - sigaction(),sigsuspend(),Signal(),signal(): use handler_t typedef
+ *          instead of explicit type.
  */
 
 /*
@@ -145,9 +145,9 @@
 /*
     #ifndef __P
     # if defined(__STDC__) || defined(__cplusplus)
-    #   define	__P(p)	p
+    #   define        __P(p)        p
     # else
-    #   define	__P(p)	()
+    #   define        __P(p)        ()
     # endif
     #endif
 */
@@ -207,8 +207,8 @@ sigaction(sig, act, oact)
     struct sigvec nsv,osv;
 
     nsv.sv_handler = act->sa_handler;
-    nsv.sv_mask = 0;			/* punt */
-    nsv.sv_flags = SV_INTERRUPT;	/* punt */
+    nsv.sv_mask = 0;                        /* punt */
+    nsv.sv_flags = SV_INTERRUPT;        /* punt */
     sigvec(sig, &nsv, &osv);
     oldh = osv.sv_handler;
 # else /* USE_SIGMASK */
@@ -228,9 +228,9 @@ sigaction(sig, act, oact)
       if (oldh != SIG_IGN && oldh !=  SIG_ERR)
       {
 #ifdef USE_SIGSET
-	(void) sigset(sig, oldh);
+        (void) sigset(sig, oldh);
 #else
-	(void) signal(sig, oldh);
+        (void) signal(sig, oldh);
 #endif
       }
     }
@@ -239,10 +239,10 @@ sigaction(sig, act, oact)
   {
     oact->sa_handler = oldh;
   }
-  return 0;				/* hey we're faking it */
+  return 0;                                /* hey we're faking it */
 }
 
-#ifdef __amigaos4__		/* AmigaOS4 changes by Thomas Frieden */
+#ifdef __amigaos4__                /* AmigaOS4 changes by Thomas Frieden */
 //#undef sigaddset
 //#undef sigemptyset
 #endif
@@ -305,7 +305,7 @@ int
 sigpending(set)
   sigset_t *set;
 {
-  return 0;				/* faking it! */
+  return 0;                                /* faking it! */
 }
 #endif /* IS_KSH */
 
@@ -365,14 +365,14 @@ sigprocmask(how, set, oset)
     {
       if (how == SIG_UNBLOCK)
       {
-	if (*set & sigmask(i))
-	  sigrelse(i);
+        if (*set & sigmask(i))
+          sigrelse(i);
       }
       else
-	if (sm & sigmask(i))
-	{
-	  sighold(i);
-	}
+        if (sm & sigmask(i))
+        {
+          sighold(i);
+        }
     }
 # endif
 #endif
@@ -397,7 +397,7 @@ sigsuspend(mask)
     if (*mask & sigmask(i))
     {
       /* not the same sigpause() as above! */
-      sigpause(i);			
+      sigpause(i);                        
       break;
     }
   }
@@ -413,12 +413,12 @@ sigsuspend(mask)
     if (*mask & sigmask(i))
     {
       if ((oldh = signal(i, SIG_DFL)) !=  SIG_ERR &&
-	  oldh != SIG_IGN &&
-	  oldh != SIG_DFL)
-	(void) signal(i, oldh);		/* restore handler */
+          oldh != SIG_IGN &&
+          oldh != SIG_DFL)
+        (void) signal(i, oldh);                /* restore handler */
     }
   }
-  pause();				/* wait for a signal */
+  pause();                                /* wait for a signal */
 # endif
 #endif
   return 0;
@@ -428,7 +428,7 @@ sigsuspend(mask)
 # define void void
 #endif
 #if !defined(SIG_ERR)
-# define SIG_ERR	(void (*)())-1
+# define SIG_ERR        (void (*)())-1
 #endif
 
 /*

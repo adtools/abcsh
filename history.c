@@ -14,7 +14,7 @@ init_histvec()
 }
 void
 hist_init(s)
-	Source *s;
+        Source *s;
 {
 }
 void
@@ -23,9 +23,9 @@ hist_finish()
 }
 void
 histsave(lno, cmd, dowrite)
-	int lno;
-	const char *cmd;
-	int dowrite;
+        int lno;
+        const char *cmd;
+        int dowrite;
 {
-	errorf("history not enabled");
+        errorf("history not enabled");
 }

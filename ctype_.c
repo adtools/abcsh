@@ -12,8 +12,8 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
+ *        This product includes software developed by the University of
+ *        California, Berkeley and its contributors.
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -32,46 +32,46 @@
  */
 
 #if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)ctype_.c	5.6 (Berkeley) 6/1/90";
+static char sccsid[] = "@(#)ctype_.c        5.6 (Berkeley) 6/1/90";
 #endif /* LIBC_SCCS and not lint */
 
 #include <ctype.h>
 
 #define _CTYPE_DATA_0_127 \
-	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C, \
-	_C,	_C|_S,	_C|_S,	_C|_S,	_C|_S,	_C|_S,	_C,	_C, \
-	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C, \
-	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C, \
-	_S|_B,	_P,	_P,	_P,	_P,	_P,	_P,	_P, \
-	_P,	_P,	_P,	_P,	_P,	_P,	_P,	_P, \
-	_N,	_N,	_N,	_N,	_N,	_N,	_N,	_N, \
-	_N,	_N,	_P,	_P,	_P,	_P,	_P,	_P, \
-	_P,	_U|_X,	_U|_X,	_U|_X,	_U|_X,	_U|_X,	_U|_X,	_U, \
-	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U, \
-	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U, \
-	_U,	_U,	_U,	_P,	_P,	_P,	_P,	_P, \
-	_P,	_L|_X,	_L|_X,	_L|_X,	_L|_X,	_L|_X,	_L|_X,	_L, \
-	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L, \
-	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L, \
-	_L,	_L,	_L,	_P,	_P,	_P,	_P,	_C
+        _C,        _C,        _C,        _C,        _C,        _C,        _C,        _C, \
+        _C,        _C|_S,        _C|_S,        _C|_S,        _C|_S,        _C|_S,        _C,        _C, \
+        _C,        _C,        _C,        _C,        _C,        _C,        _C,        _C, \
+        _C,        _C,        _C,        _C,        _C,        _C,        _C,        _C, \
+        _S|_B,        _P,        _P,        _P,        _P,        _P,        _P,        _P, \
+        _P,        _P,        _P,        _P,        _P,        _P,        _P,        _P, \
+        _N,        _N,        _N,        _N,        _N,        _N,        _N,        _N, \
+        _N,        _N,        _P,        _P,        _P,        _P,        _P,        _P, \
+        _P,        _U|_X,        _U|_X,        _U|_X,        _U|_X,        _U|_X,        _U|_X,        _U, \
+        _U,        _U,        _U,        _U,        _U,        _U,        _U,        _U, \
+        _U,        _U,        _U,        _U,        _U,        _U,        _U,        _U, \
+        _U,        _U,        _U,        _P,        _P,        _P,        _P,        _P, \
+        _P,        _L|_X,        _L|_X,        _L|_X,        _L|_X,        _L|_X,        _L|_X,        _L, \
+        _L,        _L,        _L,        _L,        _L,        _L,        _L,        _L, \
+        _L,        _L,        _L,        _L,        _L,        _L,        _L,        _L, \
+        _L,        _L,        _L,        _P,        _P,        _P,        _P,        _C
 
 #define _CTYPE_DATA_128_256 \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0, \
-	0,	0,	0,	0,	0,	0,	0,	0
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0, \
+        0,        0,        0,        0,        0,        0,        0,        0
 
 #if defined(__GNUC__) && !defined(__CHAR_UNSIGNED__) && !defined(COMPACT_CTYPE)
 #define ALLOW_NEGATIVE_CTYPE_INDEX
@@ -79,20 +79,20 @@ static char sccsid[] = "@(#)ctype_.c	5.6 (Berkeley) 6/1/90";
 
 #if defined(ALLOW_NEGATIVE_CTYPE_INDEX)
 static _CONST char _ctype_b[128 + 256] = {
-	_CTYPE_DATA_128_256,
-	_CTYPE_DATA_0_127,
-	_CTYPE_DATA_128_256
+        _CTYPE_DATA_128_256,
+        _CTYPE_DATA_0_127,
+        _CTYPE_DATA_128_256
 };
 
 extern _CONST char _ctype_[1 + 256] __attribute__ ((alias ("_ctype_b+127")));
 _CONST char *__ctype_ptr = _ctype_b + 128;
 
-#else	/* !defined(ALLOW_NEGATIVE_CTYPE_INDEX) */
+#else        /* !defined(ALLOW_NEGATIVE_CTYPE_INDEX) */
 
 _CONST char _ctype_[1 + 256] = {
-	0,
-	_CTYPE_DATA_0_127,
-	_CTYPE_DATA_128_256
+        0,
+        _CTYPE_DATA_0_127,
+        _CTYPE_DATA_128_256
 };
 
 _CONST char *__ctype_ptr = _ctype_ + 1;
