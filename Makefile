@@ -10,7 +10,7 @@ CPP = $(CC) -E
 CLIBHACK = -DCLIBHACK
 
 DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK)
-LIBS = -lunix -lauto -lnet -lstack
+LIBS = -lm -lunix -lc -lnet -lauto
 
 CPPFLAGS = 
 CFLAGS = -g -O 
@@ -52,7 +52,7 @@ TESTFILES = tests/README tests/th tests/th-sh tests/alias.t tests/arith.t \
 	tests/syntax.t tests/unclass1.t tests/unclass2.t \
 	tests/version.t 
 
-all: $(SHELL_PROG)$(exe_suffix) $(SHELL_PROG).1
+all: $(SHELL_PROG)$(exe_suffix)
 
 $(SHELL_PROG)$(exe_suffix): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)

@@ -198,6 +198,14 @@ char *convert_path(const char *filename)
             return out;
         }
 
+        if (strcmp(filename, "/dev/tty") == 0)
+        {
+            out = newname =  strdup( "CON:");;
+            FUNCX;
+            return out;
+        }
+
+
         abs = filename[0] == '/';
 
         newname = malloc(strlen(filename) + 1);
