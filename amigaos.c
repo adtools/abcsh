@@ -282,6 +282,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         char *tmp = 0;
         int tmpint;
         uint32 error;
+        struct Task *thisTask = FindTask(0);
 
         FUNC;
 
@@ -349,7 +350,9 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
             createvars(envp);
 
-            SystemTags(full, TAG_DONE);
+            SystemTags(full,
+                NP_StackSize,  ((struct Process *)thisTask)->pr_StackSize,
+              TAG_DONE);
 
             free(full);
             FUNCX;
@@ -479,6 +482,7 @@ exchild(t, flags, close_fd)
         proc = CreateNewProcTags(
             NP_Entry,               execute_child,
 /*          NP_Child,               TRUE, */
+            NP_StackSize,           ((struct Process *)thisTask)->pr_StackSize,
             NP_Input,               amigafd[0],
             NP_Output,              amigafd[1],
 #ifdef CLIBHACK
