@@ -219,7 +219,6 @@ c_print(wp)
         const char *emsg;
         XString xs;
         char *xp;
-        printf("print outfd %d\n", fd);
         if (wp[0][0] == 'e') {  /* echo command */
                 int nflags = flags;
 
