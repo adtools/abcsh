@@ -114,7 +114,7 @@ int pipe(int filedes[2])
         char pipe_name[1024];
         FUNC;
 
-        sprintf(pipe_name, "PIPE:%s\n", tmpnam(0));
+        sprintf(pipe_name, "/PIPE/%s%d\n", tmpnam(0),(int)FindTask(0));
 /*      printf("pipe: %s \n", pipe_name);*/
 
 #ifdef CLIBHACK
@@ -138,6 +138,7 @@ int pipe(int filedes[2])
                 if (filedes[1] != -1)
                     Close(filedes[1]);
 #endif/*CLIBHACK*/
+
 
                 FUNCX;
                 return -1;
@@ -205,7 +206,7 @@ char *convert_path(const char *filename)
         return strdup(filename);
 }
 
-static createvars(char **envp)
+static void createvars(char **envp)
 {
     while(*envp != NULL)
     {
@@ -238,6 +239,26 @@ static createvars(char **envp)
     }
 }
 
+static BOOL contains_whitespace(char *string)
+{
+
+    if(strchr(string,' ')) return TRUE;
+    if(strchr(string,'\t')) return TRUE;
+    if(strchr(string,0xA0)) return TRUE;
+    return FALSE;
+}
+
+static int no_of_escapes(char *string)
+{
+    int cnt = 0;
+    char *p;
+    for(p=string;p<string + strlen(string);p++)
+    {
+        if(*p=='*') cnt++;
+    }
+    return cnt;
+}
+
 int execve(const char *filename, char *const argv[], char *const envp[])
 {
         FILE *fh;
@@ -258,8 +279,9 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         /* Calculate the size of filename and all args, including spaces and quotes */
         size = 0;//strlen(filename) + 1;
         for (cur = (char **)argv+1; *cur; cur++)
-                size += strlen(*cur) + 1;
-
+        {
+            size += strlen(*cur) + 1 + (contains_whitespace(*cur)?(2 + no_of_escapes(*cur)):0);
+        }
         /* Check if it's a script file */
         fh = fopen(filename, "r");
         if (fh)
@@ -308,8 +330,38 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
             for (cur = (char**)argv+1; *cur != 0; cur++)
             {
-                strcat(full, *cur);
-                strcat(full, " ");
+                if(contains_whitespace(*cur))
+                {
+                    int esc = no_of_escapes(*cur);
+                    if(esc > 0)
+                    {
+                        char *buffer=malloc(strlen(*cur) + 3 + esc);
+                        char *p = *cur;
+                        char *q = buffer;
+
+                        *q++ = '"';
+                        while(*p != '\0')
+                        {
+                            if(*p == '*') *q++ = '*';
+                            *q++ = *p++;
+                        }
+                        *q++ = '"';
+                        *q='\0';
+                        strcat(full,buffer);
+                        free(buffer);
+                    }
+                    else
+                    {
+                        strcat(full,"\"");
+                        strcat(full,*cur);
+                        strcat(full,"\" ");
+                    }
+                }
+                else
+                {
+                    strcat(full, *cur);
+                    strcat(full, " ");
+                }
             }
 
             createvars(envp);
@@ -318,6 +370,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
               TAG_DONE);
 
             free(full);
+
             FUNCX;
             return 0;
         }
