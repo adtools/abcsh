@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <dos.h>
 
 #include "sh.h"
 
@@ -180,9 +181,7 @@ int wait(int *status)
 
 char *convert_path(const char *filename)
 {
-        int abs;
-        char *newname;
-        char *out;
+        struct name_translation_info nti;
         FUNC;
 
         if (!filename)
@@ -191,49 +190,19 @@ char *convert_path(const char *filename)
             return 0;
         }
 
-        if (strcmp(filename, "/dev/null") == 0)
-        {
-            out = newname =  strdup( "NIL:");;
-            FUNCX;
-            return out;
-        }
-
         if (strcmp(filename, "/dev/tty") == 0)
         {
-            out = newname =  strdup( "CONSOLE:");;
+            return  strdup( "CONSOLE:");;
             FUNCX;
-            return out;
+
         }
 
 
-        abs = filename[0] == '/';
 
-        newname = malloc(strlen(filename) + 1);
-        out = newname;
-        if (!out)
-        {
-                FUNCX;
-                return 0;
-        }
 
-        if (abs)
-        {
-                filename++;
-                while ((*filename != '/') && *filename )
-                    *out++ = *filename++;
+        __translate_unix_to_amiga_path_name(&filename,&nti);
 
-                *out++ = ':';
-                if (*filename)
-                    filename++;
-        }
-
-        while (*filename)
-                *out++ = *filename++;
-
-        *out = 0;
-
-        FUNCX;
-        return newname;
+        return strdup(filename);
 }
 
 static createvars(char **envp)
@@ -297,21 +266,14 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         {
                 if (fgetc(fh) == '#' && fgetc(fh) == '!')
                 {
+                        char *p;
                         fgets(buffer, 999, fh);
-                        interpreter = strdup(buffer);
-                        if(interpreter)
-                        {
-                            if (interpreter[strlen(interpreter)-1] == 10)
-                            {
-                                tmp = interpreter;
-                                tmpint = strlen(interpreter)-1;
-                                tmp[tmpint] = 0;
-                                interpreter = strdup(tmp);
-                                tmp[tmpint] = 10;
-                                free(tmp);
-                            }
-                            size += strlen(interpreter) + 1;
-                        }
+                        p = buffer;
+                        while (*p == ' ' || *p == '\t') p++;
+                        if(buffer[strlen(buffer) -1] == '\n') buffer[strlen(buffer) -1] = '\0';
+
+                        interpreter = strdup(p);
+                        size += strlen(interpreter) + 1;
                 }
 
                 fclose(fh);
@@ -319,6 +281,8 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
         /* Allocate the command line */
         filename_conv = convert_path(filename);
+
+
         if(filename_conv)
             size += strlen(filename_conv);
         size += 1;
@@ -349,7 +313,6 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             }
 
             createvars(envp);
-
             SystemTags(full,
                 NP_StackSize,  ((struct Process *)thisTask)->pr_StackSize,
               TAG_DONE);
