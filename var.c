@@ -849,7 +849,9 @@ makenv()
                                 for (l2 = l->next; l2 != NULL; l2 = l2->next) {
                                         vp2 = tsearch(&l2->vars, vp->name, h);
                                         if (vp2 != NULL)
+                                        {
                                                 vp2->flag &= ~EXPORTV;
+                                        }
                                 }
                                 if ((vp->flag&INTEGER)) {
                                         /* integer to string */

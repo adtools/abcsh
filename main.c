@@ -175,7 +175,14 @@ main(argc, argv)
         {
             for (wp = environ; *wp != NULL; wp++)
             {
-                typeset(*wp, IMPORTV|EXPORTV, 0, 0, 0);
+                if(strncmp("_=",*wp,2))
+                {
+                    typeset(*wp, IMPORTV|EXPORTV, 0, 0, 0);
+                }
+                else
+                {
+                    typeset(*wp,IMPORTV, 0, 0, 0);
+                }
             }
         }
         kshpid = procpid = getpid();

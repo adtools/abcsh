@@ -372,7 +372,7 @@ fptreef(struct shf *shf, int indent, const char *fmt, ...)
   va_list       va;
 
   SH_VA_START(va, fmt);
-  
+
   vfptreef(shf, indent, fmt, va);
   va_end(va);
   return 0;
@@ -482,6 +482,7 @@ tcopy(t, ap)
         r->type = t->type;
         r->u.evalflags = t->u.evalflags;
 
+        fflush(stdout);
         r->str = t->type == TCASE ? wdcopy(t->str, ap) : str_save(t->str, ap);
 
         if (t->vars == NULL)
@@ -575,9 +576,8 @@ wdscan(wp, c)
                         break;
 #endif /* KSH */
                   default:
-                        internal_errorf(0,
-                                "wdscan: unknown char 0x%x (carrying on)",
-                                wp[-1]);
+                        /* removed bogus error message */
+                        break;
                 }
 }
 

@@ -32,6 +32,10 @@ static int      dbteste_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
 static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 #endif /* KSH */
 
+#if (0)
+void printflags(struct tbl *t);
+#endif
+
 /* this structure is used to store the current envirment before executing */
 /* a "subshell" or similar */
 
@@ -41,6 +45,7 @@ struct globals
     struct table *homedirs;
     struct table *taliases;
     struct table *aliases;
+    void *path;
     Area *aperm;
 
 };
@@ -197,7 +202,7 @@ execute(t, flags)
           case TPIPE:
                 flags |= XFORK;
                 flags &= ~XEXEC;
-                printf("pipeing\n");fflush(stdout);
+
 #if defined(AMIGA) && !defined(CLIBHACK)
                savefd[0] = amigain;
                savefd[1] = amigaout;
@@ -496,13 +501,17 @@ comexec(t, tp, ap, flags)
          * functions/dot scripts, but in interactive and scipt) -
          * perhaps save last arg here and set it in shell()?.
          */
+
         if (Flag(FTALKING) && *(lastp = ap)) {
-                while (*++lastp)
-                        ;
+                struct tbl *tb;
+                while (*++lastp);
+                tb = typeset("_", LOCAL, 0,INTEGER,0);
+
+
                 /* setstr() can't fail here */
-                setstr(typeset("_", LOCAL, 0, INTEGER, 0), *--lastp,
-                       KSH_RETURN_ERROR);
+                setstr(tb, *lastp, KSH_RETURN_ERROR);
         }
+
 #endif /* KSH */
 
         /* Deal with the shell builtins builtin, exec and command since
@@ -736,8 +745,11 @@ comexec(t, tp, ap, flags)
 #ifdef KSH
                 /* set $_ to program's full path */
                 /* setstr() can't fail here */
-                setstr(typeset("_", LOCAL|EXPORTV, 0, INTEGER, 0), tp->val.s,
-                       KSH_RETURN_ERROR);
+                {
+                    struct tbl *tb;
+                    tb = typeset("_",LOCAL|EXPORTV,0,INTEGER,0);
+                    setstr(tb, tp->val.s, KSH_RETURN_ERROR);
+                }
 #endif /* KSH */
 
                 if (flags&XEXEC) {
@@ -753,6 +765,7 @@ comexec(t, tp, ap, flags)
                 texec.left = t; /* for tprint */
                 texec.str = tp->val.s;
                 texec.args = ap;
+
 
                 rv = exchild(&texec, flags, -1);
                 break;
@@ -1554,9 +1567,11 @@ blk_copy(struct block *src)
   if (src->next)
     blk_copy(src->next);
 
+
   newblock();
   l = e->loc;
   l->argc = src->argc;
+
   if (l->argc)
     {
       /* copy the argument vector */
@@ -1564,7 +1579,9 @@ blk_copy(struct block *src)
       rw = l->argv = (char **)alloc((int)(tw - src->argv) * sizeof(*tw),
                                      &l->area);
       for (tw = src->argv; *tw != NULL; )
+      {
          *rw++ = wdcopy(*tw++, &l->area);
+      }
       *rw = NULL;
 
     }
@@ -1573,7 +1590,7 @@ blk_copy(struct block *src)
          l->argv = (char **)empty;
      l->argv[0] = src->argv[0]; /* preserve $0, just doing l->arv=src->argv
                                                                    preserves everything which is not what
-                                                                   we want                                                                      */
+                                                                   we want */
 /*
  *        KPrintF("%s %ld: %s\n",__FILE__,__LINE__,l->argv[0]);
  */
@@ -1611,22 +1628,27 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
 
   twalk(&ts,src);
   tinit(dst, ap, 0);
-
   while ((t = tnext(&ts)))
     {
+
+
       tn = tenter(dst, t->name, hash(t->name));
       tn->flag = t->flag;
       tn->type = t->type;
       if (t->flag & INTEGER)
         tn->val.i = t->val.i;
       else if (t->flag & EXPORTV)
+      {
         tn->val.s = str_save(t->val.s, ap);
+      }
       else if (t->type == CFUNC)
+      {
         tn->val.t = t->val.t ? tcopy(t->val.t, ap) : 0;
+      }
       else
       {
         tn->val.s = (t->flag & ALLOC) ?
-                      str_save(t->val.s  /* + t->type */, ap) : 0;
+                      str_save(t->val.s /* + t->type */, ap) : 0;
       }
       /* new entries in struct tbl */
       tn->index = t->index;
@@ -1636,7 +1658,6 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
       if (t->flag & ARRAY)
       {
         struct tbl *tmp, **list = &tn->u.array;
-
         *list = NULL;
         for (tmp = t->u.array; tmp; tmp = tmp->u.array)
         {
@@ -1653,7 +1674,7 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
       }
       tn->u.array = t->u.array;
       if ((tn->flag & SPECIAL) && !strcmp(tn->name, "PATH"))
-        path = str_val(tn);
+        path = str_save(tn->val.s + tn->type, ap);
     }
 }
 
@@ -1677,6 +1698,9 @@ static struct env *copyenv(struct globals *globenv )
     globenv->taliases = taliases;
     globenv->aperm = aperm;
 
+    /* save our old path, will be copied in code in tbl_copy */
+    globenv->path = path;
+
     /* set up new "permanent storage" */
 
     aperm = malloc(sizeof(Area));
@@ -1687,7 +1711,6 @@ static struct env *copyenv(struct globals *globenv )
     homedirs = malloc(sizeof(struct table));
     taliases = malloc(sizeof(struct table));
     aliases  = malloc(sizeof(struct table));
-
     /* init tables */
         tinit(taliases, APERM, 0);
         tinit(aliases, APERM, 0);
@@ -1747,7 +1770,38 @@ static void restoreenv(struct globals *globenv)
     taliases = globenv->taliases;
     aliases = globenv->aliases;
     aperm = globenv->aperm;
+    path = globenv->path;
     e = globenv->e;
 
 
 }
+
+#if(0)
+void printflags(struct tbl *t)
+{
+      printf("  flags %d ",t->flag);
+      if(t->flag & ALLOC)   printf("ALLOC ");
+      if(t->flag & DEFINED) printf("DEFINED ");
+      if(t->flag & ISSET)   printf("ISSET ");
+      if(t->flag & EXPORTV) printf("EXPORTV ");
+      if(t->flag & TRACE)   printf("TRACE ");
+      if(t->flag & SPECIAL) printf("SPECIAL ");
+      if(t->flag & INTEGER)   printf("INTEGER ");
+      if(t->flag & RDONLY)   printf("RDONLY ");
+      if(t->flag & LOCAL)   printf("LOCAL ");
+      if(t->flag & ARRAY)   printf("ARRAY ");
+      if(t->flag & LJUST)   printf("LJUST ");
+      if(t->flag & RJUST)   printf("RJUST ");
+      if(t->flag & ZEROFIL)   printf("ZEROFIL ");
+      if(t->flag & LCASEV)   printf("LCASEV ");
+      if(t->flag & UCASEV_AL)   printf("UCASEV_ALTRACE ");
+      if(t->flag & INT_U)   printf("INT_U ");
+      if(t->flag & INT_L)   printf("INT_L");
+      if(t->flag & IMPORTV)   printf("IMPORTV ");
+      if(t->flag & LOCAL_COPY)   printf("LOCAL_COPY ");
+      if(t->flag & EXPRINEVAL)   printf("EXPRINEVAL ");
+      if(t->flag & EXPRLVALUE)   printf("EXPRLVALUE ");
+      printf("\n");
+
+}
+#endif
