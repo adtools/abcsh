@@ -18,7 +18,8 @@ int pipefd[2];
 int nextin = -1, nextout = -1;
 /*pipecount*/
 int pipe_flag = 0;
-
+int xxcom_pipe_flag = 0;
+extern int xxcom_nextout;
 int amigaos_isabspath(const char *path)
 {FUNC;
 	if (*path == '/')
@@ -101,8 +102,8 @@ int pipe(int filedes[2])
 //	filedes[0] = open(pipe_name, O_WRONLY|O_CREAT);
 //	filedes[1] = open(pipe_name, O_RDONLY);	
 
-	filedes[0] = IDOS->Open(pipe_name, MODE_NEWFILE);
-	filedes[1] = IDOS->Open(pipe_name, MODE_OLDFILE);
+	filedes[1] = IDOS->Open(pipe_name, MODE_NEWFILE);
+	filedes[0] = IDOS->Open(pipe_name, MODE_OLDFILE);
 
 
 	if (filedes[0] == -1 || filedes[1] == -1)
@@ -121,6 +122,20 @@ int pipe(int filedes[2])
 	return 0;
 }
 
+int openstdinout()
+{
+	char pipe_name[1024];
+	FUNC;
+	int mystdin, mystdout;
+
+	mystdin = IDOS->Open("CONSOLE:", MODE_OLDFILE);
+	mystdout = IDOS->Open("CONSOLE:", MODE_OLDFILE);
+
+	ksh_dup2(mystdin, 0, FALSE);
+	ksh_dup2(mystdout, 1, FALSE);
+	FUNCX;
+	return 0;
+}
 
 
 int fork(void)
@@ -316,30 +331,33 @@ exchild(t, flags, close_fd)
 #endif
 	
 	sprintf(args, "%08lx %08lx %08lx", t, flags & (XEXEC | XERROK), thisTask);
-#if 1
 /*XCCOM is here when ` ` expansion used, needs further investigation*/
-	pipeo = ((flags & XPIPEO) && !(flags & XXCOM));
+	pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
 	pipei = (flags & XPIPEI);
 	close_fd_i = TRUE;//((!(flags & XPCLOSE) && pipei) || !pipei);
 	close_fd_o = TRUE;//(((flags & XCCLOSE) && pipeo) || !pipeo);
-//	printf ("close_fd_i %d close_fd_o %d\n",close_fd_i,  close_fd_o);fflush(stdout);
-//	inputfd = (pipei  ? close_fd : IDOS->Open("CONSOLE:",MODE_OLDFILE));
-//	outputfd = (pipeo  ? close_fd : IDOS->Open("CONSOLE:",MODE_OLDFILE));
-//	inputfd = (pipei  ? pipefd[1] : IDOS->Open("CONSOLE:",MODE_OLDFILE));
+	printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
+#if 1
 
 /*buffer the pipefd[1] as next input*/
 	if (pipei)
-		nextin = pipefd[1];
+		nextin = pipefd[0];
 /*detect the new pipe, raise the count and buffer the input*/
 	if (pipeo)
+	{
+/*XXCOM is when comsub() is used, only open the pipe, comsub'll collect it */
+		if (!(flags & XXCOM))
 		{
-			pipe_flag++;
 			pipe(pipefd);
-			nextout = pipefd[0];
+			nextout = pipefd[1];
+			pipe_flag++;
 		}
+		else
+			xxcom_pipe_flag++;
+	}
 
 /*type==21 occurs in execute() after XPIPEI/O here*/
-	if ((t->type == 21) && pipe_flag)
+	if ((t->type == 21) && pipe_flag && !(xxcom_pipe_flag > 0))
 	{
 /*there's nextout pendindg*/
 		if (nextout != -1)
@@ -379,19 +397,24 @@ exchild(t, flags, close_fd)
 		}
 	}
 /*defaults*/
+	else if ((t->type == 21) && (xxcom_pipe_flag > 0))
+	{
+		outputfd = xxcom_nextout;
+		inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+		xxcom_pipe_flag--;
+	}
 	else
 	{
-		outputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+		outputfd =IDOS->Open("CONSOLE:",MODE_OLDFILE);
 		inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
 	}
 
 //	printf("PIPE_FLAG %d\n", pipe_flag);fflush(stdout);
-//	printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
 //	outputfd = (pipeo  ? pipefd[0] : IDOS->Open("CONSOLE:",MODE_OLDFILE));
 //	printf ("in %d out %d\n",inputfd, outputfd);fflush(stdout);
 #else
-	if(close_fd != -1)
-		IDOS->Close(close_fd);
+	outputfd =IDOS->Open("CONSOLE:",MODE_OLDFILE);
+	inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
 #endif
 
 	IDOS->CreateNewProcTags(
@@ -408,8 +431,6 @@ exchild(t, flags, close_fd)
 
 			
 	IExec->Wait(SIGBREAKF_CTRL_F);		
-/*close fd if it is (pipe input and XPCLOSE) or (pipe output and not XCCLOSE)*/
-//	if ((pipei && (flags & XPCLOSE)) || (pipeo && !(flags & XCCLOSE)))
 /*close pipe input*/
 	if (!close_fd_i)
 	{

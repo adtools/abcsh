@@ -6,7 +6,7 @@
 #include <pwd.h>
 #include "ksh_dir.h"
 #include "ksh_stat.h"
-
+int xxcom_nextout = -1;
 /*
  * string expansion
  *
@@ -833,7 +833,7 @@ comsub(xp, cp)
 	Source *s, *sold;
 	register struct op *t;
 	struct shf *shf;
-
+	char c;
 	s = pushs(SSTRING, ATEMP);
 	s->start = s->str = cp;
 	sold = source;
@@ -858,14 +858,29 @@ comsub(xp, cp)
 		xp->split = 0;	/* no waitlast() */
 	} else {
 		int ofd1, pv[2];
-		openpipe(pv);							printf("PIPE\n"); fflush(stdout);
-		shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);		printf("fdopen\n"); fflush(stdout);
-		ofd1 = savefd(1, 0);	/* fd 1 may be closed... */		printf("Savefd\n"); fflush(stdout);
-		ksh_dup2(pv[1], 1, FALSE);					printf("dups2\n"); fflush(stdout);
-		close(pv[1]);							printf("close\n"); fflush(stdout);
-		execute(t, XFORK|XXCOM|XPIPEO);					printf("execute\n"); fflush(stdout);
-		restfd(1, ofd1);						printf("restfd\n"); fflush(stdout);
-		startlast();							printf("!\n"); fflush(stdout);
+#ifndef __amigaos4__ 
+		openpipe(pv);//printf("PIPE\n"); fflush(stdout);
+#else 
+		pipe(pv);
+#endif
+/*Jack: dunnoh why it doesn't pick the pv[0] contents*/
+		
+		shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
+#ifndef __amigaos4__ 
+		ofd1 = savefd(1, 0);	/* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
+		ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
+		close(pv[1]);//printf("close\n"); fflush(stdout);
+		execute(t, XFORK|XXCOM|XPIPEO);	//printf("execute\n"); fflush(stdout);
+		restfd(1, ofd1);//printf("restfd\n"); fflush(stdout);
+#else
+		xxcom_nextout = pv[1];
+		printf("XXCOM pv %d %d\n", pv[0], pv[1]);fflush(stdout);
+		execute(t, XFORK|XXCOM|XPIPEO);	//printf("execute\n"); fflush(stdout);
+//		read(pv[0], &c, 1);
+//		printf("c: %c\n", c);fflush(stdout);
+		close(pv[0]);
+#endif
+		startlast();//printf("!\n"); fflush(stdout);
 		xp->split = 1;	/* waitlast() */
 	}
 

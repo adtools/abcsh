@@ -188,10 +188,8 @@ execute(t, flags)
 		restfd(1, e->savefd[1]); /* stdout of last */
 		e->savefd[1] = 0; /* no need to re-restore this */
 		/* Let exchild() close 0 in parent, after fork, before wait */
-		i = exchild(t, flags|XPCLOSE, 0);
-#else
-		i = exchild(t, flags|XPCLOSE, pv[1]);
 #endif	
+		i = exchild(t, flags|XPCLOSE, 0);
 		if (!(flags&XBGND) && !(flags&XXCOM))
 			rv = i;
 		break;
