@@ -1035,7 +1035,13 @@ search(name, path, mode, errnop)
                 *errnop = 0;
         if (ksh_strchr_dirsep(name)) {
                 if (search_access(name, mode, errnop) == 0)
-                        return (char *) name;
+                {
+#ifdef AMIGA
+                    if((name[0] == '.') && (name[1] == '/'))
+                        return (char *) &name[2];
+#endif
+                    return (char *) name;
+                }
                 return NULL;
         }
 
@@ -1057,7 +1063,19 @@ search(name, path, mode, errnop)
                 XcheckN(xs, xp, namelen);
                 memcpy(xp, name, namelen);
                 if (search_access(Xstring(xs, xp), mode, errnop) == 0)
+                {
+#ifdef AMIGA
+                    sp = Xclose(xs, xp + namelen);
+                    if((sp[0] == '.') && (sp[1] == '/') && !strcmp(&sp[2], name))
+                    {
+                        sp =strdup(name);
+                        Xfree(xs, xp);
+                    }
+                    return (char *) sp;
+#else
                         return Xclose(xs, xp + namelen);
+#endif
+                }
                 if (*sp++ == '\0')
                         sp = NULL;
         }
