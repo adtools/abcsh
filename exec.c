@@ -48,6 +48,7 @@ struct globals
     Trap **sigtraps;
     void *path;
     Area *aperm;
+    char *current_wd;
     int fd[NUFILE];
 
 };
@@ -1703,6 +1704,10 @@ struct env *copyenv(struct globals *globenv )
     /* save our old path, will be copied in code in tbl_copy */
     globenv->path = path;
 
+    /* save our current working directory */
+
+    globenv->current_wd = strdup(current_wd);
+
     /* set up new "permanent storage" */
 
     aperm = malloc(sizeof(Area));
@@ -1789,7 +1794,14 @@ void restoreenv(struct globals *globenv)
   {
       if(globenv->fd[i]>=0) restfd(i,globenv->fd[i]);
   }
+  /* restore working dir */
 
+  if (globenv->current_wd)
+  {
+    set_current_wd(globenv->current_wd);
+    chdir(current_wd);
+    free(globenv->current_wd);
+  }
 
 }
 
