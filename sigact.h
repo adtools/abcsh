@@ -87,14 +87,9 @@ handler_t Signal        ARGS((int sig, handler_t disp));
 #define SIG_UNBLOCK     2
 #define SIG_SETMASK     4
 
-#if 0 /* autoconf will define sigset_t if it isn't available */
-/*
- * this is a bit untidy
- */
 #if !defined(__sys_stdtypes_h)
 typedef unsigned int sigset_t;
 #endif
-#endif /* 0 */
   
 /*
  * POSIX sa_handler should return void, but since we are
