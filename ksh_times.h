@@ -4,7 +4,7 @@
 /* Needed for INT32 on some systems (ie, NeXT in non-posix mode) */
 #include "ksh_time.h"
 
-#ifdef __amigaos4__
+#ifdef AMIGA
 struct tms {
         INT32 tms_utime;              /* user time */
         INT32 tms_stime;              /* system time */

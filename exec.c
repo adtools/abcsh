@@ -43,7 +43,7 @@ static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 static char clexec_tab[MAXFD+1];
 #endif
 
-#ifdef __amigaos4__
+#ifdef AMIGA
 extern int  amigain, amigaout;
 #endif
 
@@ -81,7 +81,7 @@ execute(t, flags)
         char *s, *cp;
         struct ioword **iowp;
         struct tbl *tp = NULL;
-#ifdef __amigaos4__
+#ifdef AMIGA
         int savefd[2];
 #endif
         if (t == NULL)
@@ -167,7 +167,7 @@ execute(t, flags)
           case TPIPE:
                 flags |= XFORK;
                 flags &= ~XEXEC;
-#ifndef __amigaos4__
+#ifndef AMIGA
                 e->savefd[0] = savefd(0, 0);
                 (void) ksh_dup2(e->savefd[0], 0, FALSE); /* stdin of first */
                 e->savefd[1] = savefd(1, 0);
@@ -178,12 +178,12 @@ execute(t, flags)
 #endif
 
                 while (t->type == TPIPE) {
-#ifndef __amigaos4__
+#ifndef AMIGA
                         openpipe(pv);
-                (void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
+                        (void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
 #else
-                pipe(pv);
-                amigaout = pv[1];
+                        pipe(pv);
+                        amigaout = pv[1];
 #endif
                         /* Let exchild() close pv[0] in child
                          * (if this isn't done, commands like
@@ -191,7 +191,7 @@ execute(t, flags)
                          *  will hang forever).
                          */
                         exchild(t->left, flags|XPIPEO|XCCLOSE, pv[0]);
-#ifndef __amigaos4__
+#ifndef AMIGA
                         (void) ksh_dup2(pv[0], 0, FALSE); /* stdin of next */
                         closepipe(pv);
 #else
@@ -200,7 +200,7 @@ execute(t, flags)
                         flags |= XPIPEI;
                         t = t->right;
                 }
-#ifndef __amigaos4__
+#ifndef AMIGA
                 restfd(1, e->savefd[1]); /* stdout of last */
                 e->savefd[1] = 0; /* no need to re-restore this */
                 /* Let exchild() close 0 in parent, after fork, before wait */
@@ -421,7 +421,7 @@ execute(t, flags)
                 ksh_execve(t->str, t->args, ap, (flags & XINTACT) ? 1 : 0);
                 if (errno == ENOEXEC)
                         scriptexec(t, ap);
-#ifndef __amigaos4__                    
+#ifndef AMIGA
                 else
                         errorf("%s: %s", s, strerror(errno));
 #endif                  

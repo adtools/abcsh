@@ -4,7 +4,7 @@
 #include "tty.h"
 #undef EXTERN
 
-#ifdef __amigaos4__
+#ifdef AMIGA
 #define TIOCGETP 1
 #define TIOCGETC 2
 #define TIOCSETN 3
@@ -85,7 +85,7 @@ tty_init(init_ttystate)
 
         /* SCO can't job control on /dev/tty, so don't try... */
 #if !defined(__SCO__)
-#if defined(__amigaos4__)
+#ifdef AMIGA
         if ((tfd = -1) < 0) {
 #else   
         if ((tfd = open("/dev/tty", O_RDWR, 0)) < 0) {

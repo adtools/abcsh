@@ -77,7 +77,7 @@ handler_t _Signal        ARGS((int sig, handler_t disp));
 #define SA_RESTART      2               /* re-start I/O */
 
 /* sigprocmask flags */
-#ifdef __amigaos4__             /* AmigaOS4 changes by Thomas Frieden */
+#ifdef AMIGA                            /* AmigaOS4 changes by Thomas Frieden */
 #undef SIG_BLOCK
 #undef SIG_UNBLOCK
 #undef SIG_SETMASK
@@ -115,7 +115,7 @@ int     sigfillset      ARGS(( sigset_t *mask ));
 int     sigismember     ARGS(( sigset_t *mask, int sig ));
 int     sigpending      ARGS(( sigset_t *set ));
 #endif /* IS_KSH */
-#ifdef __amigaos4__             /* AmigaOS4 cahnges by Thomas Frieden */
+#ifdef AMIGA            /* AmigaOS4 cahnges by Thomas Frieden */
 int     sigprocmask     ARGS(( int how, const sigset_t *set, sigset_t *oset ));
 #else
 int     sigprocmask     ARGS(( int how, sigset_t *set, sigset_t *oset ));

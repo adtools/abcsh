@@ -178,7 +178,7 @@ j_exit()
 
 /* execute tree in child subprocess */
 
-#ifndef __amigaos4__
+#ifndef AMIGA
 int
 exchild(t, flags, close_fd)
         struct op       *t;

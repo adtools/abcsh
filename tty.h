@@ -34,7 +34,7 @@
  * available, otherwise it uses TIOCGETC/TIOCSETC (also uses TIOCGLTC/TIOCSLTC
  * if available)
  */
-#  if defined(__amigaos4__)
+#  ifdef AMIGA
 #define CBREAK 1
 #define ECHO 2
 struct sgttyb

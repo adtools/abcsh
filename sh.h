@@ -59,7 +59,7 @@ extern int errno;
 
 #include <signal.h>
 
-#ifdef __amigaos4__
+#ifdef AMIGA
 #define NSIG    32
 #define SIGQUIT 7
 #define SIGCHLD 8
@@ -104,7 +104,7 @@ typedef void (*handler_t) ARGS((int));  /* signal handler */
 /* Special cases for execve(2) */
 #define ksh_execve(p, av, ev, flags)    execve(p, av, ev)
 
-#ifdef __amigaos4__
+#ifdef AMIGA
 #define ksh_dupbase(fd, base) amigaos_dupbbase(fd, base)
 #else
 #define ksh_dupbase(fd, base) fcntl(fd, F_DUPFD, base)

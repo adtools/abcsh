@@ -242,10 +242,6 @@ sigaction(sig, act, oact)
   return 0;                             /* hey we're faking it */
 }
 
-#ifdef __amigaos4__             /* AmigaOS4 changes by Thomas Frieden */
-//#undef sigaddset
-//#undef sigemptyset
-#endif
 
 int
 sigaddset(mask, sig)
@@ -313,7 +309,7 @@ sigpending(set)
 int
 sigprocmask(how, set, oset)
   int how;
-#ifdef __amigaos__
+#ifdef AMIGA
   const sigset_t *set;
   sigset_t *oset;
 #else  

@@ -30,7 +30,7 @@ memmove(d, s, n)
         return d;
 }
 
-#ifdef __amigaos4__
+#ifdef AMIGA
 INT32
 ksh_times(void *tms)
 {

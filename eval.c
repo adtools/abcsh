@@ -6,9 +6,11 @@
 #include <pwd.h>
 #include "ksh_dir.h"
 #include "ksh_stat.h"
-#ifdef __amigaos4__
+
+#ifdef AMIGA
 char amigaos_getc(int fd);
 int amigaos_ungetc(char c, int fd);
+
 /*structure for linked comsub() pipe input fd list*/
 struct linkedfd{ 
         struct  linkedfd *prev;
@@ -19,7 +21,7 @@ struct linkedfd  *xxcom_nextin_p = NULL;/*current nextin*/
 struct linkedfd  *nextin_tmp_p; /*from swapping etc*/
 extern int  amigain , amigaout;
 int amigaos_comsub = 0, /*counter of inputs*/
-        xxcom_nextin;/*holds the current fd*/
+    xxcom_nextin;       /*holds the current fd*/
 #endif
 
 /*
@@ -524,7 +526,7 @@ expand(cp, wp, f)
                                 c = '\n';
                                 --newlines;
                         } else {
-#ifdef __amigaos4__
+#ifdef AMIGA
 /*pending input pipe*/
                                 if(amigaos_comsub > 0)
                                 {
@@ -570,13 +572,13 @@ expand(cp, wp, f)
                                 }
 #endif
                         }
-#ifdef __amigaos4__
+#ifdef AMIGA
 /*translate amigaos EOF to EOF*/
                         c = (c == 255) ? EOF : c; 
 #endif
                         if (c == EOF) {
                                 newlines = 0;
-#ifdef __amigaos4__
+#ifdef AMIGA
 /*close amiga pipe, delete last in list, decrease count*/
                                 if (amigaos_comsub > 0)
                                 {
@@ -940,7 +942,7 @@ comsub(xp, cp)
                 xp->split = 0;  /* no waitlast() */
         } else {
                 int ofd1, pv[2];
-#ifndef __amigaos4__ 
+#ifndef AMIGA
                 openpipe(pv);//printf("PIPE\n"); fflush(stdout);
                 shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
 #else 
@@ -948,7 +950,7 @@ comsub(xp, cp)
                 pipe(pv);
 #endif
 
-#ifndef __amigaos4__ 
+#ifndef AMIGA
                 ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
                 ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);

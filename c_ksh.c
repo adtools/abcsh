@@ -5,11 +5,14 @@
 #include "sh.h"
 #include "ksh_stat.h"
 #include <ctype.h>
-#ifdef __amigaos4__
+
+#ifdef AMIGA
 extern int amigaout;
 int amigaos_write(int fd, void *b, int len);
 int amigaos_getstdfd(int fd);
 #endif
+
+
 int
 c_cd(wp)
         char    **wp;
@@ -209,10 +212,10 @@ c_print(wp)
 #define PO_HIST         BIT(3)  /* print to history instead of stdout */
 #define PO_COPROC       BIT(4)  /* printing to coprocess: block SIGPIPE */
 #define PO_FSLASH       BIT(5)  /* swap slash for backslash */
-#ifndef __amigaos4__
+#ifndef AMIGA
         int fd = 1;
 #else 
-        int fd = amigaos_getstdfd( amigaout);
+        int fd = amigaos_getstdfd(amigaout);
 #endif
         int flags = PO_EXPAND|PO_NL;
         char *s;
@@ -373,7 +376,7 @@ c_print(wp)
                 }
 #endif /* KSH */
                 for (s = Xstring(xs, xp); len > 0; ) {
-#ifndef __amigaos4__
+#ifndef AMIGA
                         n = write(fd, s, len);
 #else
                         n = amigaos_write(fd, s, len);

@@ -19,10 +19,6 @@
 #include "sh.h"
 #include "ksh_time.h"
 
-#ifdef __amigaos4__
-//typedef unsigned int rlim_t;
-#endif
-
 #define SOFT    0x1
 #define HARD    0x2
 

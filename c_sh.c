@@ -7,14 +7,12 @@
 #include "ksh_time.h"
 #include "ksh_times.h"
 
-#ifdef __amigaos4__
-
+#ifdef AMIGA
 extern int amigain;
 
 int amigaos_read(int fd, void *b, int len);
 char amigaos_getc(int fd);
 int amigaos_getstdfd(int fd);
-
 #endif
 
 static  char *clocktos ARGS((INT32 t));
@@ -251,7 +249,7 @@ c_read(wp)
         int expanding;
         int ecode = 0;
         register char *cp;
-#ifndef __amigaos4__
+#ifndef AMIGA
         int fd = 0;
 #else
         int fd = amigaos_getstdfd(amigain);
@@ -298,7 +296,7 @@ c_read(wp)
         /* Since we can't necessarily seek backwards on non-regular files,
          * don't buffer them so we can't read too much.
          */
-#ifndef __amigaos4__
+#ifndef AMIGA
         shf = shf_reopen(fd, SHF_RD | SHF_INTERRUPT | can_seek(fd), shl_spare);
 #endif
         
@@ -336,7 +334,7 @@ c_read(wp)
                         if (c == '\n' || c == EOF)
                                 break;
                         while (1) {
-#ifndef __amigaos4__
+#ifndef AMIGA
                                 c = shf_getc(shf);
 #else
                                 c = amigaos_getc(fd);
@@ -345,7 +343,7 @@ c_read(wp)
                                 if (c == '\0'
                                     )
                                         continue;
-#ifndef __amigaos4__
+#ifndef AMIGA
                                 if (c == EOF && shf_error(shf)
                                     && shf_errno(shf) == EINTR)
                                 {
@@ -404,7 +402,7 @@ c_read(wp)
                 vp = global(*wp);
                 /* Must be done before setting export. */
                 if (vp->flag & RDONLY) {
-#ifndef __amigaos4__
+#ifndef AMIGA
                         shf_flush(shf);
 #else
                         close(fd);
@@ -415,7 +413,7 @@ c_read(wp)
                 if (Flag(FEXPORT))
                         typeset(*wp, EXPORTV, 0, 0, 0);
                 if (!setstr(vp, Xstring(cs, cp), KSH_RETURN_ERROR)) {
-#ifndef __amigaos4__
+#ifndef AMIGA
                         shf_flush(shf);
 #else
                         close(fd);
@@ -424,7 +422,7 @@ c_read(wp)
                 }
         }
 
-#ifndef __amigaos4__
+#ifndef AMIGA
         shf_flush(shf);
 #else
         close(fd);
