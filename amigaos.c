@@ -5,9 +5,10 @@
 
 #include "sh.h"
 
+#include <dos/dos.h>
+#include <dos/dostags.h>
 #include <proto/dos.h>
 #include <proto/exec.h>
-#include <dos/dos.h>
 
 #define FUNC //printf("<%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
@@ -15,29 +16,34 @@
 /*used to stdin/out fds*/
 int amigain = -1, amigaout = -1;
 
+
 char amigaos_getc(int fd)
 {
         char c;
         
-        return IDOS->FGetC(fd);
+        return FGetC(fd);
 }
+
 int amigaos_write(int fd, void *b, int len)
 {
-        return IDOS->Write(fd, b, len);
+        return Write(fd, b, len);
 }
+
 int amigaos_read(int fd, void *b, int len)
 {
-                return IDOS->Read(fd, b, len);
+        return Read(fd, b, len);
 }
 
 int amigaos_ungetc(char c, int fd)
 {
-        return IDOS->UnGetC(fd, c) ;
+        return UnGetC(fd, c) ;
 }
+
 int amigaos_getstdfd(int fd)
 {
-        return (fd == -1 ? IDOS->Open("CONSOLE:",MODE_OLDFILE) : fd);
+        return (fd == -1 ? Open("CONSOLE:",MODE_OLDFILE) : fd);
 }
+
 int amigaos_isabspath(const char *path)
 {FUNC;
         if (*path == '/')
@@ -110,16 +116,16 @@ int pipe(int filedes[2])
 //      filedes[0] = open(pipe_name, O_WRONLY|O_CREAT);
 //      filedes[1] = open(pipe_name, O_RDONLY); 
 
-        filedes[1] = IDOS->Open(pipe_name, MODE_NEWFILE);
-        filedes[0] = IDOS->Open(pipe_name, MODE_OLDFILE);
+        filedes[1] = Open(pipe_name, MODE_NEWFILE);
+        filedes[0] = Open(pipe_name, MODE_OLDFILE);
 
 
         if (filedes[0] == -1 || filedes[1] == -1)
         {
                 if (filedes[0] != -1)
-                        IDOS->Close(filedes[0]);
+                        Close(filedes[0]);
                 if (filedes[1] != -1)
-                        IDOS->Close(filedes[0]);
+                        Close(filedes[0]);
 
                 FUNCX;
                 return -1;
@@ -136,8 +142,8 @@ int openstdinout()
         FUNC;
         int mystdin, mystdout;
 
-        mystdin = IDOS->Open("CONSOLE:", MODE_OLDFILE);
-        mystdout = IDOS->Open("CONSOLE:", MODE_OLDFILE);
+        mystdin = Open("CONSOLE:", MODE_OLDFILE);
+        mystdout = Open("CONSOLE:", MODE_OLDFILE);
 
         ksh_dup2(mystdin, 0, FALSE);
         ksh_dup2(mystdout, 1, FALSE);
@@ -268,7 +274,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         strcat(full, *cur);
                         strcat(full, " ");
                 }
-                IDOS->SystemTags(full, TAG_DONE);
+                SystemTags(full, TAG_DONE);
 
                 free(full);
                 FUNCX;
@@ -301,17 +307,17 @@ LONG execute_child(STRPTR args, int len)
         int flags;
         struct Task *parent;
         struct Task *this;
-        this = IExec->FindTask(0);
-                
+
+        this = FindTask(0);
         t = ((struct userdata *)this->tc_UserData)->t;
         flags = ((struct userdata*)this->tc_UserData)->flags;
         parent = ((struct userdata*)this->tc_UserData)->parent;
 
 //      sscanf(args, "%08lx %08lx %08lx", &t, &flags, &parent);
 
-	execute(t, flags & (XEXEC | XERROK));
+        execute(t, flags & (XEXEC | XERROK));
 
-        IExec->Signal(parent, SIGBREAKF_CTRL_F);
+        Signal(parent, SIGBREAKF_CTRL_F);
         return 0;
 }
 
@@ -331,7 +337,8 @@ exchild(t, flags, close_fd)
         int inputfd = -1, outputfd = -1;
 
         char args[30];
-        struct Task *thisTask = IExec->FindTask(0);
+        struct Process *proc;
+        struct Task *thisTask = FindTask(0);
         struct userdata taskdata;
 
         FUNC;
@@ -371,39 +378,44 @@ exchild(t, flags, close_fd)
                         inputfd = amigain;
                 }
                 else
-                        inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+                        inputfd = Open("CONSOLE:",MODE_OLDFILE);
                         
                 if (amigaout != -1)
                         outputfd = amigaout;
                 else
-                        outputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+                        outputfd = Open("CONSOLE:",MODE_OLDFILE);
                         
         }
         else
         {
-                        outputfd =IDOS->Open("CONSOLE:",MODE_OLDFILE);
-                        inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+                        outputfd = Open("CONSOLE:",MODE_OLDFILE);
+                        inputfd = Open("CONSOLE:",MODE_OLDFILE);
         }
 
-        IDOS->CreateNewProcTags(
+        proc = CreateNewProcTags(
                         NP_Entry,               execute_child,
 /*                      NP_Child,               TRUE, */
                         NP_Input,               inputfd,
                         NP_CloseInput,          close_fd_i,
                         NP_Output,              outputfd,
                         NP_CloseOutput,         close_fd_o,
-//                      NP_Error,               IDOS->ErrorOutput(),
+//                      NP_Error,               ErrorOutput(),
 //                      NP_CloseError,          FALSE,
 //                      NP_Arguments,           args,
+#ifdef __amigaos4__
                         NP_UserData,            (int)&taskdata,
+#endif
                         TAG_DONE);
 
+#ifndef __amigaos4__
+        proc->pr_Task.tc_UserData = &taskdata;
+#endif
                         
-        IExec->Wait(SIGBREAKF_CTRL_F);          
+        Wait(SIGBREAKF_CTRL_F);          
 /*close pipe input*/
 
         if (!close_fd_i)
-                IDOS->Close(inputfd);
+                Close(inputfd);
 
 /*restore to stdin/out*/
         amigain = amigaout = -1;
@@ -411,4 +423,3 @@ exchild(t, flags, close_fd)
         FUNCX;          
         return 0;
 }
-        

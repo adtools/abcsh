@@ -7,11 +7,18 @@
 #include <dos/var.h>
 
 #ifdef AUTOINIT
+#ifdef __GNUC__
 void ___makeenviron() __attribute__((constructor));
 void ___freeenviron() __attribute__((destructor));
 #endif
+#ifdef __VBCC__
+#define ___makeenviron() _INIT_9_makeenviron()
+#define ___freeenviron() _EXIT_9_makeenviron()
+#endif
+#endif
 
 char **environ = NULL;
+
 
 uint32
 size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
@@ -30,7 +37,7 @@ copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
         {
                 char **env = (char **)hook->h_Data;
                 uint32 size = strlen(message->sv_Name) + 1 + message->sv_VarLen + 1 + 1;
-                char *buffer=(char *)IExec->AllocVec((uint32)size,MEMF_ANY|MEMF_CLEAR);
+                char *buffer=(char *)AllocVec((uint32)size,MEMF_ANY|MEMF_CLEAR);
 
                 sprintf(buffer, "%s=%s\n", message->sv_Name, message->sv_Var);
 
@@ -49,10 +56,10 @@ ___makeenviron()
         hook.h_Entry = size_env;
         hook.h_Data = 0;
 
-        IDOS->ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
+        ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
         hook.h_Data++;
 
-        environ = (char **)IExec->AllocVec((uint32)hook.h_Data*sizeof(char **), MEMF_ANY|MEMF_CLEAR );
+        environ = (char **)AllocVec((uint32)hook.h_Data*sizeof(char **), MEMF_ANY|MEMF_CLEAR );
         if (!environ)
         {
                 return;
@@ -60,7 +67,7 @@ ___makeenviron()
         hook.h_Entry = copy_env;
         hook.h_Data = environ;
 
-        IDOS->ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
+        ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
 }
 
 void
@@ -69,8 +76,8 @@ ___freeenviron()
         char **i;
         for(i=environ;*i!=NULL;i++)
         {
-                IExec->FreeVec(*i);
+                FreeVec(*i);
         }
 
-        IExec->FreeVec(environ);
+        FreeVec(environ);
 }

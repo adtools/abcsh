@@ -16,6 +16,10 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifdef __amigaos4__
+#define __USE_INLINE__
+#endif
+
 void *memmove ARGS((void *d, const void *s, size_t n));
 
 #include <stdarg.h>
@@ -147,7 +151,8 @@ extern int dup2 ARGS((int, int));
  * unix         foo             no              no              yes
  * unix         ../foo          no              no              yes
  */
-#if defined (__amigaos4__)
+
+#ifdef AMIGA
 # define PATHSEP        ';'
 # define DIRSEP         '/'     
 # define DIRSEPSTR      "/"
