@@ -1778,7 +1778,10 @@ void restoreenv(struct globals *globenv)
     free(taliases);
     free(aliases);
 
-    /* determine how to free e */
+    /* free copy environment and it's ATEMP */
+
+    afreeall(&e->area);
+    free(e);
 
     /* restore old tables and environment */
 
