@@ -1,10 +1,16 @@
 #include "sh.h"
-#include <utility/hooks.h>
+#include <exec/memory.h>
 #include <dos/dos.h>
 #include <dos/var.h>
+#include <utility/hooks.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/utility.h>
+
+char **environ = NULL;
+
+
+#ifdef __amigaos4__
 
 #ifdef AUTOINIT
 #ifdef __GNUC__
@@ -17,14 +23,13 @@ void ___freeenviron() __attribute__((destructor));
 #endif
 #endif
 
-char **environ = NULL;
 
 uint32
 size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 {
         if(strlen(message->sv_GDir) == 4)
         {
-                (uint32)hook->h_Data++;
+                hook->h_Data = (APTR)(((uint32)hook->h_Data) + 1);
         }
         return 0;
 }
@@ -56,7 +61,7 @@ ___makeenviron()
         hook.h_Data = 0;
 
         ScanVars(&hook, GVF_GLOBAL_ONLY, 0);
-        hook.h_Data++;
+        hook.h_Data = (APTR)(((uint32)hook.h_Data) + 1);
 
         environ = (char **)AllocVec((uint32)hook.h_Data*sizeof(char **), MEMF_ANY|MEMF_CLEAR );
         if (!environ)
@@ -80,3 +85,4 @@ ___freeenviron()
 
         FreeVec(environ);
 }
+#endif
