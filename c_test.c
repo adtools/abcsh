@@ -12,7 +12,6 @@
 #include "c_test.h"
 
 #include <dos/dosextens.h>
-#include <proto/exec.h>
 #include <proto/dos.h>
 
 
@@ -428,17 +427,20 @@ test_stat(path, statb)
 {
         int fd;
         int result;
-        APTR oldwin, *wptr=&((struct Process *)FindTask(NULL))->pr_WindowPtr;
+        APTR oldwin;
 
-        /* borrow a trick from libnix to supress pesky DOS requesters */
-        oldwin = *wptr;
-        *wptr  = (APTR)-1;
+        /* supress DOS reqs whilst stating */
+
+        oldwin = SetProcWindow((APTR)-1L);
+
 
         if (strncmp(path, "/dev/fd/", 8) == 0 && getn(path + 8, &fd))
                 return fstat(fd, statb);
 
         result = stat(path, statb);
-        *wptr = oldwin;
+
+        SetProcWindow(oldwin);
+
         return result;
 
 }
