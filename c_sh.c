@@ -416,7 +416,8 @@ int
 c_eval(wp)
 	char **wp;
 {
-	register struct source *s;
+	register struct source *s,*olds=source;
+	int retval, errexitflagtmp;
 
 	if (ksh_getopt(wp, &builtin_opt, null) == '?')
 		return 1;
@@ -449,8 +450,12 @@ c_eval(wp)
 		 */
 		exstat = subst_exstat;
 	}
-
-	return shell(s, FALSE);
+	errexitflagtmp = Flag(FERREXIT);
+	Flag(FERREXIT) = 0;
+	retval=shell(s, FALSE);
+	Flag(FERREXIT) = errexitflagtmp;
+	source=olds;
+	return retval;
 }
 
 int
