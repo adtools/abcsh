@@ -93,7 +93,9 @@ main(argc, argv)
                 argv = (char **) empty_argv;
                 argc = 1;
         }
-        kshname = *argv;
+
+        kshname = convert_path_a2u(*argv);
+
         aperm = &perm_space;
         ainit(aperm);          /* initialize permanent Area */
 

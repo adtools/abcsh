@@ -912,21 +912,7 @@ varsub(xp, sp, word, stypep, slenp)
  */
 
 
-struct globals
-{
-    struct env *e;
-    struct table *homedirs;
-    struct table *taliases;
-    struct table *aliases;
-    Trap **sigtraps;
-    void *path;
-    Area *aperm;
-    int fd[NUFILE];
 
-};
-
-struct env *copyenv(struct globals *);
-void restoreenv(struct globals *);
 
 
 static int

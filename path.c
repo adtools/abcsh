@@ -12,6 +12,11 @@
 
 /*
  * $Log$
+ * Revision 1.4  2005/03/01 14:08:47  broadblues
+ * Move the struct globals to sh.h so it can be used throughout.
+ * convert program name to unix path
+ * improve release of resources in restoreenv()
+ *
  * Revision 1.3  2004/11/24 23:07:12  hnl_dk
  * Frank didtab the sources for me... thanks Frank... sorry for all the mess :-(
  *
@@ -31,23 +36,23 @@
  *
  * Revision 4.1  90/10/29  14:42:19  larry
  * base MUN version
- * 
+ *
  * Revision 3.1.0.4  89/02/16  20:28:36  larry
  * Forgot to set *pathlist to NULL when last changed make_path().
- * 
+ *
  * Revision 3.1.0.3  89/02/13  20:29:55  larry
  * Fixed up cd so that it knew when a node from CDPATH was used and would
  * print a message only when really necessary.
- * 
+ *
  * Revision 3.1.0.2  89/02/13  17:51:22  larry
  * Merged with Eric Gisin's version.
- * 
+ *
  * Revision 3.1.0.1  89/02/13  17:50:58  larry
  * *** empty log message ***
- * 
+ *
  * Revision 3.1  89/02/13  17:49:28  larry
  * *** empty log message ***
- * 
+ *
  */
 
 #ifdef S_ISLNK
@@ -157,6 +162,7 @@ simplify_path(path)
         char    *very_start = path;
         char    *start;
 
+
         if (!*path)
                 return;
 
@@ -203,6 +209,7 @@ simplify_path(path)
                                 t += 2;
                                 continue;
                         }
+
                 }
 
                 if (cur != very_start)
@@ -211,7 +218,9 @@ simplify_path(path)
                 /* find/copy next component of pathname */
                 while (*t && !ISDIRSEP(*t))
                         *cur++ = *t++;
+
         }
+
 }
 
 

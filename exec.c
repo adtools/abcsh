@@ -36,26 +36,6 @@ static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 void printflags(struct tbl *t);
 #endif
 
-/* this structure is used to store the current environment before executing */
-/* a "subshell" or similar */
-
-struct globals
-{
-    struct env *e;
-    struct table *homedirs;
-    struct table *taliases;
-    struct table *aliases;
-    Trap **sigtraps;
-    void *path;
-    Area *aperm;
-    char *current_wd;
-    int fd[NUFILE];
-
-};
-
-struct env *copyenv(struct globals *);
-void restoreenv(struct globals *);
-
 /*
  * handle systems that don't have F_SETFD
  */
@@ -1683,7 +1663,7 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
 
 
 
-struct env *copyenv(struct globals *globenv )
+void copyenv(struct globals *globenv )
 {
     /* make a copy of the curent environment tree */
     struct env *copy;
@@ -1779,10 +1759,15 @@ void restoreenv(struct globals *globenv)
     free(aliases);
 
     /* free copy environment and it's ATEMP */
-
-    afreeall(&e->area);
-    free(e);
-
+    {
+        struct block *l = e->loc;
+        for(;l;l=l->next)
+        {
+            afreeall(&l->area);
+        }
+        afreeall(&e->area);
+        free(e);
+    }
     /* restore old tables and environment */
 
  //   sigtraps = globenv->sigtraps;

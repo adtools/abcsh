@@ -457,6 +457,7 @@ test_eaccess(path, mode)
 
         int fd;
 
+
         /* Note: doesn't handle //dev/fd, etc.. (this is ok) */
         if (strncmp(path, "/dev/fd/", 8) == 0 && getn(path + 8, &fd)) {
                 int flags;

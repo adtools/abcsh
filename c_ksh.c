@@ -12,7 +12,6 @@ int amigaos_write(int fd, void *b, int len);
 int amigaos_getstdfd(int fd);
 #endif
 
-
 int
 c_cd(wp)
         char    **wp;
@@ -29,6 +28,7 @@ c_cd(wp)
         int phys_path;
         char *cdpath;
 
+
         while ((optc = ksh_getopt(wp, &builtin_opt, "LP")) != EOF)
                 switch (optc) {
                 case 'L':
@@ -42,8 +42,10 @@ c_cd(wp)
                 }
         wp += builtin_opt.optind;
 
+
         pwd_s = global("PWD");
         oldpwd_s = global("OLDPWD");
+
 
         if (!wp[0]) {
                 /* No arguments - go home */
@@ -61,6 +63,7 @@ c_cd(wp)
                                 return 1;
                         }
                         printpath++;
+
                 }
         } else if (!wp[2]) {
                 /* Two arguments - substitute arg1 in PWD for arg2 */
@@ -89,30 +92,39 @@ c_cd(wp)
                 memcpy(dir + ilen, wp[1], nlen);
                 memcpy(dir + ilen + nlen, current_wd + ilen + olen, elen);
                 printpath++;
+
         } else {
                 bi_errorf("too many arguments");
                 return 1;
         }
 
+
         Xinit(xs, xp, PATH, ATEMP);
         /* xp will have a bogus value after make_path() - set it to 0
          * so that if it's used, it will cause a dump
          */
+
         xp = (char *) 0;
 
         cdpath = str_val(global("CDPATH"));
+
         do {
                 cdnode = make_path(current_wd, dir, &cdpath, &xs, &phys_path);
+
 #ifdef S_ISLNK
                 if (physical)
                         rval = chdir(try = Xstring(xs, xp) + phys_path);
                 else
 #endif /* S_ISLNK */
                 {
+
                         simplify_path(Xstring(xs, xp));
+
                         rval = chdir(try = Xstring(xs, xp));
                 }
         } while (rval < 0 && cdpath != (char *) 0);
+
+
 
         if (rval < 0) {
                 if (cdnode)
@@ -123,7 +135,9 @@ c_cd(wp)
         }
 
         /* Clear out tracked aliases with relative paths */
+
         flushcom(0);
+
 
         /* Set OLDPWD (note: unsetting OLDPWD does not disable this
          * setting in at&t ksh)
@@ -144,6 +158,7 @@ c_cd(wp)
         if (pwd) {
                 char *ptmp = pwd;
                 set_current_wd(ptmp);
+
                 /* Ignore failure (happens if readonly or integer) */
                 setstr(pwd_s, ptmp, KSH_RETURN_ERROR);
         } else {
@@ -153,6 +168,7 @@ c_cd(wp)
         }
         if (printpath || cdnode)
                 shprintf("%s\n", pwd);
+
 
         return 0;
 }
@@ -826,7 +842,6 @@ c_typeset(wp)
                                 shprintf("%s", vp->name);
                             if (thing == '-' && (vp->flag&ISSET)) {
                                 char *s = str_val(vp);
-
                                 shprintf("=");
                                 /* at&t ksh can't have justified integers.. */
                                 if ((vp->flag & (INTEGER|LJUST|RJUST))

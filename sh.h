@@ -8,6 +8,7 @@
 
 /* Start of common headers */
 
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <setjmp.h>
@@ -543,7 +544,26 @@ EXTERN int      current_wd_size;
 #define KSH_UNWIND_ERROR        0       /* unwind the stack (longjmp) */
 #define KSH_RETURN_ERROR        1       /* return 1/0 for success/failure */
 
-extern int lastresult;
+extern int lastresult; /* Last return code set by an extrenal command or subprocess */
+
+/* this structure is used to store the current environment before executing */
+/* a "subshell" or similar */
+
+struct globals
+{
+    struct env *e;
+    struct table *homedirs;
+    struct table *taliases;
+    struct table *aliases;
+    Trap **sigtraps;
+    void *path;
+    Area *aperm;
+    char *current_wd;
+    int fd[NUFILE];
+
+};
+
+
 
 #include "shf.h"
 #include "table.h"
@@ -551,6 +571,8 @@ extern int lastresult;
 #include "expand.h"
 #include "lex.h"
 #include "proto.h"
+
+#undef S_ISLNK
 
 /* be sure not to interfere with anyone else's idea about EXTERN */
 #ifdef EXTERN_DEFINED

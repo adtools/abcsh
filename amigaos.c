@@ -184,7 +184,21 @@ int wait(int *status)
         return -1;
 }
 
-char *convert_path(const char *filename)
+char *convert_path_a2u(const char *filename)
+{
+    struct name_translation_info nti;
+
+    if(!filename)
+    {
+        return 0;
+    }
+
+    __translate_amiga_to_unix_path_name(&filename,&nti);
+
+    return strdup(filename);
+
+}
+char *convert_path_u2a(const char *filename)
 {
         struct name_translation_info nti;
         FUNC;
@@ -252,6 +266,7 @@ static BOOL contains_whitespace(char *string)
     if(strchr(string,'\t')) return TRUE;
     if(strchr(string,'\n')) return TRUE;
     if(strchr(string,0xA0)) return TRUE;
+    if(strchr(string,'"')) return TRUE;
     return FALSE;
 }
 
@@ -261,6 +276,7 @@ static int no_of_escapes(char *string)
     char *p;
     for(p=string;p<string + strlen(string);p++)
     {
+        if(*p=='"') cnt++;
         if(*p=='*') cnt++;
         if(*p=='\n') cnt++;
         if(*p=='\t') cnt++;
@@ -331,7 +347,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         }
 
         /* Allocate the command line */
-        filename_conv = convert_path(filename);
+        filename_conv = convert_path_u2a(filename);
 
 
         if(filename_conv)
@@ -342,7 +358,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         {
             if (interpreter)
             {
-                interpreter_conv = convert_path(interpreter);
+                interpreter_conv = convert_path_u2a(interpreter);
 #if !defined(__USE_RUNCOMMAND__)
 #warning (using system!)
                 sprintf(full, "%s %s %s ", interpreter_conv, interpreter_args,filename_conv);
@@ -387,6 +403,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         {
                             if(*p == '\t'){ *q++ = '*'; *q++ = 'T';p++;continue;}
                             else if(*p == '\n'){ *q++ = '*'; *q++ = 'N';p++;continue;}
+                            else if(*p == '"'){ *q++ = '*'; *q++ = '"';p++;continue;}
                             else if(*p == '*' ){ *q++ = '*';}
                             *q++ = *p++;
                         }
@@ -429,7 +446,6 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 BPTR seglist = LoadSeg(fname);
                 if(seglist)
                 {
-
 
                     SetProgramName(fname);
                     lastresult=RunCommand(seglist,8*1024,full,strlen(full));
@@ -478,13 +494,24 @@ LONG execute_child(STRPTR args, int len)
         int flags;
         struct Task *parent;
         struct Task *this;
+        struct globals globenv;
 
         this = FindTask(0);
         t = ((struct userdata *)this->tc_UserData)->t;
         flags = ((struct userdata*)this->tc_UserData)->flags;
         parent = ((struct userdata*)this->tc_UserData)->parent;
 
-        execute(t, flags & (XEXEC | XERROK));
+        copyenv(&globenv);
+        e->type=E_SUBSHELL;
+        if(!(ksh_sigsetjmp(e->jbuf,0)))
+        {
+            execute(t, flags & (XEXEC | XERROK));
+        }
+        else
+        {
+            lastresult = exstat;
+        }
+        restoreenv(&globenv);
         Forbid();
         Signal(parent, SIGBREAKF_CTRL_F);
 

@@ -70,6 +70,11 @@ char *  search          ARGS((const char *name, const char *path, int mode,
                               int *errnop));
 int     search_access   ARGS((const char *path, int mode, int *errnop));
 int     pr_menu         ARGS((char *const *ap));
+
+void    copyenv         ARGS((struct globals *));
+void    restoreenv      ARGS((struct globals *));
+
+
 /* expr.c */
 int     evaluate        ARGS((const char *expr, long *rval, int error_ok));
 int     v_evaluate      ARGS((struct tbl *vp, const char *expr, volatile int error_ok));
@@ -247,3 +252,11 @@ int     array_ref_len   ARGS((const char *cp));
 char *  arrayname       ARGS((const char *str));
 void    set_array       ARGS((const char *var, int reset, char **vals));
 /* version.c */
+
+/*amigaos.c*/
+
+char *convert_path_u2a ARGS((const char *filename));
+char *convert_path_a2u ARGS((const char *filename));
+
+/* debug.c */
+int VARARGS68K adebug(STRPTR fmt, ...);
