@@ -94,7 +94,7 @@ main(argc, argv)
                 argc = 1;
         }
 
-        kshname = convert_path_a2u(*argv);
+        kshname = *argv;
 
         aperm = &perm_space;
         ainit(aperm);          /* initialize permanent Area */
@@ -293,7 +293,7 @@ main(argc, argv)
         l = e->loc;
         l->argv = &argv[argi - 1];
         l->argc = argc - argi;
-        l->argv[0] = (char *) kshname;
+        l->argv[0] = (char *) convert_path_a2u(kshname);
         getopts_reset(1);
 
         errexit = Flag(FERREXIT);

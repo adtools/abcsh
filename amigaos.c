@@ -12,6 +12,7 @@
 #endif
 #include <proto/dos.h>
 #include <proto/exec.h>
+#include <proto/utility.h>
 
 #define FUNC //printf("<%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
@@ -111,13 +112,15 @@ unsigned int alarm(unsigned int seconds)
         return 1;
 }
 
+static int pipenum = 0;
 
 int pipe(int filedes[2])
 {
         char pipe_name[1024];
-        FUNC;
 
-        sprintf(pipe_name, "/PIPE/%s%d/32000/5\n", tmpnam(0),(int)FindTask(0));
+        sprintf(pipe_name, "/PIPE/%x%08x/4096/0\n", pipenum++,GetUniqueID());
+
+        adebug("Creating pipe %s\n",pipe_name);
 
 /*      printf("pipe: %s \n", pipe_name);*/
 
@@ -128,7 +131,7 @@ int pipe(int filedes[2])
         filedes[1] = Open(pipe_name, MODE_NEWFILE);
         filedes[0] = Open(pipe_name, MODE_OLDFILE);
 #endif/*CLIBHACK*/
-
+    adebug("pipe descriptors %ld %ld\n",filedes[0],filedes[1]);
     if (filedes[0] == -1 || filedes[1] == -1)
         {
 #ifdef CLIBHACK
@@ -317,6 +320,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             size += strlen(*cur) + 1 + (contains_whitespace(*cur)?(2 + no_of_escapes(*cur)):0);
         }
         /* Check if it's a script file */
+
         fh = fopen(filename, "r");
         if (fh)
         {
@@ -345,6 +349,16 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
                 fclose(fh);
         }
+        else
+        {
+            /* We couldn't open this why not? */
+            if(errno == ENOENT)
+            {
+                /* file didn't exist! */
+                return -1;
+            }
+        }
+
 
         /* Allocate the command line */
         filename_conv = convert_path_u2a(filename);
@@ -442,15 +456,34 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 #else
 
             if (fname){
+            adebug("command: %s %s",fname,full);
 
                 BPTR seglist = LoadSeg(fname);
                 if(seglist)
                 {
 
-                    SetProgramName(fname);
-                    lastresult=RunCommand(seglist,8*1024,full,strlen(full));
+                    /* check if we have an executable! */
+                    struct PseudoSegList *ps = NULL;
+                    if(!GetSegListInfoTags( seglist, GSLI_Native, &ps, TAG_DONE))
+                    {
+                        GetSegListInfoTags( seglist, GSLI_68KPS, &ps, TAG_DONE);
+                    }
+                    if( ps != NULL )
+                    {
+                        SetProgramName(fname);
+                        lastresult=RunCommand(seglist,8*1024,full,strlen(full));
+                        errno=0;
+                    }
+                    else
+                    {
+                        errno=ENOEXEC;
+                    }
                     UnLoadSeg(seglist);
 
+                }
+                else
+                {
+                    errno=ENOEXEC;
                 }
                free(fname);
             }
@@ -459,6 +492,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
             free(full);
             FUNCX;
+            if(errno == ENOEXEC) return -1;
             return 0;
         }
 
@@ -468,6 +502,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             free(filename_conv);
 
         errno = ENOMEM;
+
         FUNCX;
         return -1;
 }
@@ -574,6 +609,7 @@ exchild(t, flags, close_fd)
             if(close_fd == i) amigafd_close[i] = TRUE;
 
         }
+        adebug("close_fd %ld\n",close_fd);
 #else
     if (t->type == 21)
         {
@@ -633,9 +669,22 @@ exchild(t, flags, close_fd)
         if(name)
             free(name);
 #ifdef CLIBHACK
-        for(i=0; i < 3; i++)
-            if(amigafd_close[i] && (flags & XPCLOSE))
-            {
+//        for(i=0; i < 3; i++)
+//            if(amigafd_close[i]  && (flags & (XPCLOSE)))
+//            {
+          if((i=close_fd) >=0 && (flags & XPCLOSE) )
+          {
+                if(flags & XPIPEI)
+                {
+                    char buffer[256];
+                    int n,t;
+                    t = 0;
+                    adebug("draining pipe! .. ");
+                    while((n = read(i,buffer,255)) > 0) t +=n;
+                    adebug("%ld bytes drained\n",t);
+                }
+                adebug("closing fd %ld\n",i);
+
                 close(i);
             }
 #else

@@ -436,13 +436,13 @@ execute(t, flags)
 #endif
                 restoresigs();
                 cleanup_proc_env();
-                ksh_execve(t->str, t->args, ap, (flags & XINTACT) ? 1 : 0);
-                if (errno == ENOEXEC)
+                if(ksh_execve(t->str, t->args, ap, (flags & XINTACT) ? 1 : 0) < 0)
+                {
+                    if (errno == ENOEXEC)
                         scriptexec(t, ap);
-#ifndef AMIGA
-                else
+                    else
                         errorf("%s: %s", s, strerror(errno));
-#endif
+                }
         }
     Break:
         exstat = rv;
@@ -777,9 +777,11 @@ scriptexec(tp, ap)
         *tp->args-- = tp->str;
         *tp->args = shell;
 
-        ksh_execve(tp->args[0], tp->args, ap, 0);
-        /* report both the program that was run and the bogus shell */
-        errorf("%s: %s: %s", tp->str, shell, strerror(errno));
+        if(ksh_execve(tp->args[0], tp->args, ap, 0) < 0)
+        {
+            /* report both the program that was run and the bogus shell */
+            errorf("%s: %s: %s", tp->str, shell, strerror(errno));
+        }
 }
 
 int
