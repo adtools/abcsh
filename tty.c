@@ -86,7 +86,7 @@ tty_init(init_ttystate)
         /* SCO can't job control on /dev/tty, so don't try... */
 #if !defined(__SCO__)
 #ifdef AMIGA
-        if ((tfd = open("CON:", O_RDWR, 0)) < 0) {
+        if ((tfd = open("CONSOLE:", O_RDWR, 0)) < 0) {
 #else   
         if ((tfd = open("/dev/tty", O_RDWR, 0)) < 0) {
 #endif

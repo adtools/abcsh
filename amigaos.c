@@ -200,7 +200,7 @@ char *convert_path(const char *filename)
 
         if (strcmp(filename, "/dev/tty") == 0)
         {
-            out = newname =  strdup( "CON:");;
+            out = newname =  strdup( "CONSOLE:");;
             FUNCX;
             return out;
         }
