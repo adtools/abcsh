@@ -215,7 +215,7 @@ c_print(wp)
 
 #if defined(AMIGA) && !defined(CLIBHACK)
         int fd = amigaos_getstdfd(amigaout);
-#else 
+#else
         int fd = 1;
 #endif
         int flags = PO_EXPAND|PO_NL;
@@ -467,7 +467,7 @@ c_whence(wp)
                 if ((iam_whence || vflag) && !pflag)
                         tp = tsearch(&keywords, id, hash(id));
                 if (!tp && !pflag) {
-                        tp = tsearch(&aliases, id, hash(id));
+                        tp = tsearch(aliases, id, hash(id));
                         if (tp && !(tp->flag & ISSET))
                                 tp = NULL;
                 }
@@ -583,7 +583,7 @@ c_typeset(wp)
                 local = 1;
                 break;
         }
- 
+
         fieldstr = basestr = (char *) 0;
         builtin_opt.flags |= GF_PLUSOPT;
         /* at&t ksh seems to have 0-9 as options, which are multiplied
@@ -679,7 +679,7 @@ c_typeset(wp)
                 return 1;
         }
         if (wp[builtin_opt.optind]) {
-                /* Take care of exclusions.  
+                /* Take care of exclusions.
                  * At this point, flags in fset are cleared in fclr and vise
                  * versa.  This property should be preserved.
                  */
@@ -799,19 +799,19 @@ c_typeset(wp)
                                 shprintf("-x ");
                             if ((vp->flag&RDONLY))
                                 shprintf("-r ");
-                            if ((vp->flag&TRACE)) 
+                            if ((vp->flag&TRACE))
                                 shprintf("-t ");
-                            if ((vp->flag&LJUST)) 
+                            if ((vp->flag&LJUST))
                                 shprintf("-L%d ", vp->u2.field);
-                            if ((vp->flag&RJUST)) 
+                            if ((vp->flag&RJUST))
                                 shprintf("-R%d ", vp->u2.field);
-                            if ((vp->flag&ZEROFIL)) 
+                            if ((vp->flag&ZEROFIL))
                                 shprintf("-Z ");
-                            if ((vp->flag&LCASEV)) 
+                            if ((vp->flag&LCASEV))
                                 shprintf("-l ");
-                            if ((vp->flag&UCASEV_AL)) 
+                            if ((vp->flag&UCASEV_AL))
                                 shprintf("-u ");
-                            if ((vp->flag&INT_U)) 
+                            if ((vp->flag&INT_U))
                                 shprintf("-U ");
                             shprintf("%s\n", vp->name);
                             if (vp->flag&ARRAY)
@@ -848,12 +848,12 @@ c_typeset(wp)
         }
         return 0;
 }
-        
+
 int
 c_alias(wp)
         char **wp;
 {
-        struct table *t = &aliases;
+        struct table *t = aliases;
         int rv = 0, rflag = 0, tflag, Uflag = 0, pflag = 0;
         int prefix = 0;
         Tflag xflag = 0;
@@ -864,7 +864,7 @@ c_alias(wp)
                 prefix = builtin_opt.info & GI_PLUS ? '+' : '-';
                 switch (optc) {
                   case 'd':
-                        t = &homedirs;
+                        t = homedirs;
                         break;
                   case 'p':
                         pflag = 1;
@@ -873,7 +873,7 @@ c_alias(wp)
                         rflag = 1;
                         break;
                   case 't':
-                        t = &taliases;
+                        t = taliases;
                         break;
                   case 'U': /* kludge for tracked alias initialization
                              * (don't do a path search, just make an entry)
@@ -896,7 +896,7 @@ c_alias(wp)
                 wp++;
         }
 
-        tflag = t == &taliases;
+        tflag = t == taliases;
 
         /* "hash -r" means reset all the tracked aliases.. */
         if (rflag) {
@@ -913,7 +913,7 @@ c_alias(wp)
                 return c_unalias((char **) args);
         }
 
-        
+
         if (*wp == NULL) {
                 struct tbl *ap, **p;
 
@@ -990,7 +990,7 @@ int
 c_unalias(wp)
         char **wp;
 {
-        register struct table *t = &aliases;
+        register struct table *t = aliases;
         register struct tbl *ap;
         int rv = 0, all = 0;
         int optc;
@@ -1001,10 +1001,10 @@ c_unalias(wp)
                         all = 1;
                         break;
                   case 'd':
-                        t = &homedirs;
+                        t = homedirs;
                         break;
                   case 't':
-                        t = &taliases;
+                        t = taliases;
                         break;
                   case '?':
                         return 1;

@@ -94,8 +94,8 @@ main(argc, argv)
                 argc = 1;
         }
         kshname = *argv;
-
-        ainit(&aperm);          /* initialize permanent Area */
+        aperm = &perm_space;
+        ainit(aperm);          /* initialize permanent Area */
 
         /* set up base enviroment */
         memset(&env, 0, sizeof(env));
@@ -117,10 +117,16 @@ main(argc, argv)
         coproc_init();
 #endif /* KSH */
 
+        /* allocate tables */
+
+        taliases = malloc(sizeof(struct table));
+        aliases  = malloc(sizeof(struct table));
+        homedirs = malloc(sizeof(struct table));
+
         /* set up variable and command dictionaries */
-        tinit(&taliases, APERM, 0);
-        tinit(&aliases, APERM, 0);
-        tinit(&homedirs, APERM, 0);
+        tinit(taliases, APERM, 0);
+        tinit(aliases, APERM, 0);
+        tinit(homedirs, APERM, 0);
 
         /* define shell keywords */
         initkeywords();
@@ -166,9 +172,12 @@ main(argc, argv)
 
         /* import enviroment */
         if (environ != NULL)
-                for (wp = environ; *wp != NULL; wp++)
-                        typeset(*wp, IMPORTV|EXPORTV, 0, 0, 0);
-
+        {
+            for (wp = environ; *wp != NULL; wp++)
+            {
+                typeset(*wp, IMPORTV|EXPORTV, 0, 0, 0);
+            }
+        }
         kshpid = procpid = getpid();
         typeset(initifs, 0, 0, 0, 0);   /* for security */
 
@@ -523,6 +532,7 @@ unwind(i)
                   case E_INCL:
                   case E_LOOP:
                   case E_ERRH:
+                  case E_SUBSHELL:
                         ksh_siglongjmp(e->jbuf, i);
                         /*NOTREACHED*/
 
@@ -530,7 +540,6 @@ unwind(i)
                         if (i == LINTR)
                                 e->flags |= EF_FAKE_SIGDIE;
                         /* Fall through... */
-
                   default:
                         quitenv();
                 }
@@ -561,7 +570,10 @@ quitenv()
         register int fd;
 
         if (ep->oenv && ep->oenv->loc != ep->loc)
+        {
+
                 popblock();
+        }
         if (ep->savefd != NULL) {
                 for (fd = 0; fd < NUFILE; fd++)
                         /* if ep->savefd[fd] < 0, means fd was closed */
@@ -597,6 +609,10 @@ quitenv()
 #ifdef MEM_DEBUG
                         chmem_allfree();
 #endif /* MEM_DEBUG */
+                }
+                else if (ep->type == E_SUBSHELL)
+                {
+                    return;
                 }
                 exit(exstat);
         }

@@ -32,6 +32,22 @@ static int      dbteste_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
 static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 #endif /* KSH */
 
+/* this structure is used to store the current envirment before executing */
+/* a "subshell" or similar */
+
+struct globals
+{
+    struct env *e;
+    struct table *homedirs;
+    struct table *taliases;
+    struct table *aliases;
+    Area *aperm;
+
+};
+
+static struct env *copyenv(struct globals *);
+static void restoreenv(struct globals *);
+
 /*
  * handle systems that don't have F_SETFD
  */
@@ -151,19 +167,37 @@ execute(t, flags)
                                 goto Break;
                         }
                 }
-        
+
         switch(t->type) {
           case TCOM:
                 rv = comexec(t, tp, ap, flags);
                 break;
 
           case TPAREN:
-                rv = execute(t->left, flags|XFORK);
+          {
+              //      rv = execute(t->left, flags|XFORK);
+              /* save old enevironment */
+              struct globals globenv;
+
+              copyenv(&globenv);
+              e->type = E_SUBSHELL;
+              if(!(ksh_sigsetjmp(e->jbuf,0)))
+              {
+                  rv = execute(t->left, flags);
+              }
+              else
+              {
+                rv = exstat;
+              }
+
+              restoreenv(&globenv);
+          }
                 break;
 
           case TPIPE:
                 flags |= XFORK;
                 flags &= ~XEXEC;
+                printf("pipeing\n");fflush(stdout);
 #if defined(AMIGA) && !defined(CLIBHACK)
                savefd[0] = amigain;
                savefd[1] = amigaout;
@@ -920,7 +954,7 @@ findcom(name, flags)
         if (!tp && (flags & FC_UNREGBI) && tbi)
                 tp = tbi;
         if (!tp && (flags & FC_PATH) && !(flags & FC_DEFPATH)) {
-                tp = tsearch(&taliases, name, h);
+                tp = tsearch(taliases, name, h);
                 if (tp && (tp->flag & ISSET) && eaccess(tp->val.s, X_OK) != 0) {
                         if (tp->flag & ALLOC) {
                                 tp->flag &= ~ALLOC;
@@ -936,7 +970,7 @@ findcom(name, flags)
         {
                 if (!tp) {
                         if (insert && !(flags & FC_DEFPATH)) {
-                                tp = tenter(&taliases, name, h);
+                                tp = tenter(taliases, name, h);
                                 tp->type = CTALIAS;
                         } else {
                                 tp = &temp;
@@ -978,7 +1012,7 @@ flushcom(all)
         struct tbl *tp;
         struct tstate ts;
 
-        for (twalk(&ts, &taliases); (tp = tnext(&ts)) != NULL; )
+        for (twalk(&ts, taliases); (tp = tnext(&ts)) != NULL; )
                 if ((tp->flag&ISSET) && (all || !ISDIRSEP(tp->val.s[0]))) {
                         if (tp->flag&ALLOC) {
                                 tp->flag &= ~(ALLOC|ISSET);
@@ -1503,3 +1537,217 @@ dbteste_error(te, offset, msg)
         internal_errorf(0, "dbteste_error: %s (offset %d)", msg, offset);
 }
 #endif /* KSH */
+
+
+void tbl_copy(struct table *src, struct table *dst, Area *ap);
+
+/* have to copy stuff lacking fork ()  */
+
+void
+blk_copy(struct block *src)
+{
+  register struct block *l;
+  char **tw, **rw;
+  static char *const empty[] = {null};
+
+  /* this is the deepest nested block, also called `globals' */
+  if (src->next)
+    blk_copy(src->next);
+
+  newblock();
+  l = e->loc;
+  l->argc = src->argc;
+  if (l->argc)
+    {
+      /* copy the argument vector */
+      for (tw = src->argv; *tw++ != NULL; ) ;
+      rw = l->argv = (char **)alloc((int)(tw - src->argv) * sizeof(*tw),
+                                     &l->area);
+      for (tw = src->argv; *tw != NULL; )
+         *rw++ = wdcopy(*tw++, &l->area);
+      *rw = NULL;
+
+    }
+  else
+  {
+         l->argv = (char **)empty;
+     l->argv[0] = src->argv[0]; /* preserve $0, just doing l->arv=src->argv
+                                                                   preserves everything which is not what
+                                                                   we want                                                                      */
+/*
+ *        KPrintF("%s %ld: %s\n",__FILE__,__LINE__,l->argv[0]);
+ */
+  }
+
+/*
+ * KPrintF("%s\n",l->argv[0]);
+ * KPrintF("%s\n",l->argv[1]);
+ * KPrintF("%s\n",l->argv[2]);
+ * KPrintF("%s\n",l->argv[3]);
+ * KPrintF("%s\n",l->argv[4]);
+ */
+
+  tbl_copy(&src->vars, &l->vars, &l->area);
+  tbl_copy(&src->funs, &l->funs, &l->area);
+
+  /* they're not used anyway (ie. always 0), but something like this
+     will have to be done when they ARE used. Perhaps it will be ATEMP
+     instead of APERM? */
+  l->error = src->error ? str_save(src->error, APERM) : 0;
+  l->exit  = src->exit ? str_save(src->exit, APERM) : 0;
+/*
+ * KPrintF("%s %ld: %s\n",__FILE__,__LINE__,l->argv[0]);
+ */
+}
+
+/* need to copy tables, since no fork () */
+
+/* assume initialized source and destination tables */
+void
+tbl_copy(struct table *src, struct table *dst, Area *ap)
+{
+  struct tbl *t, *tn;
+  struct tstate ts;
+
+  twalk(&ts,src);
+  tinit(dst, ap, 0);
+
+  while ((t = tnext(&ts)))
+    {
+      tn = tenter(dst, t->name, hash(t->name));
+      tn->flag = t->flag;
+      tn->type = t->type;
+      if (t->flag & INTEGER)
+        tn->val.i = t->val.i;
+      else if (t->flag & EXPORTV)
+        tn->val.s = str_save(t->val.s, ap);
+      else if (t->type == CFUNC)
+        tn->val.t = t->val.t ? tcopy(t->val.t, ap) : 0;
+      else
+      {
+        tn->val.s = (t->flag & ALLOC) ?
+                      str_save(t->val.s  /* + t->type */, ap) : 0;
+      }
+      /* new entries in struct tbl */
+      tn->index = t->index;
+      tn->areap = ap;
+
+      tn->u2.field = t->u2.field;
+      if (t->flag & ARRAY)
+      {
+        struct tbl *tmp, **list = &tn->u.array;
+
+        *list = NULL;
+        for (tmp = t->u.array; tmp; tmp = tmp->u.array)
+        {
+          int size = sizeof(struct tbl) + strlen(tmp->name) + 1;
+          struct tbl *new;
+
+          *list = new = (struct tbl *)alloc(size, ap);
+          memcpy(new, tmp, size);
+          new->areap = ap;
+          if (tmp->flag & ALLOC)
+            new->val.s = str_save(tmp->val.s /*+ tmp->type */, ap);
+          list = &new->u.array;
+        }
+      }
+      tn->u.array = t->u.array;
+      if ((tn->flag & SPECIAL) && !strcmp(tn->name, "PATH"))
+        path = str_val(tn);
+    }
+}
+
+
+
+
+static struct env *copyenv(struct globals *globenv )
+{
+    /* make a copy of the curent environment tree */
+    struct env *copy;
+    struct block *b;
+    short *old;
+    int fd;
+    char *p;
+
+    /* save pointers to current environment */
+
+    globenv->e = e;
+    globenv->homedirs = homedirs;
+    globenv->aliases = aliases;
+    globenv->taliases = taliases;
+    globenv->aperm = aperm;
+
+    /* set up new "permanent storage" */
+
+    aperm = malloc(sizeof(Area));
+
+    ainit(aperm);
+
+    copy = (struct env *)malloc(sizeof(struct env));
+    homedirs = malloc(sizeof(struct table));
+    taliases = malloc(sizeof(struct table));
+    aliases  = malloc(sizeof(struct table));
+
+    /* init tables */
+        tinit(taliases, APERM, 0);
+        tinit(aliases, APERM, 0);
+        tinit(homedirs, APERM, 0);
+
+    /*set base environment */
+    copy->type = E_NONE;
+    copy->temps = NULL;
+    ainit(&copy->area);
+
+    copy->savefd = NULL; /* ??? */
+    copy->oenv = NULL;  /* oenv ??*/
+    copy->loc = NULL;
+
+/* copy these */
+
+  tbl_copy(globenv->homedirs, homedirs, APERM);
+  tbl_copy(globenv->taliases, taliases, APERM);
+  tbl_copy(globenv->aliases,  aliases, APERM);
+
+  b = e->loc;
+  old = e->savefd;
+
+  /* now transfer environment, and use the copy */
+
+  e = copy;
+  blk_copy(b);
+
+  if (old)
+  {
+    e->savefd = (short*) alloc(sizeofN(short, NUFILE), ATEMP);
+    bcopy(old, e->savefd, sizeofN(short, NUFILE));
+  }
+  /* note other stuff nay need doing! */
+
+
+}
+
+/* restore the old env defined in globenv */
+
+static void restoreenv(struct globals *globenv)
+{
+
+    /* simply free the aperm area */
+
+    afreeall(aperm);
+    free(aperm);
+    free(homedirs);
+    free(taliases);
+    free(aliases);
+
+    /* determine how to free e */
+
+    /* restore old tables and environment */
+
+    homedirs = globenv->homedirs;
+    taliases = globenv->taliases;
+    aliases = globenv->aliases;
+    aperm = globenv->aperm;
+    e = globenv->e;
+
+
+}

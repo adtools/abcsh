@@ -154,7 +154,7 @@ extern int dup2 ARGS((int, int));
 
 #ifdef AMIGA
 # define PATHSEP        ';'
-# define DIRSEP         '/'     
+# define DIRSEP         '/'
 # define DIRSEPSTR      "/"
 # define ISDIRSEP(c)    ((c) == '/' || (c) == ':')
 extern int amigaos_isabspath(const char *path);
@@ -240,8 +240,14 @@ typedef struct Area {
         struct Block *freelist; /* free list */
 } Area;
 
-EXTERN  Area    aperm;          /* permanent object space */
-#define APERM   &aperm
+/* change this to so that APERM uses a pointer to the permanent space */
+/* rather than it's explicit address */
+/* allows a new permanent space to be created for subshells etc */
+
+EXTERN  Area    perm_space;;          /* permanent object space */
+EXTERN  Area    *aperm;
+
+#define APERM   aperm
 #define ATEMP   &e->area
 
 #ifdef MEM_DEBUG
@@ -281,6 +287,8 @@ EXTERN  struct env {
 #define E_EXEC  4               /* executing command tree */
 #define E_LOOP  5               /* executing for/while # */
 #define E_ERRH  6               /* general error handler # */
+#define E_SUBSHELL 7            /* a subshell */
+
 /* # indicates env has valid jbuf (see unwind()) */
 
 /* struct env.flag values */

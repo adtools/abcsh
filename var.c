@@ -4,6 +4,8 @@
 #include "ksh_stat.h"
 #include <ctype.h>
 
+#include <proto/exec.h>
+
 /*
  * Variables
  *
@@ -152,7 +154,7 @@ global(n)
         register struct block *l = e->loc;
         register struct tbl *vp;
         register int c;
-        unsigned h; 
+        unsigned h;
         bool_t   array;
         int      val;
 
@@ -413,7 +415,7 @@ getint(vp, nump)
         int base, neg;
         int have_base = 0;
         long num;
-        
+
         if (vp->flag&SPECIAL)
                 getspec(vp);
         /* XXX is it possible for ISSET to be set and val.s to be 0? */
@@ -468,7 +470,7 @@ setint_v(vq, vp)
 {
         int base;
         long num;
-        
+
         if ((base = getint(vp, &num)) == -1)
                 return NULL;
         if (!(vq->flag & INTEGER) && (vq->flag & ALLOC)) {
@@ -591,7 +593,7 @@ typeset(var, set, clr, field, base)
                 return NULL;
         if (*val == '[') {
                 int len;
-                
+
                 len = array_ref_len(val);
                 if (len == 0)
                         return NULL;
@@ -832,6 +834,7 @@ makenv()
         XPtrV env;
         register struct tbl *vp, **vpp;
         register int i;
+        char **ap;
 
         XPinit(env, 64);
         for (l = e->loc; l != NULL; l = l->next)
@@ -859,7 +862,8 @@ makenv()
                                 XPput(env, vp->val.s);
                         }
         XPput(env, NULL);
-        return (char **) XPclose(env);
+        ap = XPclose(env);
+        return (char **) ap;
 }
 
 /*

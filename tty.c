@@ -87,7 +87,7 @@ tty_init(init_ttystate)
 #if !defined(__SCO__)
 #ifdef AMIGA
         if ((tfd = open("CONSOLE:", O_RDWR, 0)) < 0) {
-#else   
+#else
         if ((tfd = open("/dev/tty", O_RDWR, 0)) < 0) {
 #endif
 

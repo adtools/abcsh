@@ -136,11 +136,11 @@ struct tstate {
 };
 
 
-EXTERN  struct table taliases;  /* tracked aliases */
+EXTERN  struct table *taliases;  /* tracked aliases */
 EXTERN  struct table builtins;  /* built-in commands */
-EXTERN  struct table aliases;   /* aliases */
+EXTERN  struct table *aliases;   /* aliases */
 EXTERN  struct table keywords;  /* keywords */
-EXTERN  struct table homedirs;  /* homedir() cache */
+EXTERN  struct table *homedirs;  /* homedir() cache */
 
 struct builtin {
         const char   *name;

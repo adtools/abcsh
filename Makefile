@@ -8,14 +8,15 @@ CPP = $(CC) -E
 
 #use "make CLIBHACK=-UCLIBHACK" to use IDOS io code
 CLIBHACK = -DCLIBHACK
+KSH= -DKSH
 
-DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK)
+DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK) $(KSH)
 LIBS = -lm -lunix -lc -lnet -lauto
 
-CPPFLAGS = 
-CFLAGS = -g -O 
-LDSTATIC = 
-LDFLAGS = 
+CPPFLAGS =
+CFLAGS = -g -O
+LDSTATIC =
+LDFLAGS =
 
 SHELL_PROG = sh
 
@@ -50,7 +51,7 @@ TESTFILES = tests/README tests/th tests/th-sh tests/alias.t tests/arith.t \
 	tests/glob.t tests/heredoc.t tests/history.t tests/ifs.t \
 	tests/integer.t tests/lineno.t tests/read.t tests/regress.t \
 	tests/syntax.t tests/unclass1.t tests/unclass2.t \
-	tests/version.t 
+	tests/version.t
 
 all: $(SHELL_PROG)$(exe_suffix)
 
@@ -76,16 +77,16 @@ clibhackclean:
 
 noclibhack: clibhackclean
 	make CLIBHACK=-UCLIBHACK
-    
+
 
 depend: $(SRCS)
 	sed -n '1,/[ ]PUT ANYTHING BELOW THIS LINE/p' < Makefile > Makefile.tmp
 	srcs=; for i in $(SRCS) ; do srcs="$$srcs $(srcdir)/$$i"; done; \
 	  $(CC) -M $(DEFS) -I. -I$(srcdir) $(CFLAGS) $$srcs | \
-	    sed -e 's?[ 	]/[^ 	]*??g' -e 's?[ 	]./? ?g' \
-		-e 's?[ 	]$(srcdir)//*? ?g' -e 's?^$(srcdir)//*??' \
-		-e '/^[ 	]*\\[	 ]*$$/d' -e '/^[^:]*:[	 ]*$$/d' \
-		-e 's/^\([	 ]*\)$$/ sh.h/' \
+	    sed -e 's?[         ]/[^    ]*??g' -e 's?[  ]./? ?g' \
+		-e 's?[         ]$(srcdir)//*? ?g' -e 's?^$(srcdir)//*??' \
+		-e '/^[         ]*\\[    ]*$$/d' -e '/^[^:]*:[   ]*$$/d' \
+		-e 's/^\([       ]*\)$$/ sh.h/' \
 	    >> Makefile.tmp
 	mv Makefile.tmp Makefile
 	@echo 'Make depend done (stopping make)'; false

@@ -12,7 +12,7 @@ char amigaos_getc(int fd);
 int amigaos_ungetc(char c, int fd);
 
 /*structure for linked comsub() pipe input fd list*/
-struct linkedfd{ 
+struct linkedfd{
         struct  linkedfd *prev;
         int fd;
         struct  linkedfd *next;
@@ -215,7 +215,7 @@ expand(cp, wp, f)
                 Xcheck(ds, dp);
 
                 switch (type) {
-                  
+
                   case XBASE:   /* original prefixed string */
                         c = *sp++;
                         switch (c) {
@@ -437,7 +437,7 @@ expand(cp, wp, f)
                                         char *s = Xrestpos(ds, dp, st->base);
 
                                         errorf("%s: %s", st->var->name,
-                                            dp == s ? 
+                                            dp == s ?
                                               "parameter null or not set"
                                             : (debunk(s, s), s));
                                     }
@@ -538,14 +538,14 @@ expand(cp, wp, f)
                                                     newlines++; /* Save newlines */
                                         }
 /*translate amigaos EOF to EOF*/
-                                        c = (c == 255) ? EOF : c; 
+                                        c = (c == 255) ? EOF : c;
 
                                         if (newlines && c != EOF) {
                                                 amigaos_ungetc(c, xxcom_nextin);
                                                 c = '\n';
                                                 --newlines;
                                         }
-                                }       
+                                }
 /*end reading amiga pipe*/
                                 else
                                 {
@@ -559,8 +559,8 @@ expand(cp, wp, f)
                                                 c = '\n';
                                                 --newlines;
                                         }
-                                }       
-#else           
+                                }
+#else
                                 while ((c = shf_getc(x.u.shf)) == 0 || c == '\n')
                                 {
                                     if (c == '\n')
@@ -575,7 +575,7 @@ expand(cp, wp, f)
                         }
 #if  defined(AMIGA) && !defined(CLIBHACK)
 /*translate amigaos EOF to EOF*/
-                        c = (c == 255) ? EOF : c; 
+                        c = (c == 255) ? EOF : c;
 #endif
                         if (c == EOF) {
                                 newlines = 0;
@@ -598,7 +598,7 @@ expand(cp, wp, f)
                                                 xxcom_nextin =  xxcom_nextin_p->fd;
                                         else
                                                 xxcom_nextin =  -1;
-/*end amiga pipe closing*/                                                                                                      
+/*end amiga pipe closing*/
                                 }
                                 else
                                         shf_close(x.u.shf);
@@ -1374,7 +1374,7 @@ homedir(name)
 {
         register struct tbl *ap;
 
-        ap = tenter(&homedirs, name, hash(name));
+        ap = tenter(homedirs, name, hash(name));
         if (!(ap->flag & ISSET)) {
                 struct passwd *pw;
 
