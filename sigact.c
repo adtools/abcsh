@@ -15,7 +15,7 @@
  *      int sigprocmask(int how, sigset_t *set, sigset_t *oset);
  *      int sigsuspend(sigset_t *mask);
  *      
- *      void (*Signal(int sig, void (*disp)(int)))(int);
+ *      void (*_Signal(int sig, void (*disp)(int)))(int);
  *
  * DESCRIPTION:
  *      This is a fake sigaction implementation.  It uses 
@@ -24,12 +24,12 @@
  *      thinks sigaction(2) really exists it compiles to "almost" 
  *      nothing. 
  *      
- *      In any case it provides a Signal() function that is 
+ *      In any case it provides a _Signal() function that is 
  *      implemented in terms of sigaction().
  *      If not using signal(2) as part of the underlying 
  *      implementation (USE_SIGNAL or USE_SIGMASK), and 
  *      NO_SIGNAL is not defined, it also provides a signal() 
- *      function that calls Signal(). 
+ *      function that calls _Signal(). 
  *
  *      The need for all this mucking about is the problems 
  *      caused by mixing various signal handling mechanisms in 
@@ -132,7 +132,7 @@
  *      - define IS_KSH before including anything; ifdef out routines
  *        not used in ksh if IS_KSH is defined (same in sigact.h).
  *      - use ARGS() instead of __P()
- *      - sigaction(),sigsuspend(),Signal(),signal(): use handler_t typedef
+ *      - sigaction(),sigsuspend(),_Signal(),signal(): use handler_t typedef
  *        instead of explicit type.
  */
 
@@ -187,7 +187,7 @@ error must know what to implement with
 #include "sigact.h"
 
 /*
- * in case signal() has been mapped to our Signal().
+ * in case signal() has been mapped to our _Signal().
  */
 #undef signal
 
@@ -436,7 +436,7 @@ sigsuspend(mask)
  */
 
 #ifndef IS_KSH
-handler_t Signal(sig, handler)
+handler_t _Signal(sig, handler)
   int sig;
   handler_t handler;
 {
@@ -461,7 +461,7 @@ handler_t signal(sig, handler)
   int sig;
   handler_t handler;
 {
-  return (Signal(sig, handler));
+  return (_Signal(sig, handler));
 }
 #endif
 #endif /* IS_KSH */

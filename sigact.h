@@ -8,12 +8,12 @@
  *      This header is the interface to a fake sigaction(2) 
  *      implementation. It provides a POSIX compliant interface 
  *      to whatever signal handling mechanisms are available.
- *      It also provides a Signal() function that is implemented 
+ *      It also provides a _Signal() function that is implemented 
  *      in terms of sigaction().
  *      If not using signal(2) as part of the underlying 
  *      implementation (USE_SIGNAL or USE_SIGMASK), and 
  *      NO_SIGNAL is not defined, it also provides a signal() 
- *      function that calls Signal(). 
+ *      function that calls _Signal(). 
  *      
  * SEE ALSO:
  *      sigact.c
@@ -52,7 +52,7 @@
 #endif
 
 #ifndef IS_KSH
-handler_t Signal        ARGS((int sig, handler_t disp));
+handler_t _Signal        ARGS((int sig, handler_t disp));
 #endif /* IS_KSH */
 
 /*
