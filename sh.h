@@ -543,6 +543,8 @@ EXTERN int      current_wd_size;
 #define KSH_UNWIND_ERROR        0       /* unwind the stack (longjmp) */
 #define KSH_RETURN_ERROR        1       /* return 1/0 for success/failure */
 
+extern int lastresult;
+
 #include "shf.h"
 #include "table.h"
 #include "tree.h"

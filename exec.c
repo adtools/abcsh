@@ -36,7 +36,7 @@ static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 void printflags(struct tbl *t);
 #endif
 
-/* this structure is used to store the current envirment before executing */
+/* this structure is used to store the current environment before executing */
 /* a "subshell" or similar */
 
 struct globals
@@ -45,13 +45,15 @@ struct globals
     struct table *homedirs;
     struct table *taliases;
     struct table *aliases;
+    Trap **sigtraps;
     void *path;
     Area *aperm;
+    int fd[NUFILE];
 
 };
 
-static struct env *copyenv(struct globals *);
-static void restoreenv(struct globals *);
+struct env *copyenv(struct globals *);
+void restoreenv(struct globals *);
 
 /*
  * handle systems that don't have F_SETFD
@@ -509,7 +511,7 @@ comexec(t, tp, ap, flags)
 
 
                 /* setstr() can't fail here */
-                setstr(tb, *lastp, KSH_RETURN_ERROR);
+                setstr(tb, *--lastp, KSH_RETURN_ERROR);
         }
 
 #endif /* KSH */
@@ -795,7 +797,6 @@ scriptexec(tp, ap)
         *tp->args = shell;
 
         ksh_execve(tp->args[0], tp->args, ap, 0);
-
         /* report both the program that was run and the bogus shell */
         errorf("%s: %s: %s", tp->str, shell, strerror(errno));
 }
@@ -1681,13 +1682,13 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
 
 
 
-static struct env *copyenv(struct globals *globenv )
+struct env *copyenv(struct globals *globenv )
 {
     /* make a copy of the curent environment tree */
     struct env *copy;
     struct block *b;
     short *old;
-    int fd;
+    int i;
     char *p;
 
     /* save pointers to current environment */
@@ -1697,6 +1698,7 @@ static struct env *copyenv(struct globals *globenv )
     globenv->aliases = aliases;
     globenv->taliases = taliases;
     globenv->aperm = aperm;
+   // globenv->sigtraps = sigtraps;
 
     /* save our old path, will be copied in code in tbl_copy */
     globenv->path = path;
@@ -1744,6 +1746,14 @@ static struct env *copyenv(struct globals *globenv )
     e->savefd = (short*) alloc(sizeofN(short, NUFILE), ATEMP);
     bcopy(old, e->savefd, sizeofN(short, NUFILE));
   }
+
+  /* Duplicate and save file handles */
+
+  for( i=0; i<NUFILE;i++)
+  {
+      globenv->fd[i] = savefd(i,TRUE);
+     // if(globenv->fd[i]>=0) dup2(i,globenv->fd[i]);
+  }
   /* note other stuff nay need doing! */
 
 
@@ -1751,9 +1761,10 @@ static struct env *copyenv(struct globals *globenv )
 
 /* restore the old env defined in globenv */
 
-static void restoreenv(struct globals *globenv)
+void restoreenv(struct globals *globenv)
 {
 
+    int i;
     /* simply free the aperm area */
 
     afreeall(aperm);
@@ -1766,12 +1777,18 @@ static void restoreenv(struct globals *globenv)
 
     /* restore old tables and environment */
 
+ //   sigtraps = globenv->sigtraps;
     homedirs = globenv->homedirs;
     taliases = globenv->taliases;
     aliases = globenv->aliases;
     aperm = globenv->aperm;
     path = globenv->path;
     e = globenv->e;
+
+  for( i=0; i<NUFILE;i++)
+  {
+      if(globenv->fd[i]>=0) restfd(i,globenv->fd[i]);
+  }
 
 
 }

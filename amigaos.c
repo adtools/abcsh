@@ -16,6 +16,9 @@
 #define FUNC //printf("<%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 
+#define __USE_RUNCOMMAND__
+
+
 /*used to stdin/out fds*/
 #ifndef CLIBHACK
 int amigain = -1, amigaout = -1;
@@ -115,6 +118,7 @@ int pipe(int filedes[2])
         FUNC;
 
         sprintf(pipe_name, "/PIPE/%s%d/32000/5\n", tmpnam(0),(int)FindTask(0));
+
 /*      printf("pipe: %s \n", pipe_name);*/
 
 #ifdef CLIBHACK
@@ -208,15 +212,17 @@ char *convert_path(const char *filename)
 
 static void createvars(char **envp)
 {
+    /* Set a loal var to indicate to any subsequent sh that it is not */
+    /* The top level shell and so should only inherit local amigaos vars */
+
+    SetVar("ABCSH_IMPORT_LOCAL","TRUE",5,GVF_LOCAL_ONLY);
+
     while(*envp != NULL)
     {
         int len;
         char *var;
         char *val;
-        /* Set a loal var to indicate to any subsequent sh that it is not */
-        /* The top level shell and so should only inherit local amigaos vars */
 
-        SetVar("ABCSH_IMPORT_LOCAL","TRUE",5,GVF_LOCAL_ONLY);
 
         if(len = strlen(*envp)){
             if(var = (char *)malloc(len+1))
@@ -262,6 +268,13 @@ static int no_of_escapes(char *string)
     return cnt;
 }
 
+struct command_data
+{
+    STRPTR args;
+    BPTR seglist;
+    struct Task *parent;
+};
+
 int execve(const char *filename, char *const argv[], char *const envp[])
 {
         FILE *fh;
@@ -269,10 +282,12 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         int size = 0;
         char **cur;
         char *interpreter = 0;
+        char * interpreter_args = 0;
         char *full = 0;
         char *filename_conv = 0;
         char *interpreter_conv = 0;
         char *tmp = 0;
+        char *fname;
         int tmpint;
         uint32 error;
         struct Task *thisTask = FindTask(0);
@@ -292,13 +307,24 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 if (fgetc(fh) == '#' && fgetc(fh) == '!')
                 {
                         char *p;
+                        char *q;
                         fgets(buffer, 999, fh);
                         p = buffer;
                         while (*p == ' ' || *p == '\t') p++;
                         if(buffer[strlen(buffer) -1] == '\n') buffer[strlen(buffer) -1] = '\0';
+                        if(q = strchr(p,' '))
+                        {
+                            *q++ = '\0';
+                            if(*q != '\0')
+                            {
+                            interpreter_args = strdup(q);
+                            }
+                        }
+                        else interpreter_args=strdup("");
 
                         interpreter = strdup(p);
                         size += strlen(interpreter) + 1;
+                        size += strlen(interpreter_args) +1;
                 }
 
                 fclose(fh);
@@ -311,22 +337,36 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         if(filename_conv)
             size += strlen(filename_conv);
         size += 1;
-        full = malloc(size+1);
+        full = malloc(size+10);
         if (full)
         {
             if (interpreter)
             {
                 interpreter_conv = convert_path(interpreter);
-                sprintf(full, "%s %s ", interpreter_conv, filename_conv);
+#if !defined(__USE_RUNCOMMAND__)
+#warning (using system!)
+                sprintf(full, "%s %s %s ", interpreter_conv, interpreter_args,filename_conv);
+#else
+                sprintf(full, "%s %s ",interpreter_args, filename_conv);
+#endif
                 free(interpreter);
+                free(interpreter_args);
+
                 if(filename_conv)
                     free(filename_conv);
+               fname = strdup(interpreter_conv);
+
                 if(interpreter_conv)
                     free(interpreter_conv);
             }
             else
             {
+#ifndef __USE_RUNCOMMAND__
                 sprintf(full, "%s ", filename_conv);
+#else
+                sprintf(full,"");
+#endif
+                fname = strdup(filename_conv);
                 if(filename_conv)
                     free(filename_conv);
             }
@@ -338,9 +378,9 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                     int esc = no_of_escapes(*cur);
                     if(esc > 0)
                     {
-                        char *buffer=malloc(strlen(*cur) + 4 + esc);
+                        char *buff=malloc(strlen(*cur) + 4 + esc);
                         char *p = *cur;
-                        char *q = buffer;
+                        char *q = buff;
 
                         *q++ = '"';
                         while(*p != '\0')
@@ -353,8 +393,8 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         *q++ = '"';
                         *q++ = ' ';
                         *q='\0';
-                        strcat(full,buffer);
-                        free(buffer);
+                        strcat(full,buff);
+                        free(buff);
                     }
                     else
                     {
@@ -368,14 +408,40 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                     strcat(full, *cur);
                     strcat(full, " ");
                 }
+
             }
+            strcat(full,"\n");
 
             createvars(envp);
-            SystemTags(full,
-                NP_StackSize,  ((struct Process *)thisTask)->pr_StackSize,
-              TAG_DONE);
-            free(full);
 
+#ifndef __USE_RUNCOMMAND__
+            lastresult = SystemTags(full,
+                SYS_UserShell,TRUE,
+                NP_StackSize,  ((struct Process *)thisTask)->pr_StackSize,
+                SYS_Input,((struct Process *)thisTask)->pr_CIS,
+                SYS_Output,((struct Process *)thisTask)->pr_COS,
+                SYS_Error,((struct Process *)thisTask)->pr_CES,
+              TAG_DONE);
+#else
+
+            if (fname){
+
+                BPTR seglist = LoadSeg(fname);
+                if(seglist)
+                {
+
+
+                    SetProgramName(fname);
+                    lastresult=RunCommand(seglist,8*1024,full,strlen(full));
+                    UnLoadSeg(seglist);
+
+                }
+               free(fname);
+            }
+
+#endif /* USE_RUNCOMMAND */
+
+            free(full);
             FUNCX;
             return 0;
         }
@@ -405,6 +471,7 @@ struct userdata
         struct Task *parent;
 };
 
+
 LONG execute_child(STRPTR args, int len)
 {
         struct op *t;
@@ -418,8 +485,8 @@ LONG execute_child(STRPTR args, int len)
         parent = ((struct userdata*)this->tc_UserData)->parent;
 
         execute(t, flags & (XEXEC | XERROK));
-
         Signal(parent, SIGBREAKF_CTRL_F);
+
         return 0;
 }
 
@@ -440,7 +507,6 @@ exchild(t, flags, close_fd)
         long amigafd[2];
         int amigafd_close[2] = {1, 1};
 #endif
-        char args[30];
         struct Process *proc = NULL;
         struct Task *thisTask = FindTask(0);
         struct userdata taskdata;
@@ -448,6 +514,10 @@ exchild(t, flags, close_fd)
         char *name = NULL;
 
         FUNC;
+        if(flags & XEXEC)
+        {
+            execute(t,flags&(XEXEC | XERROK));
+        }
 #if 0
         printf("flags = ");
         if (flags & XEXEC) printf("XEXEC ");
@@ -499,6 +569,7 @@ exchild(t, flags, close_fd)
 
         if(t->str)
             name = strdup(t->str);
+        else name=strdup("new sh process");
 
         proc = CreateNewProcTags(
             NP_Entry,               execute_child,
@@ -523,16 +594,19 @@ exchild(t, flags, close_fd)
             TAG_DONE);
 
 #ifndef __amigaos4__
+#warning this code has been included!
         proc->pr_Task.tc_UserData = &taskdata;
 #endif
-
         Wait(SIGBREAKF_CTRL_F);
+
         if(name)
             free(name);
 #ifdef CLIBHACK
         for(i=0; i < 3; i++)
-            if(amigafd_close[i])
+            if(amigafd_close[i] && (flags & XPCLOSE))
+            {
                 close(i);
+            }
 #else
 /*close pipe input*/
         if (!amigafd_close[0])
@@ -542,6 +616,6 @@ exchild(t, flags, close_fd)
 #endif /*CLIBHACK*/
 
         FUNCX;
-        return 0;
+        return lastresult;
 }
 

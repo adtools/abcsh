@@ -330,6 +330,10 @@ startlast()
 }
 
 /* wait for last job: only used for `command` jobs */
+
+
+int lastresult = 125;
+
 int
 waitlast()
 {
@@ -344,7 +348,14 @@ waitlast()
                 }
                 else
                         internal_errorf(0, "waitlast: not started");
-                return 125; /* not so arbitrary, non-zero value */
+
+                // work arround for no job control
+                // place the result of the last command
+                // subshell or whatever in lastresult
+                // and return it here.
+                adebug("wait last returning result %ld\n",lastresult);
+                return lastresult;
+                //return 125; /* not so arbitrary, non-zero value */
         }
 
         rv = j_waitj(j, JW_NONE, "jw:waitlast");

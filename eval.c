@@ -910,6 +910,25 @@ varsub(xp, sp, word, stypep, slenp)
 /*
  * Run the command in $(...) and read its output.
  */
+
+
+struct globals
+{
+    struct env *e;
+    struct table *homedirs;
+    struct table *taliases;
+    struct table *aliases;
+    Trap **sigtraps;
+    void *path;
+    Area *aperm;
+    int fd[NUFILE];
+
+};
+
+struct env *copyenv(struct globals *);
+void restoreenv(struct globals *);
+
+
 static int
 comsub(xp, cp)
         register Expand *xp;
@@ -919,6 +938,8 @@ comsub(xp, cp)
         register struct op *t;
         struct shf *shf;
         char c;
+        struct globals globenv;
+
         s = pushs(SSTRING, ATEMP);
         s->start = s->str = cp;
         sold = source;
@@ -978,7 +999,16 @@ comsub(xp, cp)
                 ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
                 ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);
-                execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);
+                adebug("comsub\n");
+                copyenv(&globenv);
+                e->type = E_SUBSHELL;
+                if(!(ksh_sigsetjmp(e->jbuf,0)))
+                {
+                    lastresult = execute(t,XXCOM|XPIPEO);
+                    adebug("subhell result %ld\n",lastresult);
+                }
+                restoreenv(&globenv);
+                //execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);
                 restfd(1, ofd1);//printf("restfd\n"); fflush(stdout);
 #endif
                 startlast();//printf("!\n"); fflush(stdout);
