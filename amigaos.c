@@ -485,6 +485,7 @@ LONG execute_child(STRPTR args, int len)
         parent = ((struct userdata*)this->tc_UserData)->parent;
 
         execute(t, flags & (XEXEC | XERROK));
+        Forbid();
         Signal(parent, SIGBREAKF_CTRL_F);
 
         return 0;
@@ -502,6 +503,7 @@ exchild(t, flags, close_fd)
 /*close conditions*/
         long amigafd[3];
         int amigafd_close[3] = {0, 0, 0};
+        BOOL procmayclose = FALSE;
 #else
         /*current input output*/
         long amigafd[2];
@@ -540,8 +542,10 @@ exchild(t, flags, close_fd)
 #ifdef CLIBHACK
     for(i = 0; i < 3; i++)
         {
+            BPTR lock;
             __get_default_file(i, &amigafd[i]);
             if(close_fd == i) amigafd_close[i] = TRUE;
+
         }
 #else
     if (t->type == 21)
@@ -573,7 +577,7 @@ exchild(t, flags, close_fd)
 
         proc = CreateNewProcTags(
             NP_Entry,               execute_child,
-/*          NP_Child,               TRUE, */
+            NP_Child,               TRUE,
             NP_StackSize,           ((struct Process *)thisTask)->pr_StackSize,
             NP_Input,               amigafd[0],
             NP_Output,              amigafd[1],

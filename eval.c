@@ -999,13 +999,11 @@ comsub(xp, cp)
                 ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
                 ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);
-                adebug("comsub\n");
                 copyenv(&globenv);
                 e->type = E_SUBSHELL;
                 if(!(ksh_sigsetjmp(e->jbuf,0)))
                 {
                     lastresult = execute(t,XXCOM|XPIPEO);
-                    adebug("subhell result %ld\n",lastresult);
                 }
                 restoreenv(&globenv);
                 //execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);

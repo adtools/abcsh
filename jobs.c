@@ -353,7 +353,6 @@ waitlast()
                 // place the result of the last command
                 // subshell or whatever in lastresult
                 // and return it here.
-                adebug("wait last returning result %ld\n",lastresult);
                 return lastresult;
                 //return 125; /* not so arbitrary, non-zero value */
         }
