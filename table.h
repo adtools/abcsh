@@ -4,6 +4,16 @@
  * generic hashed associative table for commands and variables.
  */
 
+#ifdef __amigaos4__
+/* exec/types.h defines IMPORT, and it's redefined here later. Undefine
+ * it here to get rid of all the stupid warnings  
+ */
+# ifdef IMPORT
+#  undef IMPORT
+# endif
+
+#endif 
+
 struct table {
         Area   *areap;                /* area to allocate entries */
         short        size, nfree;        /* hash size (always 2^^n), free entries */
