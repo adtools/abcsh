@@ -114,7 +114,7 @@ int pipe(int filedes[2])
         char pipe_name[1024];
         FUNC;
 
-        sprintf(pipe_name, "/PIPE/%s%d\n", tmpnam(0),(int)FindTask(0));
+        sprintf(pipe_name, "/PIPE/%s%d/32000/5\n", tmpnam(0),(int)FindTask(0));
 /*      printf("pipe: %s \n", pipe_name);*/
 
 #ifdef CLIBHACK
@@ -244,6 +244,7 @@ static BOOL contains_whitespace(char *string)
 
     if(strchr(string,' ')) return TRUE;
     if(strchr(string,'\t')) return TRUE;
+    if(strchr(string,'\n')) return TRUE;
     if(strchr(string,0xA0)) return TRUE;
     return FALSE;
 }
@@ -255,6 +256,8 @@ static int no_of_escapes(char *string)
     for(p=string;p<string + strlen(string);p++)
     {
         if(*p=='*') cnt++;
+        if(*p=='\n') cnt++;
+        if(*p=='\t') cnt++;
     }
     return cnt;
 }
@@ -335,17 +338,20 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                     int esc = no_of_escapes(*cur);
                     if(esc > 0)
                     {
-                        char *buffer=malloc(strlen(*cur) + 3 + esc);
+                        char *buffer=malloc(strlen(*cur) + 4 + esc);
                         char *p = *cur;
                         char *q = buffer;
 
                         *q++ = '"';
                         while(*p != '\0')
                         {
-                            if(*p == '*') *q++ = '*';
+                            if(*p == '\t'){ *q++ = '*'; *q++ = 'T';p++;continue;}
+                            else if(*p == '\n'){ *q++ = '*'; *q++ = 'N';p++;continue;}
+                            else if(*p == '*' ){ *q++ = '*';}
                             *q++ = *p++;
                         }
                         *q++ = '"';
+                        *q++ = ' ';
                         *q='\0';
                         strcat(full,buffer);
                         free(buffer);
@@ -368,7 +374,6 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             SystemTags(full,
                 NP_StackSize,  ((struct Process *)thisTask)->pr_StackSize,
               TAG_DONE);
-
             free(full);
 
             FUNCX;
