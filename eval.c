@@ -6,7 +6,22 @@
 #include <pwd.h>
 #include "ksh_dir.h"
 #include "ksh_stat.h"
-int xxcom_nextout = -1;
+#ifdef __amigaos4__
+char amigaos_getc(int fd);
+int amigaos_ungetc(char c, int fd);
+/*structure for linked comsub() pipe input fd list*/
+struct linkedfd{ 
+	struct	linkedfd *prev;
+	int fd;
+	struct	linkedfd *next;
+};
+struct linkedfd  *xxcom_nextin_p = NULL;/*current nextin*/
+struct linkedfd  *nextin_tmp_p; /*from swapping etc*/
+extern int  amigain , amigaout;
+int amigaos_comsub = 0, /*counter of inputs*/
+	xxcom_nextin;/*holds the current fd*/
+#endif
+
 /*
  * string expansion
  *
@@ -197,6 +212,7 @@ expand(cp, wp, f)
 		Xcheck(ds, dp);
 
 		switch (type) {
+		  
 		  case XBASE:	/* original prefixed string */
 			c = *sp++;
 			switch (c) {
@@ -249,7 +265,6 @@ expand(cp, wp, f)
 				} else {
 					struct tbl v;
 					char *p;
-
 					v.flag = DEFINED|ISSET|INTEGER;
 					v.type = 10; /* not default */
 					v.name[0] = '\0';
@@ -504,22 +519,89 @@ expand(cp, wp, f)
 			break;
 
 		  case XCOM:
+
 			if (newlines) {		/* Spit out saved nl's */
 				c = '\n';
 				--newlines;
 			} else {
+#ifdef __amigaos4__
+/*pending input pipe*/
+				if(amigaos_comsub > 0)
+				{
+//					printf("input pipe fd%d\n",xxcom_nextin);fflush(stdout);
+					while((c=amigaos_getc(xxcom_nextin))==0 || c == '\n')
+					{
+						if (c == '\n')
+						    newlines++;	/* Save newlines */
+					}
+/*translate amigaos EOF to EOF*/
+					c = (c == 255) ? EOF : c; 
+
+					if (newlines && c != EOF) {
+						amigaos_ungetc(c, xxcom_nextin);
+						c = '\n';
+						--newlines;
+					}
+				}	
+/*end reading amiga pipe*/
+				else
+				{
+					while ((c = shf_getc(x.u.shf)) == 0 || c == '\n')
+					{
+					    if (c == '\n')
+						    newlines++;	/* Save newlines */
+					}
+					if (newlines && c != EOF) {
+						shf_ungetc(c, x.u.shf);
+						c = '\n';
+						--newlines;
+					}
+				}	
+#else		
 				while ((c = shf_getc(x.u.shf)) == 0 || c == '\n')
+				{
 				    if (c == '\n')
 					    newlines++;	/* Save newlines */
+				}
 				if (newlines && c != EOF) {
 					shf_ungetc(c, x.u.shf);
 					c = '\n';
 					--newlines;
 				}
+#endif
 			}
+#ifdef __amigaos4__
+/*translate amigaos EOF to EOF*/
+			c = (c == 255) ? EOF : c; 
+#endif
 			if (c == EOF) {
 				newlines = 0;
+#ifdef __amigaos4__
+/*close amiga pipe, delete last in list, decrease count*/
+				if (amigaos_comsub > 0)
+				{
+					amigaos_comsub--;
+//					printf("closing %d\n", xxcom_nextin);
+					close(xxcom_nextin);
+					if(xxcom_nextin_p)
+					{
+						nextin_tmp_p = (struct linkedfd *)xxcom_nextin_p->prev;
+						free(xxcom_nextin_p);
+						xxcom_nextin_p = nextin_tmp_p;
+						if(xxcom_nextin_p)
+							xxcom_nextin_p->next = NULL;
+					}
+					if(xxcom_nextin_p)
+						xxcom_nextin =	xxcom_nextin_p->fd;
+					else
+						xxcom_nextin =	-1;
+/*end amiga pipe closing*/													
+				}
+				else
+					shf_close(x.u.shf);
+#else
 				shf_close(x.u.shf);
+#endif
 				if (x.split)
 					subst_exstat = waitlast();
 				type = XBASE;
@@ -860,12 +942,12 @@ comsub(xp, cp)
 		int ofd1, pv[2];
 #ifndef __amigaos4__ 
 		openpipe(pv);//printf("PIPE\n"); fflush(stdout);
+		shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
 #else 
+/*just get the pipe, no moving in shell/user space is needed*/
 		pipe(pv);
 #endif
-/*Jack: dunnoh why it doesn't pick the pv[0] contents*/
-		
-		shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
+
 #ifndef __amigaos4__ 
 		ofd1 = savefd(1, 0);	/* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
 		ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
@@ -873,12 +955,28 @@ comsub(xp, cp)
 		execute(t, XFORK|XXCOM|XPIPEO);	//printf("execute\n"); fflush(stdout);
 		restfd(1, ofd1);//printf("restfd\n"); fflush(stdout);
 #else
-		xxcom_nextout = pv[1];
-		printf("XXCOM pv %d %d\n", pv[0], pv[1]);fflush(stdout);
+/*same rotation as abov using fd only, output pipe is passed as amigaout*/
+		ofd1 = amigaout;
+		amigaout= pv[1];
 		execute(t, XFORK|XXCOM|XPIPEO);	//printf("execute\n"); fflush(stdout);
-//		read(pv[0], &c, 1);
-//		printf("c: %c\n", c);fflush(stdout);
-		close(pv[0]);
+		amigaout = ofd1;
+/*open pipe input - add pipe fle to link list*/
+		if(!xxcom_nextin_p)
+		{
+			xxcom_nextin_p = (struct linkedfd *)malloc(sizeof(struct linkedfd));
+			xxcom_nextin_p->prev = NULL;
+			xxcom_nextin_p->next = NULL;
+		}
+		else
+		{
+			xxcom_nextin_p->next= (struct linkedfd *)malloc(sizeof(struct linkedfd));
+			nextin_tmp_p = xxcom_nextin_p;
+			xxcom_nextin_p = xxcom_nextin_p->next;
+			xxcom_nextin_p->prev = nextin_tmp_p;
+		}
+		xxcom_nextin = xxcom_nextin_p->fd = pv[0];
+/*count new pipe instance*/
+		amigaos_comsub++;
 #endif
 		startlast();//printf("!\n"); fflush(stdout);
 		xp->split = 1;	/* waitlast() */

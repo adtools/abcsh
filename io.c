@@ -294,7 +294,6 @@ openpipe(pv)
 	pv[1] = savefd(pv[1], 0);
 }
 
-#ifndef __amigaos4__
 void
 closepipe(pv)
 	register int *pv;
@@ -302,7 +301,6 @@ closepipe(pv)
 	close(pv[0]);
 	close(pv[1]);
 }
-#endif
 
 /* Called by iosetup() (deals with 2>&4, etc.), c_read, c_print to turn
  * a string (the X in 2>&X, read -uX, print -uX) into a file descriptor.

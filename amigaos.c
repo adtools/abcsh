@@ -12,14 +12,19 @@
 #define FUNC //printf("<%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 
-/*store newly opened pipe fds*/
-int pipefd[2];
-/*used to reserve the pipe fds*/
-int nextin = -1, nextout = -1;
-/*pipecount*/
-int pipe_flag = 0;
-int xxcom_pipe_flag = 0;
-extern int xxcom_nextout;
+/*used to stdin/out fds*/
+int amigain = -1, amigaout = -1;
+
+char amigaos_getc(int fd)
+{
+	char c;
+	
+	return IDOS->FGetC(fd);
+}
+int amigaos_ungetc(char c, int fd)
+{
+	return IDOS->UnGetC(fd, c) ;
+}
 int amigaos_isabspath(const char *path)
 {FUNC;
 	if (*path == '/')
@@ -81,16 +86,6 @@ unsigned int alarm(unsigned int seconds)
 }
 
 
-void
-closepipe(pv)
-	register int *pv;
-{
-	FUNC;
-	IDOS->Close(pv[0]);
-	IDOS->Close(pv[1]);
-//	pv[0] = pv[1] = -1;
-	FUNCX;
-}
 int pipe(int filedes[2])
 {
 	char pipe_name[1024];
@@ -214,8 +209,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 	size = strlen(filename) + 1;
 	for (cur = (char **)argv+1; *cur; cur++)
 		size += strlen(*cur) + 1;
-	
-	
+
 	/* Check if it's a script file */
 	fh = fopen(filename, "r");
 	if (fh)
@@ -280,7 +274,6 @@ int pause(void)
 	return -1;
 }
 
-
 LONG execute_child(STRPTR args, int len)
 {
 	struct op *t;
@@ -299,11 +292,10 @@ exchild(t, flags, close_fd)
 	struct op	*t;
 	int		flags;
 	int		close_fd;	/* used if XPCLOSE or XCCLOSE */
-
 {
 /*pipe flags (flags & XPIPEI/O)*/
-	int pipeo = 0;	
-	int pipei = 0;
+/*	int pipeo = 0;	
+	int pipei = 0;*/
 /*close conditions*/
 	int close_fd_i = 1;
 	int close_fd_o = 1;
@@ -313,7 +305,7 @@ exchild(t, flags, close_fd)
 	char args[30];
 	struct Task *thisTask = IExec->FindTask(0);
 	FUNC;
-#if 1	
+#if 0	
 //	printf("close_fd = %d", close_fd);fflush(stdout);
 	printf("flags = ");
 	if (flags & XEXEC) printf("XEXEC ");
@@ -331,91 +323,33 @@ exchild(t, flags, close_fd)
 #endif
 	
 	sprintf(args, "%08lx %08lx %08lx", t, flags & (XEXEC | XERROK), thisTask);
-/*XCCOM is here when ` ` expansion used, needs further investigation*/
-	pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
-	pipei = (flags & XPIPEI);
-	close_fd_i = TRUE;//((!(flags & XPCLOSE) && pipei) || !pipei);
-	close_fd_o = TRUE;//(((flags & XCCLOSE) && pipeo) || !pipeo);
-	printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
-#if 1
+/*	pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
+	pipei = (flags & XPIPEI);*/
+	close_fd_i = TRUE;
+	close_fd_o = TRUE;
+//	printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
 
-/*buffer the pipefd[1] as next input*/
-	if (pipei)
-		nextin = pipefd[0];
-/*detect the new pipe, raise the count and buffer the input*/
-	if (pipeo)
+	if (t->type == 21)
 	{
-/*XXCOM is when comsub() is used, only open the pipe, comsub'll collect it */
-		if (!(flags & XXCOM))
+		if (amigain != -1)
 		{
-			pipe(pipefd);
-			nextout = pipefd[1];
-			pipe_flag++;
+			close_fd_i = FALSE;
+			inputfd = amigain;
 		}
 		else
-			xxcom_pipe_flag++;
-	}
-
-/*type==21 occurs in execute() after XPIPEI/O here*/
-	if ((t->type == 21) && pipe_flag && !(xxcom_pipe_flag > 0))
-	{
-/*there's nextout pendindg*/
-		if (nextout != -1)
-		{
-/*nextin pendidng*/
-			if(nextin != -1)
-			{
-/*use it*/
-				inputfd = nextin;
-/*remove pending*/
-				nextin = -1;
-/*we will close it later*/
-				close_fd_i = FALSE;
-/* one pipe is done -- reduce count*/
-				pipe_flag--;
-			}
-			else
-				inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
-
-			outputfd = nextout;
-			nextout = -1;
-		}
+			inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+			
+		if (amigaout != -1)
+			outputfd = amigaout;
 		else
-		{
-/*same stuff without nextout pending*/
-			if(nextin != -1)
-			{
-				inputfd = nextin;
-				nextin = -1;
-				close_fd_i = FALSE;
-				pipe_flag--;
-			}
-			else
-				inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
-
 			outputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
-		}
-	}
-/*defaults*/
-	else if ((t->type == 21) && (xxcom_pipe_flag > 0))
-	{
-		outputfd = xxcom_nextout;
-		inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
-		xxcom_pipe_flag--;
+			
 	}
 	else
 	{
-		outputfd =IDOS->Open("CONSOLE:",MODE_OLDFILE);
-		inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
+			outputfd =IDOS->Open("CONSOLE:",MODE_OLDFILE);
+			inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
 	}
-
-//	printf("PIPE_FLAG %d\n", pipe_flag);fflush(stdout);
-//	outputfd = (pipeo  ? pipefd[0] : IDOS->Open("CONSOLE:",MODE_OLDFILE));
-//	printf ("in %d out %d\n",inputfd, outputfd);fflush(stdout);
-#else
-	outputfd =IDOS->Open("CONSOLE:",MODE_OLDFILE);
-	inputfd = IDOS->Open("CONSOLE:",MODE_OLDFILE);
-#endif
 
 	IDOS->CreateNewProcTags(
 			NP_Entry, 		execute_child,
@@ -432,13 +366,14 @@ exchild(t, flags, close_fd)
 			
 	IExec->Wait(SIGBREAKF_CTRL_F);		
 /*close pipe input*/
+
 	if (!close_fd_i)
-	{
 		IDOS->Close(inputfd);
-	}
+
+/*restore to stdin/out*/
+	amigain = amigaout = -1;
+
 	FUNCX;		
 	return 0;
 }
- 
-	
 	

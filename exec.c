@@ -43,6 +43,10 @@ static void	dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 static char clexec_tab[MAXFD+1];
 #endif
 
+#ifdef __amigaos4__
+extern int  amigain, amigaout;
+#endif
+
 /*
  * we now use this function always.
  */
@@ -77,7 +81,9 @@ execute(t, flags)
 	char *s, *cp;
 	struct ioword **iowp;
 	struct tbl *tp = NULL;
-
+#ifdef __amigaos4__
+	int savefd[2];
+#endif
 	if (t == NULL)
 		return 0;
 
@@ -165,11 +171,19 @@ execute(t, flags)
 		e->savefd[0] = savefd(0, 0);
 		(void) ksh_dup2(e->savefd[0], 0, FALSE); /* stdin of first */
 		e->savefd[1] = savefd(1, 0);
+#else
+		savefd[0] = amigain;
+		savefd[1] = amigaout;
+		
 #endif
+
 		while (t->type == TPIPE) {
 #ifndef __amigaos4__
 			openpipe(pv);
  		(void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
+#else
+		pipe(pv);
+		amigaout = pv[1];
 #endif
 			/* Let exchild() close pv[0] in child
 			 * (if this isn't done, commands like
@@ -180,6 +194,8 @@ execute(t, flags)
 #ifndef __amigaos4__
 			(void) ksh_dup2(pv[0], 0, FALSE); /* stdin of next */
 			closepipe(pv);
+#else
+			amigain = pv[0];
 #endif
 			flags |= XPIPEI;
 			t = t->right;
@@ -188,6 +204,8 @@ execute(t, flags)
 		restfd(1, e->savefd[1]); /* stdout of last */
 		e->savefd[1] = 0; /* no need to re-restore this */
 		/* Let exchild() close 0 in parent, after fork, before wait */
+#else
+		amigaout = savefd[1];
 #endif	
 		i = exchild(t, flags|XPCLOSE, 0);
 		if (!(flags&XBGND) && !(flags&XXCOM))
