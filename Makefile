@@ -6,7 +6,7 @@ srcdir = .
 CC = gcc
 CPP = $(CC) -E
 
-DEFS = -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h
+DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h
 LIBS = -lunix -lauto -lnet -lstack
 
 CPPFLAGS = 
