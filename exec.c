@@ -43,7 +43,7 @@ static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 static char clexec_tab[MAXFD+1];
 #endif
 
-#ifdef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
 extern int  amigain, amigaout;
 #endif
 
@@ -81,7 +81,7 @@ execute(t, flags)
         char *s, *cp;
         struct ioword **iowp;
         struct tbl *tp = NULL;
-#ifdef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
         int savefd[2];
 #endif
         if (t == NULL)
@@ -96,15 +96,12 @@ execute(t, flags)
         }
          */
         if ((flags&XFORK) && !(flags&XEXEC) && t->type != TPIPE)
-{
-
                 return exchild(t, flags & ~XTIME, -1); /* run in sub-process */
-}
 
         newenv(E_EXEC);
         if (trap)
                 runtraps(0);
- 
+
         if (t->type == TCOM) {
                 /* Clear subst_exstat before argument expansion.  Used by
                  * null commands (see comexec() and c_eval()) and by c_set().
@@ -167,23 +164,22 @@ execute(t, flags)
           case TPIPE:
                 flags |= XFORK;
                 flags &= ~XEXEC;
-#ifndef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
+               savefd[0] = amigain;
+               savefd[1] = amigaout;
+#else
                 e->savefd[0] = savefd(0, 0);
                 (void) ksh_dup2(e->savefd[0], 0, FALSE); /* stdin of first */
                 e->savefd[1] = savefd(1, 0);
-#else
-                savefd[0] = amigain;
-                savefd[1] = amigaout;
-                
 #endif
 
                 while (t->type == TPIPE) {
-#ifndef AMIGA
-                        openpipe(pv);
-                        (void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
-#else
+#if defined(AMIGA) && !defined(CLIBHACK)
                         pipe(pv);
                         amigaout = pv[1];
+#else
+                        openpipe(pv);
+                        (void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
 #endif
                         /* Let exchild() close pv[0] in child
                          * (if this isn't done, commands like
@@ -191,22 +187,22 @@ execute(t, flags)
                          *  will hang forever).
                          */
                         exchild(t->left, flags|XPIPEO|XCCLOSE, pv[0]);
-#ifndef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
+                        amigain = pv[0];
+#else
                         (void) ksh_dup2(pv[0], 0, FALSE); /* stdin of next */
                         closepipe(pv);
-#else
-                        amigain = pv[0];
 #endif
                         flags |= XPIPEI;
                         t = t->right;
                 }
-#ifndef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
+                amigaout = savefd[1];
+#else
                 restfd(1, e->savefd[1]); /* stdout of last */
                 e->savefd[1] = 0; /* no need to re-restore this */
                 /* Let exchild() close 0 in parent, after fork, before wait */
-#else
-                amigaout = savefd[1];
-#endif  
+#endif
                 i = exchild(t, flags|XPCLOSE, 0);
                 if (!(flags&XBGND) && !(flags&XXCOM))
                         rv = i;
@@ -424,7 +420,7 @@ execute(t, flags)
 #ifndef AMIGA
                 else
                         errorf("%s: %s", s, strerror(errno));
-#endif                  
+#endif
         }
     Break:
         exstat = rv;

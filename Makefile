@@ -6,11 +6,14 @@ srcdir = .
 CC = gcc
 CPP = $(CC) -E
 
-DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h
+#use "make CLIBHACK=-UCLIBHACK" to use IDOS io code
+CLIBHACK = -DCLIBHACK
+
+DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK)
 LIBS = -lunix -lauto -lnet -lstack
 
 CPPFLAGS = 
-CFLAGS = -g -O
+CFLAGS = -g -O 
 LDSTATIC = 
 LDFLAGS = 
 
@@ -67,6 +70,13 @@ mostlyclean: clean
 
 distclean: clean
 	rm -f tags TAGS *~
+
+clibhackclean:
+	rm -f amigaos.o c_sh.o c_ksh.o exec.o eval.o
+
+noclibhack: clibhackclean
+	make CLIBHACK=-UCLIBHACK
+    
 
 depend: $(SRCS)
 	sed -n '1,/[ ]PUT ANYTHING BELOW THIS LINE/p' < Makefile > Makefile.tmp

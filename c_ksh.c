@@ -6,7 +6,7 @@
 #include "ksh_stat.h"
 #include <ctype.h>
 
-#ifdef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
 extern int amigaout;
 int amigaos_write(int fd, void *b, int len);
 int amigaos_getstdfd(int fd);
@@ -212,10 +212,11 @@ c_print(wp)
 #define PO_HIST         BIT(3)  /* print to history instead of stdout */
 #define PO_COPROC       BIT(4)  /* printing to coprocess: block SIGPIPE */
 #define PO_FSLASH       BIT(5)  /* swap slash for backslash */
-#ifndef AMIGA
-        int fd = 1;
-#else 
+
+#if defined(AMIGA) && !defined(CLIBHACK)
         int fd = amigaos_getstdfd(amigaout);
+#else 
+        int fd = 1;
 #endif
         int flags = PO_EXPAND|PO_NL;
         char *s;
@@ -376,10 +377,10 @@ c_print(wp)
                 }
 #endif /* KSH */
                 for (s = Xstring(xs, xp); len > 0; ) {
-#ifndef AMIGA
-                        n = write(fd, s, len);
-#else
+#if defined(AMIGA) && !defined(CLIBHACK)
                         n = amigaos_write(fd, s, len);
+#else
+                        n = write(fd, s, len);
 #endif
                         if (n < 0) {
 #ifdef KSH

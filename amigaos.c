@@ -6,7 +6,9 @@
 #include "sh.h"
 
 #include <dos/dos.h>
+#ifndef CLIBHACK
 #include <dos/dostags.h>
+#endif
 #include <proto/dos.h>
 #include <proto/exec.h>
 
@@ -14,6 +16,7 @@
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 
 /*used to stdin/out fds*/
+#ifndef CLIBHACK
 int amigain = -1, amigaout = -1;
 
 
@@ -43,7 +46,7 @@ int amigaos_getstdfd(int fd)
 {
         return (fd == -1 ? Open("CONSOLE:",MODE_OLDFILE) : fd);
 }
-
+#endif /*CLIBHACK*/
 int amigaos_isabspath(const char *path)
 {FUNC;
         if (*path == '/')
@@ -88,7 +91,7 @@ int amigaos_dupbbase(int fd, int base)
         FUNC;
         res = fcntl(fd, F_DUPFD, base);
         FUNCX;
-        
+
         return res;
 }
 
@@ -111,26 +114,34 @@ int pipe(int filedes[2])
         FUNC;
 
         sprintf(pipe_name, "PIPE:%s\n", tmpnam(0));
-//      printf("pipe: %s \n", pipe_name);
-        
-//      filedes[0] = open(pipe_name, O_WRONLY|O_CREAT);
-//      filedes[1] = open(pipe_name, O_RDONLY); 
+/*      printf("pipe: %s \n", pipe_name);*/
 
+#ifdef CLIBHACK
+        filedes[1] = open(pipe_name, O_WRONLY|O_CREAT);
+        filedes[0] = open(pipe_name, O_RDONLY); 
+#else
         filedes[1] = Open(pipe_name, MODE_NEWFILE);
         filedes[0] = Open(pipe_name, MODE_OLDFILE);
+#endif/*CLIBHACK*/
 
-
-        if (filedes[0] == -1 || filedes[1] == -1)
+    if (filedes[0] == -1 || filedes[1] == -1)
         {
+#ifdef CLIBHACK      
                 if (filedes[0] != -1)
-                        Close(filedes[0]);
+                    close(filedes[0]);
                 if (filedes[1] != -1)
-                        Close(filedes[1]);
+                    close(filedes[1]);
+#else
+                if (filedes[0] != -1)
+                    Close(filedes[0]);
+                if (filedes[1] != -1)
+                    Close(filedes[1]);
+#endif/*CLIBHACK*/
 
                 FUNCX;
                 return -1;
         }
-//      printf("filedes %d %d\n", filedes[0], filedes[1]);fflush(stdout);
+/*      printf("filedes %d %d\n", filedes[0], filedes[1]);fflush(stdout);*/
 
         FUNCX;
         return 0;
@@ -142,10 +153,10 @@ int pipe(int filedes[2])
         char pipe_name[1024];
         FUNC;
         int mystdin, mystdout;
-	
+    
         mystdin = Open("CONSOLE:", MODE_OLDFILE);
         mystdout = Open("CONSOLE:", MODE_OLDFILE);
-	
+    
         ksh_dup2(mystdin, 0, FALSE);
         ksh_dup2(mystdout, 1, FALSE);
         FUNCX;
@@ -173,21 +184,22 @@ char *convert_path(const char *filename)
         char *newname;
         char *out;
         FUNC;
+
+        if (!filename)
+        {
+            FUNCX;
+            return 0;
+        }
+                   
         if (strcmp(filename, "/dev/null") == 0)
         {
             out = newname =  strdup( "NIL:");;
             FUNCX;
             return out;
         }
-	
+    
         abs = filename[0] == '/';
 
-        if (!filename)
-        {
-                FUNCX;
-                return 0;
-        }
-        
         newname = malloc(strlen(filename) + 1);
         out = newname;
         if (!out)
@@ -225,8 +237,10 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         char **cur;
         char *interpreter = 0;
         char *full = 0;
-        char *filename_conv;
-        char *interpreter_conv;
+        char *filename_conv = 0;
+        char *interpreter_conv = 0;
+        char *tmp = 0;
+        int tmpint;
         uint32 error;
         
         FUNC;
@@ -244,49 +258,65 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 {
                         fgets(buffer, 999, fh);
                         interpreter = strdup(buffer);
-                        if (interpreter[strlen(interpreter)-1] == 10)
-                                interpreter[strlen(interpreter)-1] = 0;
-                        size += strlen(interpreter) + 1;
+                        if(interpreter)
+                        {
+                            if (interpreter[strlen(interpreter)-1] == 10)
+                            {
+                                tmp = interpreter;
+                                tmpint = strlen(interpreter)-1;
+                                tmp[tmpint] = 0;
+                                interpreter = strdup(tmp);
+                                tmp[tmpint] = 10;
+                                free(tmp);
+                            }
+                            size += strlen(interpreter) + 1;
+                        }
                 }
         
                 fclose(fh);
         }
-        
+
         /* Allocate the command line */
         filename_conv = convert_path(filename);
-        size += strlen(filename_conv) + 1;
-
+        if(filename_conv)
+            size += strlen(filename_conv);
+        size += 1;
         full = malloc(size+1);
         if (full)
         {
-                if (interpreter)
-                {
-                        interpreter_conv = convert_path(interpreter);
+            if (interpreter)
+            {
+                interpreter_conv = convert_path(interpreter);
+                sprintf(full, "%s %s ", interpreter_conv, filename_conv);
+                free(interpreter);
+                if(filename_conv)
+                    free(filename_conv);
+                if(interpreter_conv)
+                    free(interpreter_conv);
+            }
+            else
+            {
+                sprintf(full, "%s ", filename_conv);
+                if(filename_conv)
+                    free(filename_conv);
+            }
                         
-                        sprintf(full, "%s %s ", interpreter_conv, filename_conv);
-                        
-                        free(interpreter);
-                        free(filename_conv);
-                        free(interpreter_conv);
-                }
-                else
-                {
-                        sprintf(full, "%s ", filename_conv);
-                        
-                        free(filename_conv);
-                }
-                        
-                for (cur = (char**)argv+1; *cur != 0; cur++)
-                {
-                        strcat(full, *cur);
-                        strcat(full, " ");
-                }
-                SystemTags(full, TAG_DONE);
+            for (cur = (char**)argv+1; *cur != 0; cur++)
+            {
+                strcat(full, *cur);
+                strcat(full, " ");
+            }
+            SystemTags(full, TAG_DONE);
 
-                free(full);
-                FUNCX;
-                return 0;
+            free(full);
+            FUNCX;
+            return 0;
         }
+        
+        if(interpreter)
+            free(interpreter);
+        if(filename_conv)
+            free(filename_conv);
         
         errno = ENOMEM;
         FUNCX;
@@ -320,8 +350,6 @@ LONG execute_child(STRPTR args, int len)
         flags = ((struct userdata*)this->tc_UserData)->flags;
         parent = ((struct userdata*)this->tc_UserData)->parent;
 
-//      sscanf(args, "%08lx %08lx %08lx", &t, &flags, &parent);
-
         execute(t, flags & (XEXEC | XERROK));
 
         Signal(parent, SIGBREAKF_CTRL_F);
@@ -334,25 +362,26 @@ exchild(t, flags, close_fd)
         int             flags;
         int             close_fd;       /* used if XPCLOSE or XCCLOSE */
 {
-/*pipe flags (flags & XPIPEI/O)*/
-/*      int pipeo = 0;  
-        int pipei = 0;*/
-/*close conditions*/
-        int close_fd_i = 1;
-        int close_fd_o = 1;
+#ifdef CLIBHACK
 /*current input output*/
-        int inputfd = -1, outputfd = -1;
-
+        int i;
+/*close conditions*/
+        long amigafd[3];
+        int amigafd_close[3] = {0, 0, 0};
+#else
+        /*current input output*/
+        long amigafd[2];
+        int amigafd_close[2] = {1, 1};
+#endif
         char args[30];
-        struct Process *proc;
+        struct Process *proc = NULL;
         struct Task *thisTask = FindTask(0);
         struct userdata taskdata;
 
-        char *name;
+        char *name = NULL;
 
         FUNC;
-#if 0   
-//      printf("close_fd = %d", close_fd);fflush(stdout);
+#if 0
         printf("flags = ");
         if (flags & XEXEC) printf("XEXEC ");
         if (flags & XFORK) printf("XFORK ");
@@ -367,76 +396,84 @@ exchild(t, flags, close_fd)
         if (flags & XTIME) printf("XTIME ");
         printf("\n"); fflush(stdout);
 #endif
-        
-//      sprintf(args, "%08lx %08lx %08lx", t, flags & (XEXEC | XERROK), thisTask);
+
         taskdata.t      = t;
         taskdata.flags  = flags & (XEXEC | XERROK);
         taskdata.parent = thisTask;
-
-/*      pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
-        pipei = (flags & XPIPEI);*/
-        close_fd_i = TRUE;
-        close_fd_o = TRUE;
-//      printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
-
-        if (t->type == 21)
+#ifdef CLIBHACK
+    for(i = 0; i < 3; i++)
         {
-                if (amigain != -1)
-                {
-                        close_fd_i = FALSE;
-                        inputfd = amigain;
-                }
-                else
-                        inputfd = Open("CONSOLE:",MODE_OLDFILE);
-                        
-                if (amigaout != -1)
-                        outputfd = amigaout;
-                else
-                        outputfd = Open("CONSOLE:",MODE_OLDFILE);
-                        
+            __get_default_file(i, &amigafd[i]);
+            if(close_fd == i) amigafd_close[i] = TRUE;
+        }
+#else
+    if (t->type == 21)
+        {
+            if (amigain != -1)
+            {
+                amigafd_close[0] = FALSE;
+                amigafd[0] = amigain;
+            }
+            else
+                amigafd[0] = Open("CONSOLE:",MODE_OLDFILE);
+
+            if (amigaout != -1)
+                amigafd[1] = amigaout;
+            else
+                amigafd[1] = Open("CONSOLE:",MODE_OLDFILE);
+
         }
         else
         {
-                        outputfd = Open("CONSOLE:",MODE_OLDFILE);
-                        inputfd = Open("CONSOLE:",MODE_OLDFILE);
+            amigafd[1] = Open("CONSOLE:",MODE_OLDFILE);
+            amigafd[0] = Open("CONSOLE:",MODE_OLDFILE);
         }
+#endif /*CLIBHACK*/
 
-#if 1
-        name = strdup(t->str);
-#else
-        name = convert_path(t->str);
-#endif
+        if(t->str)
+            name = strdup(t->str);
+        
         proc = CreateNewProcTags(
-                        NP_Entry,               execute_child,
-/*                      NP_Child,               TRUE, */
-                        NP_Input,               inputfd,
-                        NP_CloseInput,          close_fd_i,
-                        NP_Output,              outputfd,
-                        NP_CloseOutput,         close_fd_o,
-//                      NP_Error,               ErrorOutput(),
-//                      NP_CloseError,          FALSE,
-//                      NP_Arguments,           args,
-                        NP_Name,                name,
+            NP_Entry,               execute_child,
+/*          NP_Child,               TRUE, */
+            NP_Input,               amigafd[0],
+            NP_Output,              amigafd[1],
+#ifdef CLIBHACK
+            NP_CloseOutput,         FALSE,
+            NP_CloseInput,          FALSE,
+            NP_Error,               amigafd[2],
+            NP_CloseError,          FALSE,
+#else
+            NP_CloseOutput,         amigafd_close[1] ,
+            NP_CloseInput,          amigafd_close[0] ,
+#endif/*CLIBHACK*/
+            NP_Cli,                 TRUE,
+            NP_Name,                name,
 #ifdef __amigaos4__
-                        NP_UserData,            (int)&taskdata,
+            NP_UserData,            (int)&taskdata,
 #endif
-                        TAG_DONE);
-        free(name);
+            TAG_DONE);
 
 #ifndef __amigaos4__
         proc->pr_Task.tc_UserData = &taskdata;
 #endif
-                        
-        Wait(SIGBREAKF_CTRL_F);          
+
+        Wait(SIGBREAKF_CTRL_F);
+        if(name)
+            free(name);
+#ifdef CLIBHACK
+        for(i=0; i < 3; i++)
+            if(amigafd_close[i])
+                close(i);
+#else
 /*close pipe input*/
-
-        if (!close_fd_i)
-                Close(inputfd);
-
+        if (!amigafd_close[0])
+                Close(amigafd[0]);
 /*restore to stdin/out*/
         amigain = amigaout = -1;
+#endif /*CLIBHACK*/
 
-        FUNCX;          
+        FUNCX;
         return 0;
 }
 

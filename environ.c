@@ -43,7 +43,7 @@ copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
                 uint32 size = strlen(message->sv_Name) + 1 + message->sv_VarLen + 1 + 1;
                 char *buffer=(char *)AllocVec((uint32)size,MEMF_ANY|MEMF_CLEAR);
 
-                sprintf(buffer, "%s=%s\n", message->sv_Name, message->sv_Var);
+                sprintf(buffer, "%s=%s", message->sv_Name, message->sv_Var);
 
                 *env  = buffer;
                 env++;

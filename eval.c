@@ -7,7 +7,7 @@
 #include "ksh_dir.h"
 #include "ksh_stat.h"
 
-#ifdef AMIGA
+#if  defined(AMIGA) && !defined(CLIBHACK)
 char amigaos_getc(int fd);
 int amigaos_ungetc(char c, int fd);
 
@@ -23,6 +23,7 @@ extern int  amigain , amigaout;
 int amigaos_comsub = 0, /*counter of inputs*/
     xxcom_nextin;       /*holds the current fd*/
 #endif
+
 
 /*
  * string expansion
@@ -526,7 +527,7 @@ expand(cp, wp, f)
                                 c = '\n';
                                 --newlines;
                         } else {
-#ifdef AMIGA
+#if  defined(AMIGA) && !defined(CLIBHACK)
 /*pending input pipe*/
                                 if(amigaos_comsub > 0)
                                 {
@@ -572,13 +573,13 @@ expand(cp, wp, f)
                                 }
 #endif
                         }
-#ifdef AMIGA
+#if  defined(AMIGA) && !defined(CLIBHACK)
 /*translate amigaos EOF to EOF*/
                         c = (c == 255) ? EOF : c; 
 #endif
                         if (c == EOF) {
                                 newlines = 0;
-#ifdef AMIGA
+#if  defined(AMIGA) && !defined(CLIBHACK)
 /*close amiga pipe, delete last in list, decrease count*/
                                 if (amigaos_comsub > 0)
                                 {
@@ -942,21 +943,15 @@ comsub(xp, cp)
                 xp->split = 0;  /* no waitlast() */
         } else {
                 int ofd1, pv[2];
-#ifndef AMIGA
-                openpipe(pv);//printf("PIPE\n"); fflush(stdout);
-                shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
-#else 
+#if  defined(AMIGA) && !defined(CLIBHACK)
 /*just get the pipe, no moving in shell/user space is needed*/
                 pipe(pv);
+#else
+                openpipe(pv);//printf("PIPE\n"); fflush(stdout);
+                shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
 #endif
 
-#ifndef AMIGA
-                ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
-                ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
-                close(pv[1]);//printf("close\n"); fflush(stdout);
-                execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);
-                restfd(1, ofd1);//printf("restfd\n"); fflush(stdout);
-#else
+#if defined(AMIGA) && !defined(CLIBHACK)
 /*same rotation as abov using fd only, output pipe is passed as amigaout*/
                 ofd1 = amigaout;
                 amigaout= pv[1];
@@ -979,6 +974,12 @@ comsub(xp, cp)
                 xxcom_nextin = xxcom_nextin_p->fd = pv[0];
 /*count new pipe instance*/
                 amigaos_comsub++;
+#else
+                ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
+                ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
+                close(pv[1]);//printf("close\n"); fflush(stdout);
+                execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);
+                restfd(1, ofd1);//printf("restfd\n"); fflush(stdout);
 #endif
                 startlast();//printf("!\n"); fflush(stdout);
                 xp->split = 1;  /* waitlast() */

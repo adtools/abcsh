@@ -7,7 +7,7 @@
 #include "ksh_time.h"
 #include "ksh_times.h"
 
-#ifdef AMIGA
+#if defined(AMIGA) && !defined(CLIBHACK)
 extern int amigain;
 
 int amigaos_read(int fd, void *b, int len);
@@ -249,10 +249,10 @@ c_read(wp)
         int expanding;
         int ecode = 0;
         register char *cp;
-#ifndef AMIGA
-        int fd = 0;
-#else
+#if defined(AMIGA) && !defined(CLIBHACK)
         int fd = amigaos_getstdfd(amigain);
+#else
+        int fd = 0;
 #endif
         struct shf *shf;
         int optc;
@@ -296,7 +296,7 @@ c_read(wp)
         /* Since we can't necessarily seek backwards on non-regular files,
          * don't buffer them so we can't read too much.
          */
-#ifndef AMIGA
+#if !defined(AMIGA) || defined(CLIBHACK)
         shf = shf_reopen(fd, SHF_RD | SHF_INTERRUPT | can_seek(fd), shl_spare);
 #endif
         
@@ -334,16 +334,16 @@ c_read(wp)
                         if (c == '\n' || c == EOF)
                                 break;
                         while (1) {
-#ifndef AMIGA
-                                c = shf_getc(shf);
-#else
+#if  defined(AMIGA) && !defined(CLIBHACK)
                                 c = amigaos_getc(fd);
                                 c = (c == 255 ? -1 : c);
+#else
+                                c = shf_getc(shf);
 #endif
                                 if (c == '\0'
                                     )
                                         continue;
-#ifndef AMIGA
+#if !defined(AMIGA) || defined(CLIBHACK)
                                 if (c == EOF && shf_error(shf)
                                     && shf_errno(shf) == EINTR)
                                 {
@@ -402,31 +402,31 @@ c_read(wp)
                 vp = global(*wp);
                 /* Must be done before setting export. */
                 if (vp->flag & RDONLY) {
-#ifndef AMIGA
-                        shf_flush(shf);
+#if defined(AMIGA) && !defined(CLIBHACK)
+                    close(fd);
 #else
-                        close(fd);
+                    shf_flush(shf);
 #endif
-                        bi_errorf("%s is read only", *wp);
-                        return 1;
+                    bi_errorf("%s is read only", *wp);
+                    return 1;
                 }
                 if (Flag(FEXPORT))
                         typeset(*wp, EXPORTV, 0, 0, 0);
                 if (!setstr(vp, Xstring(cs, cp), KSH_RETURN_ERROR)) {
-#ifndef AMIGA
-                        shf_flush(shf);
+#if defined(AMIGA) && !defined(CLIBHACK)
+                    close(fd);
 #else
-                        close(fd);
+                    shf_flush(shf);
 #endif                  
-                        return 1;
+                    return 1;
                 }
         }
 
-#ifndef AMIGA
-        shf_flush(shf);
+#if defined(AMIGA) && !defined(CLIBHACK)
+    close(fd);
 #else
-        close(fd);
-#endif
+    shf_flush(shf);
+#endif         
         if (history) {
                 Xput(xs, xp, '\0');
                 source->line++;
