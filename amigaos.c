@@ -1,4 +1,6 @@
 #include <string.h>
+#include <sys/stat.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,8 +120,11 @@ int pipe(int filedes[2])
 {
         char pipe_name[1024];
 
-        sprintf(pipe_name, "/PIPE/%x%08x/4096/0\n", pipenum++,GetUniqueID());
-
+#ifdef USE_TEMPFILES
+        sprintf(pipe_name, "/T/%x.%08x", pipenum++,GetUniqueID());
+#else
+        sprintf(pipe_name, "/PIPE/%x%08x/4096/0", pipenum++,GetUniqueID());
+#endif
 
 /*      printf("pipe: %s \n", pipe_name);*/
 
@@ -129,6 +134,7 @@ int pipe(int filedes[2])
 #else
         filedes[1] = Open(pipe_name, MODE_NEWFILE);
         filedes[0] = Open(pipe_name, MODE_OLDFILE);
+
 #endif/*CLIBHACK*/
     if (filedes[0] == -1 || filedes[1] == -1)
         {
@@ -670,8 +676,28 @@ exchild(t, flags, close_fd)
 //            {
           if((i=close_fd) >=0 && (flags & XPCLOSE) )
           {
+#ifdef USE_TEMPFILES
+                BPTR f=0;
+                UBYTE pname[256];
+
                 if(flags & XPIPEI)
                 {
+
+                      __get_default_file(i,&f);
+                      NameFromFH(f,pname,255);
+
+                }
+
+                close(i);
+                if(f)
+                {
+                    DeleteFile(pname);
+                }
+#else  /* using true pipes */
+
+                if(flags & XPIPEI)
+                {
+
                     char buffer[256];
                     int n,t;
                     t = 0;
@@ -679,7 +705,9 @@ exchild(t, flags, close_fd)
                 }
 
                 close(i);
-            }
+#endif  /* USE_TEMPFILES */
+
+           }
 #else
 /*close pipe input*/
         if (!amigafd_close[0])
@@ -691,4 +719,79 @@ exchild(t, flags, close_fd)
         FUNCX;
         return lastresult;
 }
+
+/* The following are wrappaers for selected fcntl.h functions */
+/* They allow usage of absolute amigaos paths as well unix style */
+
+
+
+#ifdef open
+#undef open
+#endif
+#ifdef stat
+#undef stat
+#endif
+#ifdef lstat
+#undef lstat
+#endif
+
+int __open(const char * path, int open_flag)
+{
+        struct name_translation_info nti;
+        BOOL have_colon = FALSE;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=TRUE;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+        return open(path, open_flag);
+
+}
+
+int __stat(const char * path, struct stat *buffer)
+{
+        struct name_translation_info nti;
+        BOOL have_colon = FALSE;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':')have_colon=TRUE;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+
+        return stat(path, buffer);
+
+}
+
+int __lstat(const char * path, struct stat *buffer)
+{
+        struct name_translation_info nti;
+        BOOL have_colon = FALSE;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=TRUE;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+
+        return lstat(path, buffer);
+
+}
+
+
+
+
 

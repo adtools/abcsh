@@ -6,6 +6,7 @@
 #include "ksh_stat.h"
 #include "ksh_limval.h"
 
+#include <proto/dos.h>
 
 /* flags to shf_emptybuf() */
 #define EB_READSW       0x01    /* about to switch to reading */
@@ -115,6 +116,8 @@ shf_fdopen(fd, sflags, shf)
         shf->flags = sflags;
         shf->errno_ = 0;
         shf->bsize = bsize;
+        shf->ispipe = FALSE;
+
         if (sflags & SHF_CLEXEC)
                 fd_clexec(fd);
         return shf;
@@ -158,6 +161,7 @@ shf_reopen(fd, sflags, shf)
         shf->wbsize = sflags & SHF_UNBUF ? 0 : bsize;
         shf->flags = (shf->flags & (SHF_ALLOCS | SHF_ALLOCB)) | sflags;
         shf->errno_ = 0;
+        shf->ispipe = FALSE;
         if (sflags & SHF_CLEXEC)
                 fd_clexec(fd);
         return shf;
@@ -203,6 +207,7 @@ shf_sopen(buf, bsize, sflags, shf)
         shf->flags = sflags | SHF_STRING;
         shf->errno_ = 0;
         shf->bsize = bsize;
+        shf->ispipe = FALSE;
 
         return shf;
 }
@@ -215,9 +220,37 @@ shf_close(shf)
         int ret = 0;
 
         if (shf->fd >= 0) {
-                ret = shf_flush(shf);
-                if (close(shf->fd) < 0)
-                        ret = EOF;
+            ret = shf_flush(shf);
+
+            if(shf->ispipe == TRUE)
+            {
+#ifdef USE_TEMPFILES
+                BPTR f=0;
+                UBYTE pname[256];
+
+
+                 __get_default_file(shf->fd,&f);
+                NameFromFH(f,pname,255);
+
+                if(close(shf->fd) < 0) ret = EOF;
+                if(f)
+                {
+                    DeleteFile(pname);
+                }
+
+#else
+                char buffer[256];
+                int n,t;
+                t = 0;
+                while((n = read(i,buffer,255)) > 0) t +=n;
+                if (close(shf->fd) < 0) ret = EOF;
+
+#endif
+            }
+            else
+            {
+                if (close(shf->fd) < 0) ret = EOF;
+            }
         }
         if (shf->flags & SHF_ALLOCS)
                 afree(shf, shf->areap);
@@ -236,8 +269,37 @@ shf_fdclose(shf)
 
         if (shf->fd >= 0) {
                 ret = shf_flush(shf);
-                if (close(shf->fd) < 0)
-                        ret = EOF;
+
+                if(shf->ispipe == TRUE)
+                {
+#ifdef USE_TEMPFILES
+                    BPTR f=0;
+                    UBYTE pname[256];
+
+
+                     __get_default_file(shf->fd,&f);
+                     NameFromFH(f,pname,255);
+
+                    if(close(shf->fd) < 0) ret = EOF;
+                    if(f)
+                    {
+                        DeleteFile(pname);
+                    }
+
+#else
+                    char buffer[256];
+                    int n,t;
+                    t = 0;
+                    while((n = read(i,buffer,255)) > 0) t +=n;
+                    if (close(shf->fd) < 0) ret = EOF;
+
+#endif
+                }
+                else
+                {
+                    if (close(shf->fd) < 0) ret = EOF;
+                }
+
                 shf->rnleft = 0;
                 shf->rp = shf->buf;
                 shf->wnleft = 0;

@@ -563,7 +563,7 @@ struct globals
 
 };
 
-
+#define open(a,b, ...)  __open((a),(b))
 
 #include "shf.h"
 #include "table.h"

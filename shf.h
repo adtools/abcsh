@@ -54,6 +54,7 @@ struct shf {
         int errno_;             /* saved value of errno after error */
         int bsize;              /* actual size of buf */
         Area *areap;            /* area shf/buf were allocated in */
+        BOOL ispipe;            /* this is a pipe */
 };
 
 extern struct shf shf_iob[];

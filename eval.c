@@ -956,6 +956,7 @@ comsub(xp, cp)
 #else
                 openpipe(pv);//printf("PIPE\n"); fflush(stdout);
                 shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
+                shf->ispipe = TRUE;
 #endif
 
 #if defined(AMIGA) && !defined(CLIBHACK)

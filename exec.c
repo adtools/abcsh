@@ -7,6 +7,9 @@
 #include <ctype.h>
 #include "ksh_stat.h"
 
+#include <proto/dos.h>
+
+
 /* Does ps4 get parameter substitutions done? */
 #ifdef KSH
 # define PS4_SUBSTITUTE(s)      substitute((s), 0)
@@ -183,6 +186,8 @@ execute(t, flags)
                 break;
 
           case TPIPE:
+                {
+                BOOL chain = FALSE;
                 flags |= XFORK;
                 flags &= ~XEXEC;
 
@@ -212,11 +217,44 @@ execute(t, flags)
 #if defined(AMIGA) && !defined(CLIBHACK)
                         amigain = pv[0];
 #else
+                        /* at this point if were in a chain of pipes */
+                        /* then we are clsing the ouyput of the previous */
+                        /* pipe. But we may not have read all data so drain it here */
+#ifndef USE_TEMPFILES  /* true pipes */
+                        if(0){//chain){
+
+                            char buffer[256];
+                            int n,t;
+                            t = 0;
+                            while((n = read(0,buffer,255)) > 0) t +=n;
+
+                        }
                         (void) ksh_dup2(pv[0], 0, FALSE); /* stdin of next */
                         closepipe(pv);
-#endif
+
+#else  /* temp files */
+                        {
+                            UBYTE pname[256];
+                            BPTR f = 0;
+                            if(chain)
+                            {
+                                __get_default_file(0,&f);
+                                NameFromFH(f,pname,255);
+
+                            }
+                            (void) ksh_dup2(pv[0], 0, FALSE); /* stdin of next */
+                            closepipe(pv);
+                            if(f)
+                            {
+                                DeleteFile(pname);
+                            }
+                        }
+#endif /* USE_TEMPFILES */
+#endif /* AMIGA & !CLIBHACK */
                         flags |= XPIPEI;
                         t = t->right;
+                        chain=TRUE;
+
                 }
 #if defined(AMIGA) && !defined(CLIBHACK)
                 amigaout = savefd[1];
@@ -229,6 +267,7 @@ execute(t, flags)
                 if (!(flags&XBGND) && !(flags&XXCOM))
                         rv = i;
                 break;
+                }
 
           case TLIST:
                 while (t->type == TLIST) {
