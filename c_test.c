@@ -11,6 +11,11 @@
 #include "ksh_stat.h"
 #include "c_test.h"
 
+#include <dos/dosextens.h>
+#include <proto/exec.h>
+#include <proto/dos.h>
+
+
 /* test(1) accepts the following grammar:
         oexpr   ::= aexpr | aexpr "-o" oexpr ;
         aexpr   ::= nexpr | nexpr "-a" aexpr ;
@@ -124,9 +129,9 @@ c_test(wp)
         te.pos.wp = wp + 1;
         te.wp_end = wp + argc;
 
-        /* 
+        /*
          * Handle the special cases from POSIX.2, section 4.62.4.
-         * Implementation of all the rules isn't necessary since 
+         * Implementation of all the rules isn't necessary since
          * our parser does the right thing for the ommited steps.
          */
         if (argc <= 5) {
@@ -238,7 +243,7 @@ test_eval(te, op, opnd1, opnd2, do_eval)
                         if (not)
                                 res = !res;
                 }
-                return res; 
+                return res;
           case TO_FILRD: /* -r */
                 return test_eaccess(opnd1, R_OK) == 0;
           case TO_FILWR: /* -w */
@@ -415,17 +420,27 @@ test_eval(te, op, opnd1, opnd2, do_eval)
 }
 
 /* Nasty kludge to handle Korn's bizarre /dev/fd hack */
+
 static int
 test_stat(path, statb)
         const char *path;
         struct stat *statb;
 {
         int fd;
+        int result;
+        APTR oldwin, *wptr=&((struct Process *)FindTask(NULL))->pr_WindowPtr;
+
+        /* borrow a trick from libnix to supress pesky DOS requesters */
+        oldwin = *wptr;
+        *wptr  = (APTR)-1;
 
         if (strncmp(path, "/dev/fd/", 8) == 0 && getn(path + 8, &fd))
                 return fstat(fd, statb);
 
-        return stat(path, statb);
+        result = stat(path, statb);
+        *wptr = oldwin;
+        return result;
+
 }
 
 /* Routine to handle Korn's /dev/fd hack, and to deal with X_OK on
