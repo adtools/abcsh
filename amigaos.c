@@ -419,8 +419,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         *q++ = '"';
                         while(*p != '\0')
                         {
-                            if(*p == '\t'){ *q++ = '*'; *q++ = 'T';p++;continue;}
-                            else if(*p == '\n'){ *q++ = '*'; *q++ = 'N';p++;continue;}
+                            if(*p == '\n'){ *q++ = '*'; *q++ = 'N';p++;continue;}
                             else if(*p == '"'){ *q++ = '*'; *q++ = '"';p++;continue;}
                             else if(*p == '*' ){ *q++ = '*';}
                             *q++ = *p++;
@@ -465,12 +464,17 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 if(seglist)
                 {
 
+
                     /* check if we have an executable! */
                     struct PseudoSegList *ps = NULL;
                     if(!GetSegListInfoTags( seglist, GSLI_Native, &ps, TAG_DONE))
                     {
-                        GetSegListInfoTags( seglist, GSLI_68KPS, &ps, TAG_DONE);
+                        if(!GetSegListInfoTags( seglist, GSLI_68KPS, &ps, TAG_DONE))
+                        {
+                            GetSegListInfoTags( seglist, GSLI_68KHUNK, &ps, TAG_DONE);
+                        }
                     }
+
                     if( ps != NULL )
                     {
                         SetProgramName(fname);

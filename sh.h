@@ -154,7 +154,7 @@ extern int dup2 ARGS((int, int));
  */
 
 #ifdef AMIGA
-# define PATHSEP        ';'
+# define PATHSEP        ':'
 # define DIRSEP         '/'
 # define DIRSEPSTR      "/"
 # define ISDIRSEP(c)    ((c) == '/' || (c) == ':')
