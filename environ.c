@@ -52,13 +52,13 @@ ___makeenviron()
         
         IDOS->ScanVars(&hook, 0, 0);
         
-           environ = (char **)IExec->AllocVec((uint32)hook.h_Data, MEMF_ANY);
-           if (!environ)
-                   return;
-           
-           hook.h_Entry = copy_env;
-           hook.h_Data = environ;
-           
+        environ = (char **)IExec->AllocVec((uint32)hook.h_Data, MEMF_ANY);
+        if (!environ)
+                return;
+        
+        hook.h_Entry = copy_env;
+        hook.h_Data = environ;
+        
         IDOS->ScanVars(&hook, 0, 0);
 }
 

@@ -13,15 +13,15 @@
  * otherwise, (val.s + type) contains string value.
  * if (flag&EXPORT), val.s contains "name=value" for E-Z exporting.
  */
-static        struct tbl vtemp;
-static        struct table specials;
-static char        *formatstr        ARGS((struct tbl *vp, const char *s));
-static void        export                ARGS((struct tbl *vp, const char *val));
-static int        special                ARGS((const char *name));
-static void        unspecial        ARGS((const char *name));
-static void        getspec                ARGS((struct tbl *vp));
-static void        setspec                ARGS((struct tbl *vp));
-static void        unsetspec        ARGS((struct tbl *vp));
+static  struct tbl vtemp;
+static  struct table specials;
+static char     *formatstr      ARGS((struct tbl *vp, const char *s));
+static void     export          ARGS((struct tbl *vp, const char *val));
+static int      special         ARGS((const char *name));
+static void     unspecial       ARGS((const char *name));
+static void     getspec         ARGS((struct tbl *vp));
+static void     setspec         ARGS((struct tbl *vp));
+static void     unsetspec       ARGS((struct tbl *vp));
 static struct tbl *arraysearch  ARGS((struct tbl *, int));
 
 /*
@@ -61,7 +61,7 @@ popblock()
         register struct tbl *vp, **vpp = l->vars.tbls, *vq;
         register int i;
 
-        e->loc = l->next;        /* pop block */
+        e->loc = l->next;       /* pop block */
         for (i = l->vars.size; --i >= 0; )
                 if ((vp = *vpp++) != NULL && (vp->flag&SPECIAL)) {
                         if ((vq = global(vp->name))->flag & ISSET)
@@ -83,19 +83,19 @@ initvar()
                 const char *name;
                 int v;
         } names[] = {
-                        { "COLUMNS",                V_COLUMNS },
+                        { "COLUMNS",            V_COLUMNS },
                         { "IFS",                V_IFS },
-                        { "OPTIND",                V_OPTIND },
-                        { "PATH",                V_PATH },
-                        { "POSIXLY_CORRECT",        V_POSIXLY_CORRECT },
-                        { "TMPDIR",                V_TMPDIR },
+                        { "OPTIND",             V_OPTIND },
+                        { "PATH",               V_PATH },
+                        { "POSIXLY_CORRECT",    V_POSIXLY_CORRECT },
+                        { "TMPDIR",             V_TMPDIR },
 #ifdef KSH
-                        { "RANDOM",                V_RANDOM },
-                        { "SECONDS",                V_SECONDS },
-                        { "TMOUT",                V_TMOUT },
+                        { "RANDOM",             V_RANDOM },
+                        { "SECONDS",            V_SECONDS },
+                        { "TMOUT",              V_TMOUT },
 #endif /* KSH */
-                        { "LINENO",                V_LINENO },
-                        { (char *) 0,        0 }
+                        { "LINENO",             V_LINENO },
+                        { (char *) 0,   0 }
                 };
         int i;
         struct tbl *tp;
@@ -153,8 +153,8 @@ global(n)
         register struct tbl *vp;
         register int c;
         unsigned h; 
-        bool_t         array;
-        int         val;
+        bool_t   array;
+        int      val;
 
         /* Check to see if this is an array */
         n = array_index_calc(n, &array, &val);
@@ -236,8 +236,8 @@ local(n, copy)
         register struct block *l = e->loc;
         register struct tbl *vp;
         unsigned h;
-        bool_t         array;
-        int         val;
+        bool_t   array;
+        int      val;
 
         /* Check to see if this is an array */
         n = array_index_calc(n, &array, &val);
@@ -283,10 +283,10 @@ str_val(vp)
         if ((vp->flag&SPECIAL))
                 getspec(vp);
         if (!(vp->flag&ISSET))
-                s = null;                /* special to dollar() */
-        else if (!(vp->flag&INTEGER))        /* string source */
+                s = null;               /* special to dollar() */
+        else if (!(vp->flag&INTEGER))   /* string source */
                 s = vp->val.s + vp->type;
-        else {                                /* integer source */
+        else {                          /* integer source */
                 /* worst case number length is when base=2, so use BITS(long) */
                              /* minus base #     number    null */
                 static char strbuf[1 + 2 + 1 + BITS(long) + 1];
@@ -370,10 +370,10 @@ setstr(vq, s, error_ok)
                         export(vq, s);
                 else {
                         vq->val.s = str_save(s, vq->areap);
-                        if (vq->val.s)                /* <sjg> don't lie */
+                        if (vq->val.s)          /* <sjg> don't lie */
                                 vq->flag |= ALLOC;
                 }
-        } else                        /* integer dest */
+        } else                  /* integer dest */
                 if (!v_evaluate(vq, s, error_ok))
                         return 0;
         vq->flag |= ISSET;
@@ -424,7 +424,7 @@ getint(vp, nump)
                 return vp->type;
         }
         s = vp->val.s + vp->type;
-        if (s == NULL)        /* redundent given initial test */
+        if (s == NULL)  /* redundent given initial test */
                 s = null;
         base = 10;
         num = 0;
@@ -495,7 +495,7 @@ formatstr(vp, s)
         olen = strlen(s);
 
         if (vp->flag & (RJUST|LJUST)) {
-                if (!vp->u2.field)        /* default field width */
+                if (!vp->u2.field)      /* default field width */
                         vp->u2.field = olen;
                 nlen = vp->u2.field;
         } else
@@ -745,7 +745,7 @@ unset(vp, array_ref)
         /* If foo[0] is being unset, the remainder of the array is kept... */
         vp->flag &= SPECIAL | (array_ref ? ARRAY|DEFINED : 0);
         if (vp->flag & SPECIAL)
-                unsetspec(vp);        /* responsible for `unspecial'ing var */
+                unsetspec(vp);  /* responsible for `unspecial'ing var */
 }
 
 /* return a pointer to the first char past a legal variable name (returns the
@@ -901,9 +901,9 @@ unspecial(name)
 }
 
 #ifdef KSH
-static        time_t        seconds;                /* time SECONDS last set */
+static  time_t  seconds;                /* time SECONDS last set */
 #endif /* KSH */
-static        int        user_lineno;                /* what user set $LINENO to */
+static  int     user_lineno;            /* what user set $LINENO to */
 
 static void
 getspec(vp)
@@ -951,7 +951,7 @@ setspec(vp)
                 if (path)
                         afree(path, APERM);
                 path = str_save(str_val(vp), APERM);
-                flushcom(1);        /* clear tracked aliases */
+                flushcom(1);    /* clear tracked aliases */
                 break;
           case V_IFS:
                 setctypes(s = str_val(vp), C_IFS);
@@ -1016,7 +1016,7 @@ unsetspec(vp)
                 if (path)
                         afree(path, APERM);
                 path = str_save(def_path, APERM);
-                flushcom(1);        /* clear tracked aliases */
+                flushcom(1);    /* clear tracked aliases */
                 break;
           case V_IFS:
                 setctypes(" \t\n", C_IFS);
@@ -1033,7 +1033,7 @@ unsetspec(vp)
 #ifdef KSH
           case V_RANDOM:
           case V_SECONDS:
-          case V_TMOUT:                /* at&t ksh leaves previous value in place */
+          case V_TMOUT:         /* at&t ksh leaves previous value in place */
 #endif /* KSH */
                 unspecial(vp->name);
                 break;
@@ -1043,9 +1043,9 @@ unsetspec(vp)
            * set in various places.
            * Unsetting these in at&t ksh does not loose the `specialness':
            *    no effect: IFS, COLUMNS, PATH, TMPDIR,
-           *                VISUAL, EDITOR,
+           *            VISUAL, EDITOR,
            * pdkshisms: no effect:
-           *                POSIXLY_CORRECT (use set +o posix instead)
+           *            POSIXLY_CORRECT (use set +o posix instead)
            */
         }
 }
@@ -1087,7 +1087,7 @@ arraysearch(vp, val)
         new->areap = vp->areap;
         new->u2.field = vp->u2.field;
         new->index = val;
-        if (curr != new) {                /* not reusing old array entry */
+        if (curr != new) {              /* not reusing old array entry */
                 prev->u.array = new;
                 new->u.array = curr;
         }

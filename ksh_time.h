@@ -8,6 +8,6 @@
 #include <time.h>
 
 #ifndef CLK_TCK
-# define CLK_TCK 60                        /* 60HZ */
+# define CLK_TCK 60                     /* 60HZ */
 #endif
 #endif /* KSH_TIME_H */

@@ -92,14 +92,14 @@ dup2(oldd, newd)
         int old_errno;
 
         if (fcntl(oldd, F_GETFL, 0) == -1)
-                return -1;        /* errno == EBADF */
+                return -1;      /* errno == EBADF */
 
         if (oldd == newd)
                 return newd;
 
         old_errno = errno;
 
-        close(newd);        /* in case its open */
+        close(newd);    /* in case its open */
 
         errno = old_errno;
 

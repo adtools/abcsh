@@ -2,7 +2,7 @@
  * startup, main loop, enviroments and error handling
  */
 
-#define        EXTERN                                /* define EXTERNs in sh.h */
+#define EXTERN                          /* define EXTERNs in sh.h */
 
 #include "sh.h"
 #include "ksh_stat.h"
@@ -14,8 +14,8 @@ extern char **environ;
  * global data
  */
 
-static void        reclaim ARGS((void));
-static void        remove_temps ARGS((struct temp *tp));
+static void     reclaim ARGS((void));
+static void     remove_temps ARGS((struct temp *tp));
 
 /*
  * shell initialization
@@ -40,7 +40,7 @@ static const char *const initcoms [] = {
         "typeset", "-i", "OPTIND=1", NULL,
         "alias",
          /* Standard ksh aliases */
-          "hash=alias -t",        /* not "alias -t --": hash -r needs to work */
+          "hash=alias -t",      /* not "alias -t --": hash -r needs to work */
           "type=whence -v",
 #ifdef KSH
           "autoload=typeset -fu",
@@ -86,7 +86,7 @@ main(argc, argv)
 
         /* make sure argv[] is sane */
         if (!*argv) {
-                static const char        *empty_argv[] = {
+                static const char       *empty_argv[] = {
                                             "pdksh", (char *) 0
                                         };
 
@@ -95,14 +95,14 @@ main(argc, argv)
         }
         kshname = *argv;
 
-        ainit(&aperm);                /* initialize permanent Area */
+        ainit(&aperm);          /* initialize permanent Area */
 
         /* set up base enviroment */
         memset(&env, 0, sizeof(env));
         env.type = E_NONE;
         ainit(&env.area);
         e = &env;
-        newblock();                /* set up global l->vars and l->funs */
+        newblock();             /* set up global l->vars and l->funs */
 
         /* Do this first so output routines (eg, errorf, shellf) can work */
         initio();
@@ -170,7 +170,7 @@ main(argc, argv)
                         typeset(*wp, IMPORT|EXPORT, 0, 0, 0);
 
         kshpid = procpid = getpid();
-        typeset(initifs, 0, 0, 0, 0);        /* for security */
+        typeset(initifs, 0, 0, 0, 0);   /* for security */
 
         /* assign default shell variable values */
         substitute(initsubs, 0);
@@ -307,9 +307,9 @@ main(argc, argv)
                 alarm_init();
 #endif /* KSH */
         } else
-                Flag(FTRACKALL) = 1;        /* set after ENV */
+                Flag(FTRACKALL) = 1;    /* set after ENV */
 
-        shell(s, TRUE);        /* doesn't return */
+        shell(s, TRUE); /* doesn't return */
         return 0;
 }
 
@@ -402,7 +402,7 @@ command(comm)
  */
 int
 shell(s, toplevel)
-        Source *volatile s;                /* input source */
+        Source *volatile s;             /* input source */
         int volatile toplevel;
 {
         struct op *t;
@@ -442,7 +442,7 @@ shell(s, toplevel)
                   case LLEAVE:
                   case LRETURN:
                         quitenv();
-                        unwind(i);        /* keep on going */
+                        unwind(i);      /* keep on going */
                         /*NOREACHED*/
                   default:
                         quitenv();
@@ -576,7 +576,7 @@ quitenv()
          * Either main shell is exiting or cleanup_parents_env() was called.
          */
         if (ep->oenv == NULL) {
-                if (ep->type == E_NONE) {        /* Main shell exiting? */
+                if (ep->type == E_NONE) {       /* Main shell exiting? */
                         if (Flag(FTALKING))
                                 hist_finish();
                         j_exit();

@@ -8,7 +8,7 @@
         Eric Gisin, September 1988
         Adapted to PD KornShell. Removed AT&T code.
 
-        last edit:        06-Jun-1987        D A Gwyn
+        last edit:      06-Jun-1987     D A Gwyn
 
         This started out as the BRL UNIX System V system call emulation
         for 4.nBSD, and was later extended by Doug Kingston to handle
@@ -23,8 +23,8 @@
 //typedef unsigned int rlim_t;
 #endif
 
-#define SOFT        0x1
-#define HARD        0x2
+#define SOFT    0x1
+#define HARD    0x2
 
 #ifdef RLIM_INFINITY
 # define KSH_RLIM_INFINITY RLIM_INFINITY
@@ -37,12 +37,12 @@ c_ulimit(wp)
         char **wp;
 {
         static const struct limits {
-                const char        *name;
+                const char      *name;
                 enum { RLIMIT, ULIMIT } which;
-                int        gcmd;        /* get command */
-                int        scmd;        /* set command (or -1, if no set command) */
-                int        factor;        /* multiply by to get rlim_{cur,max} values */
-                char        option;
+                int     gcmd;   /* get command */
+                int     scmd;   /* set command (or -1, if no set command) */
+                int     factor; /* multiply by to get rlim_{cur,max} values */
+                char    option;
         } limits[] = {
                 /* Do not use options -H, -S or -a */
 #ifdef RLIMIT_CPU
@@ -107,12 +107,12 @@ c_ulimit(wp)
 #endif
                 { (char *) 0 }
             };
-        static char        options[3 + NELEM(limits)];
-        rlim_t                UNINITIALIZED(val);
-        int                how = SOFT | HARD;
-        const struct limits        *l;
-        int                set, all = 0;
-        int                optc, what;
+        static char     options[3 + NELEM(limits)];
+        rlim_t          UNINITIALIZED(val);
+        int             how = SOFT | HARD;
+        const struct limits     *l;
+        int             set, all = 0;
+        int             optc, what;
 
         if (!options[0]) {
                 /* build options string on first call - yuck */

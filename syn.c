@@ -6,55 +6,55 @@
 #include "c_test.h"
 
 struct nesting_state {
-        int        start_token;        /* token than began nesting (eg, FOR) */
-        int        start_line;        /* line nesting began on */
+        int     start_token;    /* token than began nesting (eg, FOR) */
+        int     start_line;     /* line nesting began on */
 };
 
-static void        yyparse                ARGS((void));
-static struct op *pipeline        ARGS((int cf));
-static struct op *andor                ARGS((void));
+static void     yyparse         ARGS((void));
+static struct op *pipeline      ARGS((int cf));
+static struct op *andor         ARGS((void));
 static struct op *c_list        ARGS((int multi));
-static struct ioword *synio        ARGS((int cf));
-static void        musthave        ARGS((int c, int cf));
+static struct ioword *synio     ARGS((int cf));
+static void     musthave        ARGS((int c, int cf));
 static struct op *nested        ARGS((int type, int smark, int emark));
-static struct op *get_command        ARGS((int cf));
-static struct op *dogroup        ARGS((void));
-static struct op *thenpart        ARGS((void));
-static struct op *elsepart        ARGS((void));
-static struct op *caselist        ARGS((void));
-static struct op *casepart        ARGS((int endtok));
-static struct op *function_body        ARGS((char *name, int ksh_func));
-static char **        wordlist        ARGS((void));
-static struct op *block                ARGS((int type, struct op *t1, struct op *t2,
+static struct op *get_command   ARGS((int cf));
+static struct op *dogroup       ARGS((void));
+static struct op *thenpart      ARGS((void));
+static struct op *elsepart      ARGS((void));
+static struct op *caselist      ARGS((void));
+static struct op *casepart      ARGS((int endtok));
+static struct op *function_body ARGS((char *name, int ksh_func));
+static char **  wordlist        ARGS((void));
+static struct op *block         ARGS((int type, struct op *t1, struct op *t2,
                                       char **wp));
-static struct op *newtp                ARGS((int type));
-static void        syntaxerr        ARGS((const char *what))
+static struct op *newtp         ARGS((int type));
+static void     syntaxerr       ARGS((const char *what))
                                                 GCC_FUNC_ATTR(noreturn);
-static void        nesting_push ARGS((struct nesting_state *save, int tok));
-static void        nesting_pop ARGS((struct nesting_state *saved));
-static int        assign_command ARGS((char *s));
-static int        inalias ARGS((struct source *s));
+static void     nesting_push ARGS((struct nesting_state *save, int tok));
+static void     nesting_pop ARGS((struct nesting_state *saved));
+static int      assign_command ARGS((char *s));
+static int      inalias ARGS((struct source *s));
 #ifdef KSH
-static int        dbtestp_isa ARGS((Test_env *te, Test_meta meta));
+static int      dbtestp_isa ARGS((Test_env *te, Test_meta meta));
 static const char *dbtestp_getopnd ARGS((Test_env *te, Test_op op,
                                         int do_eval));
-static int        dbtestp_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
+static int      dbtestp_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
                                 const char *opnd2, int do_eval));
-static void        dbtestp_error ARGS((Test_env *te, int offset, const char *msg));
+static void     dbtestp_error ARGS((Test_env *te, int offset, const char *msg));
 #endif /* KSH */
 
-static        struct        op        *outtree; /* yyparse output */
+static  struct  op      *outtree; /* yyparse output */
 
-static struct nesting_state nesting;        /* \n changed to ; */
+static struct nesting_state nesting;    /* \n changed to ; */
 
-static        int        reject;                /* token(cf) gets symbol again */
-static        int        symbol;                /* yylex value */
+static  int     reject;         /* token(cf) gets symbol again */
+static  int     symbol;         /* yylex value */
 
-#define        REJECT        (reject = 1)
-#define        ACCEPT        (reject = 0)
-#define        token(cf) \
+#define REJECT  (reject = 1)
+#define ACCEPT  (reject = 0)
+#define token(cf) \
         ((reject) ? (ACCEPT, symbol) : (symbol = yylex(cf)))
-#define        tpeek(cf) \
+#define tpeek(cf) \
         ((reject) ? (symbol) : (REJECT, symbol = yylex(cf)))
 
 static void
@@ -531,7 +531,7 @@ casepart(endtok)
 static struct op *
 function_body(name, ksh_func)
         char *name;
-        int ksh_func;        /* function foo { ... } vs foo() { .. } */
+        int ksh_func;   /* function foo { ... } vs foo() { .. } */
 {
         char *sname, *p;
         struct op *t;
@@ -541,7 +541,7 @@ function_body(name, ksh_func)
         /* Check for valid characters in name.  posix and ksh93 say only
          * allow [a-zA-Z_0-9] but this allows more as old pdksh's have
          * allowed more (the following were never allowed:
-         *        nul space nl tab $ ' " \ ` ( ) & | ; = < >
+         *      nul space nl tab $ ' " \ ` ( ) & | ; = < >
          *  C_QUOTE covers all but = and adds # [ ? *)
          */
         for (p = sname; *p; p++)
@@ -634,46 +634,46 @@ block(type, t1, t2, wp)
         return (t);
 }
 
-const        struct tokeninfo {
+const   struct tokeninfo {
         const char *name;
-        short        val;
-        short        reserved;
+        short   val;
+        short   reserved;
 } tokentab[] = {
         /* Reserved words */
-        { "if",                IF,        TRUE },
-        { "then",        THEN,        TRUE },
-        { "else",        ELSE,        TRUE },
-        { "elif",        ELIF,        TRUE },
-        { "fi",                FI,        TRUE },
-        { "case",        CASE,        TRUE },
-        { "esac",        ESAC,        TRUE },
-        { "for",        FOR,        TRUE },
+        { "if",         IF,     TRUE },
+        { "then",       THEN,   TRUE },
+        { "else",       ELSE,   TRUE },
+        { "elif",       ELIF,   TRUE },
+        { "fi",         FI,     TRUE },
+        { "case",       CASE,   TRUE },
+        { "esac",       ESAC,   TRUE },
+        { "for",        FOR,    TRUE },
 #ifdef KSH
-        { "select",        SELECT,        TRUE },
+        { "select",     SELECT, TRUE },
 #endif /* KSH */
-        { "while",        WHILE,        TRUE },
-        { "until",        UNTIL,        TRUE },
-        { "do",                DO,        TRUE },
-        { "done",        DONE,        TRUE },
-        { "in",                IN,        TRUE },
-        { "function",        FUNCTION, TRUE },
-        { "time",        TIME,        TRUE },
-        { "{",                '{',        TRUE },
-        { "}",                '}',        TRUE },
-        { "!",                BANG,        TRUE },
+        { "while",      WHILE,  TRUE },
+        { "until",      UNTIL,  TRUE },
+        { "do",         DO,     TRUE },
+        { "done",       DONE,   TRUE },
+        { "in",         IN,     TRUE },
+        { "function",   FUNCTION, TRUE },
+        { "time",       TIME,   TRUE },
+        { "{",          '{',    TRUE },
+        { "}",          '}',    TRUE },
+        { "!",          BANG,   TRUE },
 #ifdef KSH
-        { "[[",                DBRACKET, TRUE },
+        { "[[",         DBRACKET, TRUE },
 #endif /* KSH */
         /* Lexical tokens (0[EOF], LWORD and REDIR handled specially) */
-        { "&&",                LOGAND,        FALSE },
-        { "||",                LOGOR,        FALSE },
-        { ";;",                BREAK,        FALSE },
+        { "&&",         LOGAND, FALSE },
+        { "||",         LOGOR,  FALSE },
+        { ";;",         BREAK,  FALSE },
 #ifdef KSH
-        { "((",                MDPAREN, FALSE },
-        { "|&",                COPROC,        FALSE },
+        { "((",         MDPAREN, FALSE },
+        { "|&",         COPROC, FALSE },
 #endif /* KSH */
         /* and some special cases... */
-        { "newline",        '\n',        FALSE },
+        { "newline",    '\n',   FALSE },
         { 0 }
 };
 
@@ -698,7 +698,7 @@ static void
 syntaxerr(what)
         const char *what;
 {
-        char redir[6];        /* 2<<- is the longest redirection, I think */
+        char redir[6];  /* 2<<- is the longest redirection, I think */
         const char *s;
         struct tokeninfo const *tt;
         int c;
@@ -796,11 +796,11 @@ compile(s)
  * the arguments of alias/export/readonly/typeset have no field
  * splitting, file globbing, or (normal) tilde expansion done.
  * at&t ksh seems to do something similar to this since
- *        $ touch a=a; typeset a=[ab]; echo "$a"
- *        a=[ab]
- *        $ x=typeset; $x a=[ab]; echo "$a"
- *        a=a
- *        $ 
+ *      $ touch a=a; typeset a=[ab]; echo "$a"
+ *      a=[ab]
+ *      $ x=typeset; $x a=[ab]; echo "$a"
+ *      a=a
+ *      $ 
  */
 static int
 assign_command(s)

@@ -12,12 +12,12 @@ int amigaos_getstdfd(int fd);
 #endif
 int
 c_cd(wp)
-        char        **wp;
+        char    **wp;
 {
         int optc;
         int physical = Flag(FPHYSICAL);
-        int cdnode;                        /* was a node from cdpath added in? */
-        int printpath = 0;                /* print where we cd'd? */
+        int cdnode;                     /* was a node from cdpath added in? */
+        int printpath = 0;              /* print where we cd'd? */
         int rval;
         struct tbl *pwd_s, *oldpwd_s;
         XString xs;
@@ -156,7 +156,7 @@ c_cd(wp)
 
 int
 c_pwd(wp)
-        char        **wp;
+        char    **wp;
 {
         int optc;
         int physical = Flag(FPHYSICAL);
@@ -203,12 +203,12 @@ int
 c_print(wp)
         char **wp;
 {
-#define PO_NL                BIT(0)        /* print newline */
-#define PO_EXPAND        BIT(1)        /* expand backslash sequences */
-#define PO_PMINUSMINUS        BIT(2)        /* print a -- argument */
-#define PO_HIST                BIT(3)        /* print to history instead of stdout */
-#define PO_COPROC        BIT(4)        /* printing to coprocess: block SIGPIPE */
-#define PO_FSLASH        BIT(5)  /* swap slash for backslash */
+#define PO_NL           BIT(0)  /* print newline */
+#define PO_EXPAND       BIT(1)  /* expand backslash sequences */
+#define PO_PMINUSMINUS  BIT(2)  /* print a -- argument */
+#define PO_HIST         BIT(3)  /* print to history instead of stdout */
+#define PO_COPROC       BIT(4)  /* printing to coprocess: block SIGPIPE */
+#define PO_FSLASH       BIT(5)  /* swap slash for backslash */
 #ifndef __amigaos4__
         int fd = 1;
 #else 
@@ -220,7 +220,7 @@ c_print(wp)
         XString xs;
         char *xp;
         printf("print outfd %d\n", fd);
-        if (wp[0][0] == 'e') {        /* echo command */
+        if (wp[0][0] == 'e') {  /* echo command */
                 int nflags = flags;
 
                 /* A compromise between sysV and BSD echo commands:
@@ -398,7 +398,7 @@ c_print(wp)
                                  * break scripts (print -p generates
                                  * error message).
                                 *if (errno == EPIPE)
-                                *        coproc_write_close(fd);
+                                *       coproc_write_close(fd);
                                  */
 #endif /* KSH */
                                 return 1;
@@ -557,7 +557,7 @@ c_typeset(wp)
         struct tbl *vp, **p;
         Tflag fset = 0, fclr = 0;
         int thing = 0, func = 0, local = 0;
-        const char *options = "L#R#UZ#fi#lprtux";        /* see comment below */
+        const char *options = "L#R#UZ#fi#lprtux";       /* see comment below */
         char *fieldstr, *basestr;
         int field, base;
         int optc;
@@ -565,21 +565,21 @@ c_typeset(wp)
         int pflag = 0;
 
         switch (**wp) {
-           case 'e':                /* export */
-                 fset |= EXPORT;
+          case 'e':             /* export */
+                fset |= EXPORT;
                 options = "p";
-                 break;
-           case 'r':                /* readonly */
-                 fset |= RDONLY;
+                break;
+          case 'r':             /* readonly */
+                fset |= RDONLY;
                 options = "p";
-                 break;
-          case 's':                /* set */
+                break;
+          case 's':             /* set */
                 /* called with 'typeset -' */
                 break;
-           case 't':                /* typeset */
-                 local = 1;
-                 break;
-         }
+          case 't':             /* typeset */
+                local = 1;
+                break;
+        }
  
         fieldstr = basestr = (char *) 0;
         builtin_opt.flags |= GF_PLUSOPT;
@@ -636,7 +636,7 @@ c_typeset(wp)
                         flag = TRACE;
                         break;
                   case 'u':
-                        flag = UCASEV_AL;        /* upper case / autoload */
+                        flag = UCASEV_AL;       /* upper case / autoload */
                         break;
                   case 'x':
                         flag = EXPORT;
@@ -680,9 +680,9 @@ c_typeset(wp)
                  * At this point, flags in fset are cleared in fclr and vise
                  * versa.  This property should be preserved.
                  */
-                if (fset & LCASEV)        /* LCASEV has priority over UCASEV_AL */
+                if (fset & LCASEV)      /* LCASEV has priority over UCASEV_AL */
                         fset &= ~UCASEV_AL;
-                if (fset & LJUST)        /* LJUST has priority over RJUST */
+                if (fset & LJUST)       /* LJUST has priority over RJUST */
                         fset &= ~RJUST;
                 if ((fset & (ZEROFIL|LJUST)) == ZEROFIL) { /* -Z implies -ZR */
                         fset |= RJUST;
@@ -1011,7 +1011,7 @@ c_unalias(wp)
         for (; *wp != NULL; wp++) {
                 ap = tsearch(t, *wp, hash(*wp));
                 if (ap == NULL) {
-                        rv = 1;        /* POSIX */
+                        rv = 1; /* POSIX */
                         continue;
                 }
                 if (ap->flag&ALLOC) {
@@ -1049,7 +1049,7 @@ c_let(wp)
         else
                 for (wp++; *wp; wp++)
                         if (!evaluate(*wp, &val, KSH_RETURN_ERROR)) {
-                                rv = 2;        /* distinguish error from zero result */
+                                rv = 2; /* distinguish error from zero result */
                                 break;
                         } else
                                 rv = val == 0;
@@ -1077,7 +1077,7 @@ c_jobs(wp)
                   case 'n':
                         nflag = 1;
                         break;
-                  case 'z':        /* debugging: print zombies */
+                  case 'z':     /* debugging: print zombies */
                         nflag = -1;
                         break;
                   case '?':
@@ -1251,12 +1251,12 @@ int
 c_getopts(wp)
         char **wp;
 {
-        int        argc;
+        int     argc;
         const char *options;
         const char *var;
-        int        optc;
-        int        ret;
-        char        buf[3];
+        int     optc;
+        int     ret;
+        char    buf[3];
         struct tbl *vq, *voptarg;
 
         if (ksh_getopt(wp, &builtin_opt, null) == '?')
@@ -1324,7 +1324,7 @@ c_getopts(wp)
         }
 
         voptarg = global("OPTARG");
-        voptarg->flag &= ~RDONLY;        /* at&t ksh clears ro and int */
+        voptarg->flag &= ~RDONLY;       /* at&t ksh clears ro and int */
         /* Paranoia: ensure no bizarre results. */
         if (voptarg->flag & INTEGER)
             typeset("OPTARG", 0, INTEGER, 0, 0);
@@ -1352,11 +1352,11 @@ c_getopts(wp)
  * (* and + should not be combined).
  */
 const struct builtin kshbuiltins [] = {
-        {"+alias", c_alias},        /* no =: at&t manual wrong */
+        {"+alias", c_alias},    /* no =: at&t manual wrong */
         {"+cd", c_cd},
         {"+command", c_command},
         {"echo", c_print},
-         {"*=export", c_typeset},
+        {"*=export", c_typeset},
         {"+getopts", c_getopts},
         {"+jobs", c_jobs},
         {"+kill", c_kill},
@@ -1365,7 +1365,7 @@ const struct builtin kshbuiltins [] = {
 #endif /* KSH */
         {"print", c_print},
         {"pwd", c_pwd},
-         {"*=readonly", c_typeset},
+        {"*=readonly", c_typeset},
         {"=typeset", c_typeset},
         {"+unalias", c_unalias},
         {"whence", c_whence},

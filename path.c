@@ -2,44 +2,18 @@
 #include "ksh_stat.h"
 
 /*
- *        Contains a routine to search a : separated list of
- *        paths (a la CDPATH) and make appropiate file names.
- *        Also contains a routine to simplify .'s and ..'s out of
- *        a path name.
+ *      Contains a routine to search a : separated list of
+ *      paths (a la CDPATH) and make appropiate file names.
+ *      Also contains a routine to simplify .'s and ..'s out of
+ *      a path name.
  *
- *        Larry Bouzane (larry@cs.mun.ca)
+ *      Larry Bouzane (larry@cs.mun.ca)
  */
 
 /*
  * $Log$
- * Revision 1.2  2004/11/23 15:59:22  hnl_dk
- * hnl_dk:
- * Changed all the tabs in the .c and .h files into 8 spaces.
- *
- * Yakov:
- *
- * Files:
- * ------
- * 1. amigaos.c
- * 2. c_ksh.c
- * 3. c_sh.c
- *
- * Changes:
- * ---------
- * 1. c_ksh.c: print() uses amigaout now. Fixes pipes with internal print/echo.
- *
- * 2. c_sh: c_read() that is internal "read" uses amigaout. Makes it work with pipes too.
- *
- * 3.  amigaos.c: added amigaos_read/write to use DOS-> versions for use instead of read()/write() in c_ksh.c and c_sh.c
- *
- * 4. amigaos.c: execve() is changed. the filename was read including the newline char so the command passed to SystemTags() was broken into two lines, that broke #! functionality. Removed the newline char and fixed "size" to contain strlen(filename_conv) instead of strlen(filename).
- *
- * Results:
- * --------
- *
- * 1. "read", "print" & "echo" are usable with pipes
- *
- * 2. scripts beginning with #! work now:-)
+ * Revision 1.3  2004/11/24 23:07:12  hnl_dk
+ * Frank didtab the sources for me... thanks Frank... sorry for all the mess :-(
  *
  * Revision 1.1  2004/11/17 16:35:11  hnl_dk
  * Amiga Bourne Compatible Shell - Alpha Release
@@ -77,38 +51,38 @@
  */
 
 #ifdef S_ISLNK
-static char        *do_phys_path ARGS((XString *xsp, char *xp, const char *path));
+static char     *do_phys_path ARGS((XString *xsp, char *xp, const char *path));
 #endif /* S_ISLNK */
 
 /*
- *        Makes a filename into result using the following algorithm.
- *        - make result NULL
- *        - if file starts with '/', append file to result & set cdpathp to NULL
- *        - if file starts with ./ or ../ append cwd and file to result
- *          and set cdpathp to NULL
- *        - if the first element of cdpathp doesnt start with a '/' xx or '.' xx
- *          then cwd is appended to result.
- *        - the first element of cdpathp is appended to result
- *        - file is appended to result
- *        - cdpathp is set to the start of the next element in cdpathp (or NULL
- *          if there are no more elements.
- *        The return value indicates whether a non-null element from cdpathp
- *        was appened to result.
+ *      Makes a filename into result using the following algorithm.
+ *      - make result NULL
+ *      - if file starts with '/', append file to result & set cdpathp to NULL
+ *      - if file starts with ./ or ../ append cwd and file to result
+ *        and set cdpathp to NULL
+ *      - if the first element of cdpathp doesnt start with a '/' xx or '.' xx
+ *        then cwd is appended to result.
+ *      - the first element of cdpathp is appended to result
+ *      - file is appended to result
+ *      - cdpathp is set to the start of the next element in cdpathp (or NULL
+ *        if there are no more elements.
+ *      The return value indicates whether a non-null element from cdpathp
+ *      was appened to result.
  */
 int
 make_path(cwd, file, cdpathp, xsp, phys_pathp)
         const char *cwd;
         const char *file;
-        char        **cdpathp;        /* & of : separated list */
-        XString        *xsp;
-        int        *phys_pathp;
+        char    **cdpathp;      /* & of : separated list */
+        XString *xsp;
+        int     *phys_pathp;
 {
-        int        rval = 0;
-        int        use_cdpath = 1;
-        char        *plist;
-        int        len;
-        int        plen = 0;
-        char        *xp = Xstring(*xsp, xp);
+        int     rval = 0;
+        int     use_cdpath = 1;
+        char    *plist;
+        int     len;
+        int     plen = 0;
+        char    *xp = Xstring(*xsp, xp);
 
         if (!file)
                 file = null;
@@ -175,13 +149,13 @@ make_path(cwd, file, cdpathp, xsp, phys_pathp)
  */
 void
 simplify_path(path)
-        char        *path;
+        char    *path;
 {
-        char        *cur;
-        char        *t;
-        int        isrooted;
-        char        *very_start = path;
-        char        *start;
+        char    *cur;
+        char    *t;
+        int     isrooted;
+        char    *very_start = path;
+        char    *start;
 
         if (!*path)
                 return;
@@ -189,14 +163,14 @@ simplify_path(path)
         if ((isrooted = ISROOTEDPATH(path)))
                 very_start++;
 
-        /* Before                        After
-         *  /foo/                        /foo
-         *  /foo/../../bar                /bar
-         *  /foo/./blah/..                /foo
-         *  .                                .
-         *  ..                                ..
-         *  ./foo                        foo
-         *  foo/../../../bar                ../../bar
+        /* Before                       After
+         *  /foo/                       /foo
+         *  /foo/../../bar              /bar
+         *  /foo/./blah/..              /foo
+         *  .                           .
+         *  ..                          ..
+         *  ./foo                       foo
+         *  foo/../../../bar            ../../bar
          */
 
         for (cur = t = start = very_start; ; ) {
@@ -337,12 +311,12 @@ do_phys_path(xsp, xp, path)
 }
 #endif /* S_ISLNK */
 
-#ifdef        TEST
+#ifdef  TEST
 
 main(argc, argv)
 {
-        int        rv;
-        char        *cp, cdpath[256], pwd[256], file[256], result[256];
+        int     rv;
+        char    *cp, cdpath[256], pwd[256], file[256], result[256];
 
         printf("enter CDPATH: "); gets(cdpath);
         printf("enter PWD: "); gets(pwd);
@@ -358,4 +332,4 @@ main(argc, argv)
                 } while (cp);
         }
 }
-#endif        /* TEST */
+#endif  /* TEST */

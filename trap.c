@@ -192,10 +192,10 @@ void
 runtrap(p)
         Trap *p;
 {
-        int        i = p->signal;
-        char        *trapstr = p->trap;
-        int        oexstat;
-        int        UNINITIALIZED(old_changed);
+        int     i = p->signal;
+        char    *trapstr = p->trap;
+        int     oexstat;
+        int     UNINITIALIZED(old_changed);
 
         p->set = 0;
         if (trapstr == (char *) 0) { /* SIG_DFL */
@@ -213,7 +213,7 @@ runtrap(p)
         }
         if (trapstr[0] == '\0') /* SIG_IGN */
                 return;
-        if (i == SIGEXIT_ || i == SIGERR_) {        /* avoid recursion on these */
+        if (i == SIGEXIT_ || i == SIGERR_) {    /* avoid recursion on these */
                 old_changed = p->flags & TF_CHANGED;
                 p->flags &= ~TF_CHANGED;
                 p->trap = (char *) 0;
@@ -354,8 +354,8 @@ setsig(p, f, flags)
         }
 
         /* Generally, an ignored signal stays ignored, except if
-         *        - the user of an interactive shell wants to change it
-         *        - the shell wants for force a change
+         *      - the user of an interactive shell wants to change it
+         *      - the shell wants for force a change
          */
         if ((p->flags & TF_ORIG_IGN) && !(flags & SS_FORCE)
             && (!(flags & SS_USER) || !Flag(FTALKING)))

@@ -38,30 +38,30 @@ enum token {
         VAR, LIT, END, BAD
     };
 #define IS_BINOP(op) (((int)op) >= (int)O_EQ && ((int)op) <= (int)O_COMMA)
-#define IS_ASSIGNOP(op)        ((int)(op) >= (int)O_ASN && (int)(op) <= (int)O_BORASN)
+#define IS_ASSIGNOP(op) ((int)(op) >= (int)O_ASN && (int)(op) <= (int)O_BORASN)
 
 enum prec {
-        P_PRIMARY = 0,                /* VAR, LIT, (), ~ ! - + */
-        P_MULT,                        /* * / % */
-        P_ADD,                        /* + - */
+        P_PRIMARY = 0,          /* VAR, LIT, (), ~ ! - + */
+        P_MULT,                 /* * / % */
+        P_ADD,                  /* + - */
         P_SHIFT,                /* << >> */
-        P_RELATION,                /* < <= > >= */
-        P_EQUALITY,                /* == != */
-        P_BAND,                        /* & */
-        P_BXOR,                        /* ^ */
-        P_BOR,                        /* | */
-        P_LAND,                        /* && */
-        P_LOR,                        /* || */
-        P_TERN,                        /* ?: */
-        P_ASSIGN,                /* = *= /= %= += -= <<= >>= &= ^= |= */
-        P_COMMA                        /* , */
+        P_RELATION,             /* < <= > >= */
+        P_EQUALITY,             /* == != */
+        P_BAND,                 /* & */
+        P_BXOR,                 /* ^ */
+        P_BOR,                  /* | */
+        P_LAND,                 /* && */
+        P_LOR,                  /* || */
+        P_TERN,                 /* ?: */
+        P_ASSIGN,               /* = *= /= %= += -= <<= >>= &= ^= |= */
+        P_COMMA                 /* , */
     };
 #define MAX_PREC        P_COMMA
 
 struct opinfo {
-        char                name[4];
-        int                len;        /* name length */
-        enum prec        prec;        /* precidence: lower is higher */
+        char            name[4];
+        int             len;    /* name length */
+        enum prec       prec;   /* precidence: lower is higher */
 };
 
 /* Tokens in this table must be ordered so the longest are first
@@ -69,56 +69,56 @@ struct opinfo {
  * of enum token too.
  */
 static const struct opinfo opinfo[] = {
-                { "++",         2, P_PRIMARY },        /* before + */
-                { "--",         2, P_PRIMARY },        /* before - */
-                { "==",         2, P_EQUALITY },        /* before = */
-                { "!=",         2, P_EQUALITY },        /* before ! */
-                { "=",         1, P_ASSIGN },                /* keep assigns in a block */
-                { "*=",         2, P_ASSIGN },
-                { "/=",         2, P_ASSIGN },
-                { "%=",         2, P_ASSIGN },
-                { "+=",         2, P_ASSIGN },
-                { "-=",         2, P_ASSIGN },
+                { "++",  2, P_PRIMARY },        /* before + */
+                { "--",  2, P_PRIMARY },        /* before - */
+                { "==",  2, P_EQUALITY },       /* before = */
+                { "!=",  2, P_EQUALITY },       /* before ! */
+                { "=",   1, P_ASSIGN },         /* keep assigns in a block */
+                { "*=",  2, P_ASSIGN },
+                { "/=",  2, P_ASSIGN },
+                { "%=",  2, P_ASSIGN },
+                { "+=",  2, P_ASSIGN },
+                { "-=",  2, P_ASSIGN },
                 { "<<=", 3, P_ASSIGN },
                 { ">>=", 3, P_ASSIGN },
-                { "&=",         2, P_ASSIGN },
-                { "^=",         2, P_ASSIGN },
-                { "|=",         2, P_ASSIGN },
-                { "<<",         2, P_SHIFT },
-                { ">>",         2, P_SHIFT },
-                { "<=",         2, P_RELATION },
-                { ">=",         2, P_RELATION },
-                { "<",         1, P_RELATION },
-                { ">",         1, P_RELATION },
-                { "&&",         2, P_LAND },
-                { "||",         2, P_LOR },
-                { "*",         1, P_MULT },
-                { "/",         1, P_MULT },
-                { "%",         1, P_MULT },
-                { "+",         1, P_ADD },
-                { "-",         1, P_ADD },
-                { "&",         1, P_BAND },
-                { "^",         1, P_BXOR },
-                { "|",         1, P_BOR },
-                { "?",         1, P_TERN },
-                { ",",         1, P_COMMA },
-                { "~",         1, P_PRIMARY },
-                { "!",         1, P_PRIMARY },
-                { "(",         1, P_PRIMARY },
-                { ")",         1, P_PRIMARY },
-                { ":",         1, P_PRIMARY },
-                { "",         0, P_PRIMARY } /* end of table */
+                { "&=",  2, P_ASSIGN },
+                { "^=",  2, P_ASSIGN },
+                { "|=",  2, P_ASSIGN },
+                { "<<",  2, P_SHIFT },
+                { ">>",  2, P_SHIFT },
+                { "<=",  2, P_RELATION },
+                { ">=",  2, P_RELATION },
+                { "<",   1, P_RELATION },
+                { ">",   1, P_RELATION },
+                { "&&",  2, P_LAND },
+                { "||",  2, P_LOR },
+                { "*",   1, P_MULT },
+                { "/",   1, P_MULT },
+                { "%",   1, P_MULT },
+                { "+",   1, P_ADD },
+                { "-",   1, P_ADD },
+                { "&",   1, P_BAND },
+                { "^",   1, P_BXOR },
+                { "|",   1, P_BOR },
+                { "?",   1, P_TERN },
+                { ",",   1, P_COMMA },
+                { "~",   1, P_PRIMARY },
+                { "!",   1, P_PRIMARY },
+                { "(",   1, P_PRIMARY },
+                { ")",   1, P_PRIMARY },
+                { ":",   1, P_PRIMARY },
+                { "",    0, P_PRIMARY } /* end of table */
             };
 
 
 typedef struct expr_state Expr_state;
 struct expr_state {
-        const char *expression;                /* expression being evaluated */
-        const char *tokp;                /* lexical position */
+        const char *expression;         /* expression being evaluated */
+        const char *tokp;               /* lexical position */
         enum token  tok;                /* token from token() */
-        int            noassign;                /* don't do assigns (for ?:,&&,||) */
+        int         noassign;           /* don't do assigns (for ?:,&&,||) */
         struct tbl *val;                /* value from token() */
-        struct tbl *evaling;                /* variable that is being recursively
+        struct tbl *evaling;            /* variable that is being recursively
                                          * expanded (EXPRINEVAL flag set)
                                          */
 };
@@ -132,7 +132,7 @@ static struct tbl *evalexpr ARGS((Expr_state *es, enum prec prec));
 static void        token    ARGS((Expr_state *es));
 static struct tbl *do_ppmm  ARGS((Expr_state *es, enum token op,
                                   struct tbl *vasn, bool_t is_prefix));
-static void           assign_check ARGS((Expr_state *es, enum token op,
+static void        assign_check ARGS((Expr_state *es, enum token op,
                                       struct tbl *vasn));
 static struct tbl *tempvar  ARGS((void));
 static struct tbl *intvar   ARGS((Expr_state *es, struct tbl *vp));
@@ -546,7 +546,7 @@ do_ppmm(es, op, vasn, is_prefix)
                 setint_v(vasn, vl);
         else
                 setint(vasn, vl->val.i);
-        if (!is_prefix)                /* undo the inc/dec */
+        if (!is_prefix)         /* undo the inc/dec */
                 vl->val.i = oval;
 
         return vl;

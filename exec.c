@@ -9,27 +9,27 @@
 
 /* Does ps4 get parameter substitutions done? */
 #ifdef KSH
-# define PS4_SUBSTITUTE(s)        substitute((s), 0)
+# define PS4_SUBSTITUTE(s)      substitute((s), 0)
 #else
-# define PS4_SUBSTITUTE(s)        (s)
+# define PS4_SUBSTITUTE(s)      (s)
 #endif /* KSH */
 
-static int        comexec         ARGS((struct op *t, struct tbl *volatile tp, char **ap,
+static int      comexec  ARGS((struct op *t, struct tbl *volatile tp, char **ap,
                               int volatile flags));
-static void        scriptexec ARGS((struct op *tp, char **ap));
-static int        call_builtin ARGS((struct tbl *tp, char **wp));
-static int        iosetup ARGS((struct ioword *iop, struct tbl *tp));
-static int        herein ARGS((const char *content, int sub));
+static void     scriptexec ARGS((struct op *tp, char **ap));
+static int      call_builtin ARGS((struct tbl *tp, char **wp));
+static int      iosetup ARGS((struct ioword *iop, struct tbl *tp));
+static int      herein ARGS((const char *content, int sub));
 #ifdef KSH
-static char         *do_selectargs ARGS((char **ap, bool_t print_menu));
+static char     *do_selectargs ARGS((char **ap, bool_t print_menu));
 #endif /* KSH */
 #ifdef KSH
-static int        dbteste_isa ARGS((Test_env *te, Test_meta meta));
+static int      dbteste_isa ARGS((Test_env *te, Test_meta meta));
 static const char *dbteste_getopnd ARGS((Test_env *te, Test_op op,
                                          int do_eval));
-static int        dbteste_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
+static int      dbteste_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
                                 const char *opnd2, int do_eval));
-static void        dbteste_error ARGS((Test_env *te, int offset, const char *msg));
+static void     dbteste_error ARGS((Test_env *te, int offset, const char *msg));
 #endif /* KSH */
 
 /*
@@ -72,7 +72,7 @@ fd_clexec(fd)
 int
 execute(t, flags)
         struct op * volatile t;
-        volatile int flags;        /* if XEXEC don't fork */
+        volatile int flags;     /* if XEXEC don't fork */
 {
         int i;
         volatile int rv = 0;
@@ -111,7 +111,7 @@ execute(t, flags)
                  */
                 subst_exstat = 0;
 
-                current_lineno = t->lineno;        /* for $LINENO */
+                current_lineno = t->lineno;     /* for $LINENO */
 
                 /* POSIX says expand command words first, then redirections,
                  * and assignments last..
@@ -180,7 +180,7 @@ execute(t, flags)
                 while (t->type == TPIPE) {
 #ifndef __amigaos4__
                         openpipe(pv);
-                 (void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
+                (void) ksh_dup2(pv[1], 1, FALSE); /* stdout of curr */
 #else
                 pipe(pv);
                 amigaout = pv[1];
@@ -206,7 +206,7 @@ execute(t, flags)
                 /* Let exchild() close 0 in parent, after fork, before wait */
 #else
                 amigaout = savefd[1];
-#endif        
+#endif  
                 i = exchild(t, flags|XPCLOSE, 0);
                 if (!(flags&XBGND) && !(flags&XXCOM))
                         rv = i;
@@ -246,7 +246,7 @@ execute(t, flags)
                         openpipe(pv);
                         coproc.read = pv[0];
                         ksh_dup2(pv[1], 1, FALSE);
-                        coproc.readw = pv[1];         /* closed before first read */
+                        coproc.readw = pv[1];    /* closed before first read */
                         coproc.njobs = 0;
                         /* create new coprocess id */
                         ++coproc.id;
@@ -373,7 +373,7 @@ execute(t, flags)
           case TIF:
           case TELIF:
                 if (t->right == NULL)
-                        break;        /* should be error */
+                        break;  /* should be error */
                 rv = execute(t->left, XERROK) == 0 ?
                         execute(t->right->left, flags & XERROK) :
                         execute(t->right->right, flags & XERROK);
@@ -406,7 +406,7 @@ execute(t, flags)
                 rv = timex(t, flags & ~XEXEC);
                 break;
 
-          case TEXEC:                /* an eval'd TCOM */
+          case TEXEC:           /* an eval'd TCOM */
                 s = t->args[0];
                 ap = makenv();
 #ifndef F_SETFD
@@ -421,17 +421,17 @@ execute(t, flags)
                 ksh_execve(t->str, t->args, ap, (flags & XINTACT) ? 1 : 0);
                 if (errno == ENOEXEC)
                         scriptexec(t, ap);
-#ifndef __amigaos4__                        
+#ifndef __amigaos4__                    
                 else
                         errorf("%s: %s", s, strerror(errno));
-#endif                        
+#endif                  
         }
     Break:
         exstat = rv;
 
-        quitenv();                /* restores IO */
+        quitenv();              /* restores IO */
         if ((flags&XEXEC))
-                unwind(LEXIT);        /* exit child */
+                unwind(LEXIT);  /* exit child */
         if (rv != 0 && !(flags & XERROK)) {
                 if (Flag(FERREXIT))
                         unwind(LERROR);
@@ -481,11 +481,11 @@ comexec(t, tp, ap, flags)
          * before we can do a path search (in case the assignments change
          * PATH).
          * Odd cases:
-         *   FOO=bar exec > /dev/null                FOO is kept but not exported
+         *   FOO=bar exec > /dev/null           FOO is kept but not exported
          *   FOO=bar exec foobar                FOO is exported
-         *   FOO=bar command exec > /dev/null        FOO is neither kept nor exported
-         *   FOO=bar command                        FOO is neither kept nor exported
-         *   PATH=... foobar                        use new PATH in foobar search
+         *   FOO=bar command exec > /dev/null   FOO is neither kept nor exported
+         *   FOO=bar command                    FOO is neither kept nor exported
+         *   PATH=... foobar                    use new PATH in foobar search
          */
         keepasn_ok = 1;
         while (tp && tp->type == CSHELL) {
@@ -515,7 +515,7 @@ comexec(t, tp, ap, flags)
                                                                         == 'p')
                                 saw_p = 1;
                         if (optc != EOF)
-                                break;        /* command -vV or something */
+                                break;  /* command -vV or something */
                         /* don't look for functions */
                         fcflags = FC_BI|FC_PATH;
                         if (saw_p) {
@@ -571,11 +571,11 @@ comexec(t, tp, ap, flags)
         }
 
         switch (tp->type) {
-          case CSHELL:                        /* shell built-in */
+          case CSHELL:                  /* shell built-in */
                 rv = call_builtin(tp, ap);
                 break;
 
-          case CFUNC:                        /* function call */
+          case CFUNC:                   /* function call */
           {
                 volatile int old_xflag;
                 volatile Tflag old_inuse;
@@ -683,9 +683,9 @@ comexec(t, tp, ap, flags)
                 break;
           }
 
-          case CEXEC:                /* executable command */
+          case CEXEC:           /* executable command */
 
-          case CTALIAS:                /* tracked alias */
+          case CTALIAS:         /* tracked alias */
                 if (!(tp->flag&ISSET)) {
                         /* errno_ will be set if the named command was found
                          * but could not be executed (permissions, no execute
@@ -695,7 +695,7 @@ comexec(t, tp, ap, flags)
                         if (tp->u2.errno_) {
                                 warningf(TRUE, "%s: cannot execute - %s", cp,
                                         strerror(tp->u2.errno_));
-                                rv = 126;        /* POSIX */
+                                rv = 126;       /* POSIX */
                         } else {
                                 warningf(TRUE, "%s: not found", cp);
                                 rv = 127;
@@ -720,7 +720,7 @@ comexec(t, tp, ap, flags)
 
                 /* to fork we set up a TEXEC node and call execute */
                 texec.type = TEXEC;
-                texec.left = t;        /* for tprint */
+                texec.left = t; /* for tprint */
                 texec.str = tp->val.s;
                 texec.args = ap;
 
@@ -856,11 +856,11 @@ builtin(name, func)
 
         /* see if any flags should be set for this builtin */
         for (flag = 0; ; name++) {
-                if (*name == '=')        /* command does variable assignment */
+                if (*name == '=')       /* command does variable assignment */
                         flag |= KEEPASN;
-                else if (*name == '*')        /* POSIX special builtin */
+                else if (*name == '*')  /* POSIX special builtin */
                         flag |= SPEC_BI;
-                else if (*name == '+')        /* POSIX regular builtin */
+                else if (*name == '+')  /* POSIX regular builtin */
                         flag |= REG_BI;
                 else
                         break;
@@ -879,13 +879,13 @@ builtin(name, func)
 struct tbl *
 findcom(name, flags)
         const char *name;
-        int        flags;                /* FC_* */
+        int     flags;          /* FC_* */
 {
         static struct tbl temp;
         unsigned int h = hash(name);
         struct tbl *tp = NULL, *tbi;
-        int insert = Flag(FTRACKALL);        /* insert if not found */
-        char *fpath;                        /* for function autoloading */
+        int insert = Flag(FTRACKALL);   /* insert if not found */
+        char *fpath;                    /* for function autoloading */
         char *npath;
 
         if (ksh_strchr_dirsep(name) != NULL) {
@@ -946,7 +946,7 @@ findcom(name, flags)
                                 tp = &temp;
                                 tp->type = CEXEC;
                         }
-                        tp->flag = DEFINED;        /* make ~ISSET */
+                        tp->flag = DEFINED;     /* make ~ISSET */
                 }
                 npath = search(name, flags & FC_DEFPATH ? def_path : path,
                                 X_OK, &tp->u2.errno_);
@@ -997,7 +997,7 @@ int
 search_access(path, mode, errnop)
         const char *path;
         int mode;
-        int *errnop;                /* set if candidate found, but not suitable */
+        int *errnop;            /* set if candidate found, but not suitable */
 {
         int ret, err = 0;
         struct stat statb;
@@ -1027,8 +1027,8 @@ char *
 search(name, path, mode, errnop)
         const char *name;
         const char *path;
-        int mode;                /* R_OK or X_OK */
-        int *errnop;                /* set if candidate found, but not suitable */
+        int mode;               /* R_OK or X_OK */
+        int *errnop;            /* set if candidate found, but not suitable */
 {
         const char *sp, *p;
         char *xp;
@@ -1060,7 +1060,7 @@ search(name, path, mode, errnop)
                 sp = p;
                 XcheckN(xs, xp, namelen);
                 memcpy(xp, name, namelen);
-                 if (search_access(Xstring(xs, xp), mode, errnop) == 0)
+                if (search_access(Xstring(xs, xp), mode, errnop) == 0)
                         return Xclose(xs, xp + namelen);
                 if (*sp++ == '\0')
                         sp = NULL;
@@ -1153,7 +1153,7 @@ iosetup(iop, tp)
 
                 do_open = 0;
                 if (*cp == '-' && !cp[1]) {
-                        u = 1009;         /* prevent error return below */
+                        u = 1009;        /* prevent error return below */
                         do_close = 1;
                 } else if ((u = check_fd(cp,
                                 X_OK | ((iop->flag & IORDUP) ? R_OK : W_OK),
@@ -1206,9 +1206,9 @@ iosetup(iop, tp)
                  * causes the shell to close its copies
                  */
                 else if (tp && tp->type == CSHELL && tp->val.f == c_exec) {
-                        if (iop->flag & IORDUP)        /* possible exec <&p */
+                        if (iop->flag & IORDUP) /* possible exec <&p */
                                 coproc_read_close(u);
-                        else                        /* possible exec >&p */
+                        else                    /* possible exec >&p */
                                 coproc_write_close(u);
                 }
 #endif /* KSH */
@@ -1258,7 +1258,7 @@ herein(content, sub)
         if (i) {
                 source = osource;
                 quitenv();
-                shf_close(shf);        /* after quitenv */
+                shf_close(shf); /* after quitenv */
                 close(fd);
                 return -2; /* special to iosetup(): don't print error */
         }
@@ -1288,8 +1288,8 @@ herein(content, sub)
 
 #ifdef KSH
 /*
- *        ksh special - the select command processing section
- *        print the args in column form - assuming that we can
+ *      ksh special - the select command processing section
+ *      print the args in column form - assuming that we can
  */
 static char *
 do_selectargs(ap, print_menu)
@@ -1306,9 +1306,9 @@ do_selectargs(ap, print_menu)
                 ;
         while (1) {
                 /* Menu is printed if
-                 *        - this is the first time around the select loop
-                 *        - the user enters a blank line
-                 *        - the REPLY parameter is empty
+                 *      - this is the first time around the select loop
+                 *      - the user enters a blank line
+                 *      - the REPLY parameter is empty
                  */
                 if (print_menu || !*str_val(global("REPLY")))
                         pr_menu(ap);
@@ -1325,9 +1325,9 @@ do_selectargs(ap, print_menu)
 }
 
 struct select_menu_info {
-        char        *const *args;
-        int        arg_width;
-        int        num_width;
+        char    *const *args;
+        int     arg_width;
+        int     num_width;
 } info;
 
 static char *select_fmt_entry ARGS((void *arg, int i, char *buf, int buflen));
@@ -1348,7 +1348,7 @@ select_fmt_entry(arg, i, buf, buflen)
 }
 
 /*
- *        print a select style menu
+ *      print a select style menu
  */
 int
 pr_menu(ap)
@@ -1374,7 +1374,7 @@ pr_menu(ap)
         }
         /*
          * we will print an index of the form
-         *        %d)
+         *      %d)
          * in front of each entry
          * get the max width of this
          */
@@ -1393,7 +1393,7 @@ pr_menu(ap)
 #ifdef KSH
 
 /*
- *        [[ ... ]] evaluation routines
+ *      [[ ... ]] evaluation routines
  */
 
 extern const char *const dbtest_tokens[];
@@ -1422,7 +1422,7 @@ dbteste_isa(te, meta)
 
         if (meta == TM_UNOP || meta == TM_BINOP) {
                 if (uqword) {
-                        char buf[8];        /* longer than the longest operator */
+                        char buf[8];    /* longer than the longest operator */
                         char *q = buf;
                         for (p = *te->pos.wp; *p == CHAR
                                               && q < &buf[sizeof(buf) - 1];

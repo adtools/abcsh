@@ -12,10 +12,10 @@
 #include "c_test.h"
 
 /* test(1) accepts the following grammar:
-        oexpr        ::= aexpr | aexpr "-o" oexpr ;
-        aexpr        ::= nexpr | nexpr "-a" aexpr ;
-        nexpr        ::= primary | "!" nexpr ;
-        primary        ::= unary-operator operand
+        oexpr   ::= aexpr | aexpr "-o" oexpr ;
+        aexpr   ::= nexpr | nexpr "-a" aexpr ;
+        nexpr   ::= primary | "!" nexpr ;
+        primary ::= unary-operator operand
                 | operand binary-operator operand
                 | operand
                 | "(" oexpr ")"
@@ -27,75 +27,75 @@
 
         binary-operator ::= "="|"=="|"!="|"-eq"|"-ne"|"-ge"|"-gt"|"-le"|"-lt"|
                             "-nt"|"-ot"|"-ef"|
-                            "<"|">"        # rules used for [[ .. ]] expressions
+                            "<"|">"     # rules used for [[ .. ]] expressions
                             ;
         operand ::= <any thing>
 */
 
-#define T_ERR_EXIT        2        /* POSIX says > 1 for errors */
+#define T_ERR_EXIT      2       /* POSIX says > 1 for errors */
 
 struct t_op {
-        char        op_text[4];
-        Test_op        op_num;
+        char    op_text[4];
+        Test_op op_num;
 };
 static const struct t_op u_ops [] = {
-        {"-a",        TO_FILAXST },
-        {"-b",        TO_FILBDEV },
-        {"-c",        TO_FILCDEV },
-        {"-d",        TO_FILID },
-        {"-e",        TO_FILEXST },
-        {"-f",        TO_FILREG },
-        {"-G",        TO_FILGID },
-        {"-g",        TO_FILSETG },
-        {"-h",        TO_FILSYM },
-        {"-H",        TO_FILCDF },
-        {"-k",        TO_FILSTCK },
-        {"-L",        TO_FILSYM },
-        {"-n",        TO_STNZE },
-        {"-O",        TO_FILUID },
-        {"-o",        TO_OPTION },
-        {"-p",        TO_FILFIFO },
-        {"-r",        TO_FILRD },
-        {"-s",        TO_FILGZ },
-        {"-S",        TO_FILSOCK },
-        {"-t",        TO_FILTT },
-        {"-u",        TO_FILSETU },
-        {"-w",        TO_FILWR },
-        {"-x",        TO_FILEX },
-        {"-z",        TO_STZER },
-        {"",        TO_NONOP }
+        {"-a",  TO_FILAXST },
+        {"-b",  TO_FILBDEV },
+        {"-c",  TO_FILCDEV },
+        {"-d",  TO_FILID },
+        {"-e",  TO_FILEXST },
+        {"-f",  TO_FILREG },
+        {"-G",  TO_FILGID },
+        {"-g",  TO_FILSETG },
+        {"-h",  TO_FILSYM },
+        {"-H",  TO_FILCDF },
+        {"-k",  TO_FILSTCK },
+        {"-L",  TO_FILSYM },
+        {"-n",  TO_STNZE },
+        {"-O",  TO_FILUID },
+        {"-o",  TO_OPTION },
+        {"-p",  TO_FILFIFO },
+        {"-r",  TO_FILRD },
+        {"-s",  TO_FILGZ },
+        {"-S",  TO_FILSOCK },
+        {"-t",  TO_FILTT },
+        {"-u",  TO_FILSETU },
+        {"-w",  TO_FILWR },
+        {"-x",  TO_FILEX },
+        {"-z",  TO_STZER },
+        {"",    TO_NONOP }
     };
 static const struct t_op b_ops [] = {
-        {"=",        TO_STEQL },
+        {"=",   TO_STEQL },
 #ifdef KSH
-        {"==",        TO_STEQL },
+        {"==",  TO_STEQL },
 #endif /* KSH */
-        {"!=",        TO_STNEQ },
-        {"<",        TO_STLT },
-        {">",        TO_STGT },
-        {"-eq",        TO_INTEQ },
-        {"-ne",        TO_INTNE },
-        {"-gt",        TO_INTGT },
-        {"-ge",        TO_INTGE },
-        {"-lt",        TO_INTLT },
-        {"-le",        TO_INTLE },
-        {"-ef",        TO_FILEQ },
-        {"-nt",        TO_FILNT },
-        {"-ot",        TO_FILOT },
-        {"",        TO_NONOP }
+        {"!=",  TO_STNEQ },
+        {"<",   TO_STLT },
+        {">",   TO_STGT },
+        {"-eq", TO_INTEQ },
+        {"-ne", TO_INTNE },
+        {"-gt", TO_INTGT },
+        {"-ge", TO_INTGE },
+        {"-lt", TO_INTLT },
+        {"-le", TO_INTLE },
+        {"-ef", TO_FILEQ },
+        {"-nt", TO_FILNT },
+        {"-ot", TO_FILOT },
+        {"",    TO_NONOP }
     };
 
-static int        test_stat ARGS((const char *path, struct stat *statb));
-static int        test_eaccess ARGS((const char *path, int mode));
-static int        test_oexpr ARGS((Test_env *te, int do_eval));
-static int        test_aexpr ARGS((Test_env *te, int do_eval));
-static int        test_nexpr ARGS((Test_env *te, int do_eval));
-static int        test_primary ARGS((Test_env *te, int do_eval));
-static int        ptest_isa ARGS((Test_env *te, Test_meta meta));
+static int      test_stat ARGS((const char *path, struct stat *statb));
+static int      test_eaccess ARGS((const char *path, int mode));
+static int      test_oexpr ARGS((Test_env *te, int do_eval));
+static int      test_aexpr ARGS((Test_env *te, int do_eval));
+static int      test_nexpr ARGS((Test_env *te, int do_eval));
+static int      test_primary ARGS((Test_env *te, int do_eval));
+static int      ptest_isa ARGS((Test_env *te, Test_meta meta));
 static const char *ptest_getopnd ARGS((Test_env *te, Test_op op, int do_eval));
-static int        ptest_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
+static int      ptest_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
                                 const char *opnd2, int do_eval));
-static void        ptest_error ARGS((Test_env *te, int offset, const char *msg));
+static void     ptest_error ARGS((Test_env *te, int offset, const char *msg));
 
 int
 c_test(wp)
@@ -132,7 +132,7 @@ c_test(wp)
         if (argc <= 5) {
                 char **owp = wp;
                 int invert = 0;
-                Test_op        op;
+                Test_op op;
                 const char *opnd1, *opnd2;
 
                 while (--argc >= 0) {

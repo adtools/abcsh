@@ -4,7 +4,7 @@
 
 #include "sh.h"
 
-#define        INIT_TBLS        8        /* initial table size (power of 2) */
+#define INIT_TBLS       8       /* initial table size (power of 2) */
 
 static void     texpand     ARGS((struct table *tp, int nsize));
 static int      tnamecmp    ARGS((void *p1, void *p2));
@@ -18,7 +18,7 @@ hash(n)
 
         while (*n != '\0')
                 h = 2*h + *n++;
-        return h * 32821;        /* scatter bits */
+        return h * 32821;       /* scatter bits */
 }
 
 void
@@ -48,7 +48,7 @@ texpand(tp, nsize)
         for (i = 0; i < nsize; i++)
                 ntblp[i] = NULL;
         tp->size = nsize;
-        tp->nfree = 8*nsize/10;        /* table can get 80% full */
+        tp->nfree = 8*nsize/10; /* table can get 80% full */
         tp->tbls = ntblp;
         if (otblp == NULL)
                 return;
@@ -71,9 +71,9 @@ texpand(tp, nsize)
 
 struct tbl *
 tsearch(tp, n, h)
-        register struct table *tp;        /* table */
-        register const char *n;                /* name to enter */
-        unsigned int h;                        /* hash(n) */
+        register struct table *tp;      /* table */
+        register const char *n;         /* name to enter */
+        unsigned int h;                 /* hash(n) */
 {
         register struct tbl **pp, *p;
 
@@ -94,9 +94,9 @@ tsearch(tp, n, h)
 
 struct tbl *
 tenter(tp, n, h)
-        register struct table *tp;        /* table */
-        register const char *n;                /* name to enter */
-        unsigned int h;                        /* hash(n) */
+        register struct table *tp;      /* table */
+        register const char *n;         /* name to enter */
+        unsigned int h;                 /* hash(n) */
 {
         register struct tbl **pp, *p;
         register int len;
@@ -107,12 +107,12 @@ tenter(tp, n, h)
         /* search for name in hashed table */
         for (pp = &tp->tbls[h & (tp->size-1)]; (p = *pp) != NULL; pp--) {
                 if (*p->name == *n && strcmp(p->name, n) == 0)
-                        return p;         /* found */
+                        return p;       /* found */
                 if (pp == tp->tbls) /* wrap */
                         pp += tp->size;
         }
 
-        if (tp->nfree <= 0) {        /* too full */
+        if (tp->nfree <= 0) {   /* too full */
                 texpand(tp, 2*tp->size);
                 goto Search;
         }
@@ -177,8 +177,8 @@ tsort(tp)
         register struct tbl **p, **sp, **dp;
 
         p = (struct tbl **)alloc(sizeofN(struct tbl *, tp->size+1), ATEMP);
-        sp = tp->tbls;                /* source */
-        dp = p;                        /* dest */
+        sp = tp->tbls;          /* source */
+        dp = p;                 /* dest */
         for (i = 0; i < tp->size; i++)
                 if ((*dp = *sp++) != NULL && (((*dp)->flag&DEFINED) ||
                                               ((*dp)->flag&ARRAY)))

@@ -59,7 +59,7 @@ int amigaos_isabspath(const char *path)
                         FUNCX;
                         return 0;
                 }
-                path++;        
+                path++; 
         }
         
         FUNCX;
@@ -105,10 +105,10 @@ int pipe(int filedes[2])
         FUNC;
 
         sprintf(pipe_name, "PIPE:%s\n", tmpnam(0));
-//        printf("pipe: %s \n", pipe_name);
+//      printf("pipe: %s \n", pipe_name);
         
-//        filedes[0] = open(pipe_name, O_WRONLY|O_CREAT);
-//        filedes[1] = open(pipe_name, O_RDONLY);        
+//      filedes[0] = open(pipe_name, O_WRONLY|O_CREAT);
+//      filedes[1] = open(pipe_name, O_RDONLY); 
 
         filedes[1] = IDOS->Open(pipe_name, MODE_NEWFILE);
         filedes[0] = IDOS->Open(pipe_name, MODE_OLDFILE);
@@ -124,7 +124,7 @@ int pipe(int filedes[2])
                 FUNCX;
                 return -1;
         }
-//        printf("filedes %d %d\n", filedes[0], filedes[1]);fflush(stdout);
+//      printf("filedes %d %d\n", filedes[0], filedes[1]);fflush(stdout);
 
         FUNCX;
         return 0;
@@ -232,7 +232,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         fgets(buffer, 999, fh);
                         interpreter = strdup(buffer);
                         if (interpreter[strlen(interpreter)-1] == 10)
-                                 interpreter[strlen(interpreter)-1] = 0;
+                                interpreter[strlen(interpreter)-1] = 0;
                         size += strlen(interpreter) + 1;
                 }
         
@@ -303,12 +303,12 @@ LONG execute_child(STRPTR args, int len)
 
 int
 exchild(t, flags, close_fd)
-        struct op        *t;
-        int                flags;
-        int                close_fd;        /* used if XPCLOSE or XCCLOSE */
+        struct op       *t;
+        int             flags;
+        int             close_fd;       /* used if XPCLOSE or XCCLOSE */
 {
 /*pipe flags (flags & XPIPEI/O)*/
-/*        int pipeo = 0;        
+/*      int pipeo = 0;  
         int pipei = 0;*/
 /*close conditions*/
         int close_fd_i = 1;
@@ -319,8 +319,8 @@ exchild(t, flags, close_fd)
         char args[30];
         struct Task *thisTask = IExec->FindTask(0);
         FUNC;
-#if 0        
-//        printf("close_fd = %d", close_fd);fflush(stdout);
+#if 0   
+//      printf("close_fd = %d", close_fd);fflush(stdout);
         printf("flags = ");
         if (flags & XEXEC) printf("XEXEC ");
         if (flags & XFORK) printf("XFORK ");
@@ -337,11 +337,11 @@ exchild(t, flags, close_fd)
 #endif
         
         sprintf(args, "%08lx %08lx %08lx", t, flags & (XEXEC | XERROK), thisTask);
-/*        pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
+/*      pipeo = ((flags & XPIPEO));// && !(flags & XXCOM));
         pipei = (flags & XPIPEI);*/
         close_fd_i = TRUE;
         close_fd_o = TRUE;
-//        printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
+//      printf("TYPE %d TCOM %d \n", t->type, TCOM);fflush(stdout);
 
         if (t->type == 21)
         {
@@ -366,19 +366,19 @@ exchild(t, flags, close_fd)
         }
 
         IDOS->CreateNewProcTags(
-                        NP_Entry,                 execute_child,
-/*                        NP_Child,                TRUE, */
+                        NP_Entry,               execute_child,
+/*                      NP_Child,               TRUE, */
                         NP_Input,               inputfd,
-                        NP_CloseInput,                close_fd_i,
-                        NP_Output,                outputfd,
-                        NP_CloseOutput,                close_fd_o,
-//                        NP_Error,                IDOS->ErrorOutput(),
-//                        NP_CloseError,                FALSE,
-                        NP_Arguments,                args,
+                        NP_CloseInput,          close_fd_i,
+                        NP_Output,              outputfd,
+                        NP_CloseOutput,         close_fd_o,
+//                      NP_Error,               IDOS->ErrorOutput(),
+//                      NP_CloseError,          FALSE,
+                        NP_Arguments,           args,
                         TAG_DONE);
 
                         
-        IExec->Wait(SIGBREAKF_CTRL_F);                
+        IExec->Wait(SIGBREAKF_CTRL_F);          
 /*close pipe input*/
 
         if (!close_fd_i)
@@ -387,7 +387,7 @@ exchild(t, flags, close_fd)
 /*restore to stdin/out*/
         amigain = amigaout = -1;
 
-        FUNCX;                
+        FUNCX;          
         return 0;
 }
-
+        

@@ -25,9 +25,9 @@
 /* We keep CHILD_MAX zombie processes around (exact value isn't critical) */
 #ifndef CHILD_MAX
 # ifdef _POSIX_CHILD_MAX
-#  define CHILD_MAX        ((_POSIX_CHILD_MAX) * 2)
+#  define CHILD_MAX     ((_POSIX_CHILD_MAX) * 2)
 # else /* _POSIX_CHILD_MAX */
-#  define CHILD_MAX        20
+#  define CHILD_MAX     20
 # endif /* _POSIX_CHILD_MAX */
 #endif /* !CHILD_MAX */
 
@@ -36,105 +36,105 @@
 
 /* Order important! */
 #define PRUNNING        0
-#define PEXITED                1
-#define PSIGNALLED        2
+#define PEXITED         1
+#define PSIGNALLED      2
 #define PSTOPPED        3
 
-typedef struct proc        Proc;
+typedef struct proc     Proc;
 struct proc {
-        Proc        *next;                /* next process in pipeline (if any) */
-        int        state;
-        WAIT_T        status;                /* wait status */
-        pid_t        pid;                /* process id */
-        char        command[48];        /* process command string */
+        Proc    *next;          /* next process in pipeline (if any) */
+        int     state;
+        WAIT_T  status;         /* wait status */
+        pid_t   pid;            /* process id */
+        char    command[48];    /* process command string */
 };
 
 /* Notify/print flag - j_print() argument */
-#define JP_NONE                0        /* don't print anything */
-#define JP_SHORT        1        /* print signals processes were killed by */
-#define JP_MEDIUM        2        /* print [job-num] -/+ command */
-#define JP_LONG                3        /* print [job-num] -/+ pid command */
-#define JP_PGRP                4        /* print pgrp */
+#define JP_NONE         0       /* don't print anything */
+#define JP_SHORT        1       /* print signals processes were killed by */
+#define JP_MEDIUM       2       /* print [job-num] -/+ command */
+#define JP_LONG         3       /* print [job-num] -/+ pid command */
+#define JP_PGRP         4       /* print pgrp */
 
 /* put_job() flags */
-#define PJ_ON_FRONT        0        /* at very front */
-#define PJ_PAST_STOPPED        1        /* just past any stopped jobs */
+#define PJ_ON_FRONT     0       /* at very front */
+#define PJ_PAST_STOPPED 1       /* just past any stopped jobs */
 
 /* Job.flags values */
-#define JF_STARTED        0x001        /* set when all processes in job are started */
-#define JF_WAITING        0x002        /* set if j_waitj() is waiting on job */
-#define JF_W_ASYNCNOTIFY 0x004        /* set if waiting and async notification ok */
-#define JF_XXCOM        0x008        /* set for `command` jobs */
-#define JF_FG                0x010        /* running in foreground (also has tty pgrp) */
-#define JF_SAVEDTTY        0x020        /* j->ttystate is valid */
-#define JF_CHANGED        0x040        /* process has changed state */
-#define JF_KNOWN        0x080        /* $! referenced */
-#define JF_ZOMBIE        0x100        /* known, unwaited process */
-#define JF_REMOVE        0x200        /* flaged for removal (j_jobs()/j_noityf()) */
-#define JF_USETTYMODE        0x400        /* tty mode saved if process exits normally */
-#define JF_SAVEDTTYPGRP        0x800        /* j->saved_ttypgrp is valid */
+#define JF_STARTED      0x001   /* set when all processes in job are started */
+#define JF_WAITING      0x002   /* set if j_waitj() is waiting on job */
+#define JF_W_ASYNCNOTIFY 0x004  /* set if waiting and async notification ok */
+#define JF_XXCOM        0x008   /* set for `command` jobs */
+#define JF_FG           0x010   /* running in foreground (also has tty pgrp) */
+#define JF_SAVEDTTY     0x020   /* j->ttystate is valid */
+#define JF_CHANGED      0x040   /* process has changed state */
+#define JF_KNOWN        0x080   /* $! referenced */
+#define JF_ZOMBIE       0x100   /* known, unwaited process */
+#define JF_REMOVE       0x200   /* flaged for removal (j_jobs()/j_noityf()) */
+#define JF_USETTYMODE   0x400   /* tty mode saved if process exits normally */
+#define JF_SAVEDTTYPGRP 0x800   /* j->saved_ttypgrp is valid */
 
 typedef struct job Job;
 struct job {
-        Job        *next;                /* next job in list */
-        int        job;                /* job number: %n */
-        int        flags;                /* see JF_* */
-        int        state;                /* job state */
-        int        status;                /* exit status of last process */
-        pid_t        pgrp;                /* process group of job */
-        pid_t        ppid;                /* pid of process that forked job */
-        INT32        age;                /* number of jobs started */
-        INT32        systime;        /* system time used by job */
-        INT32        usrtime;        /* user time used by job */
-        Proc        *proc_list;        /* process list */
-        Proc        *last_proc;        /* last process in list */
+        Job     *next;          /* next job in list */
+        int     job;            /* job number: %n */
+        int     flags;          /* see JF_* */
+        int     state;          /* job state */
+        int     status;         /* exit status of last process */
+        pid_t   pgrp;           /* process group of job */
+        pid_t   ppid;           /* pid of process that forked job */
+        INT32   age;            /* number of jobs started */
+        INT32   systime;        /* system time used by job */
+        INT32   usrtime;        /* user time used by job */
+        Proc    *proc_list;     /* process list */
+        Proc    *last_proc;     /* last process in list */
 #ifdef KSH
-        Coproc_id coproc_id;        /* 0 or id of coprocess output pipe */
+        Coproc_id coproc_id;    /* 0 or id of coprocess output pipe */
 #endif /* KSH */
 };
 
 /* Flags for j_waitj() */
-#define JW_NONE                0x00
-#define JW_INTERRUPT        0x01        /* ^C will stop the wait */
-#define JW_ASYNCNOTIFY        0x02        /* asynchronous notification during wait ok */
-#define JW_STOPPEDWAIT        0x04        /* wait even if job stopped */
+#define JW_NONE         0x00
+#define JW_INTERRUPT    0x01    /* ^C will stop the wait */
+#define JW_ASYNCNOTIFY  0x02    /* asynchronous notification during wait ok */
+#define JW_STOPPEDWAIT  0x04    /* wait even if job stopped */
 
 /* Error codes for j_lookup() */
-#define JL_OK                0
-#define JL_NOSUCH        1        /* no such job */
-#define JL_AMBIG        2        /* %foo or %?foo is ambiguous */
-#define JL_INVALID        3        /* non-pid, non-% job id */
+#define JL_OK           0
+#define JL_NOSUCH       1       /* no such job */
+#define JL_AMBIG        2       /* %foo or %?foo is ambiguous */
+#define JL_INVALID      3       /* non-pid, non-% job id */
 
-static const char        *const lookup_msgs[] = {
+static const char       *const lookup_msgs[] = {
                                 null,
                                 "no such job",
                                 "ambiguous",
                                 "argument must be %job or process id",
                                 (char *) 0
                             };
-INT32        j_systime, j_usrtime;        /* user and system time of last j_waitjed job */
+INT32   j_systime, j_usrtime;   /* user and system time of last j_waitjed job */
 
-static Job                *job_list;        /* job list */
-static Job                *last_job;
-static Job                *async_job;
-static pid_t                async_pid;
+static Job              *job_list;      /* job list */
+static Job              *last_job;
+static Job              *async_job;
+static pid_t            async_pid;
 
-static int                nzombie;        /* # of zombies owned by this process */
-static INT32                njobs;                /* # of jobs started */
-static int                child_max;        /* CHILD_MAX */
+static int              nzombie;        /* # of zombies owned by this process */
+static INT32            njobs;          /* # of jobs started */
+static int              child_max;      /* CHILD_MAX */
 
-static void                j_set_async ARGS((Job *j));
-static void                j_startjob ARGS((Job *j));
-static int                j_waitj ARGS((Job *j, int flags, const char *where));
-static void        j_sigchld ARGS((int sig));
-static void                j_print ARGS((Job *j, int how, struct shf *shf));
-static Job                *j_lookup ARGS((const char *cp, int *ecodep));
-static Job                *new_job ARGS((void));
-static Proc                *new_proc ARGS((void));
-static void                check_job ARGS((Job *j));
-static void                put_job ARGS((Job *j, int where));
-static void                remove_job ARGS((Job *j, const char *where));
-static int                kill_job ARGS((Job *j, int sig));
+static void             j_set_async ARGS((Job *j));
+static void             j_startjob ARGS((Job *j));
+static int              j_waitj ARGS((Job *j, int flags, const char *where));
+static void     j_sigchld ARGS((int sig));
+static void             j_print ARGS((Job *j, int how, struct shf *shf));
+static Job              *j_lookup ARGS((const char *cp, int *ecodep));
+static Job              *new_job ARGS((void));
+static Proc             *new_proc ARGS((void));
+static void             check_job ARGS((Job *j));
+static void             put_job ARGS((Job *j, int where));
+static void             remove_job ARGS((Job *j, const char *where));
+static int              kill_job ARGS((Job *j, int sig));
 
 /* initialize job control */
 void
@@ -155,8 +155,8 @@ void
 j_exit()
 {
         /* kill stopped, and possibly running, jobs */
-        Job        *j;
-        int        killed = 0;
+        Job     *j;
+        int     killed = 0;
 
         for (j = job_list; j != (Job *) 0; j = j->next) {
                 if (j->ppid == procpid
@@ -181,19 +181,19 @@ j_exit()
 #ifndef __amigaos4__
 int
 exchild(t, flags, close_fd)
-        struct op        *t;
-        int                flags;
-        int                close_fd;        /* used if XPCLOSE or XCCLOSE */
+        struct op       *t;
+        int             flags;
+        int             close_fd;       /* used if XPCLOSE or XCCLOSE */
 {
 
-        static Proc        *last_proc;        /* for pipelines */
+        static Proc     *last_proc;     /* for pipelines */
 
-        int                i;
-        Proc                *p;
-        Job                *j;
-        int                rv = 0;
-        int                forksleep;
-        int                ischild;
+        int             i;
+        Proc            *p;
+        Job             *j;
+        int             rv = 0;
+        int             forksleep;
+        int             ischild;
 
         if (flags & XEXEC)
                 /* Clear XFORK|XPCLOSE|XCCLOSE|XCOPROC|XPIPEO|XPIPEI|XXCOM|XBGND
@@ -208,7 +208,7 @@ exchild(t, flags, close_fd)
         p->pid = 0;
 
         /* link process into jobs list */
-        if (flags&XPIPEI) {        /* continuing with a pipe */
+        if (flags&XPIPEI) {     /* continuing with a pipe */
                 if (!last_job)
                         internal_errorf(1, "exchild: XPIPEI and no last_job - pid %d", (int) procpid);
                 j = last_job;
@@ -240,7 +240,7 @@ exchild(t, flags, close_fd)
         /* create child process */
         forksleep = 1;
         while ((i = fork()) < 0 && errno == EAGAIN && forksleep < 32) {
-                if (intrsig)         /* allow user to ^C out... */
+                if (intrsig)     /* allow user to ^C out... */
                         break;
                 sleep(forksleep);
                 forksleep <<= 1;
@@ -260,7 +260,7 @@ exchild(t, flags, close_fd)
         if (close_fd >= 0 && (((flags & XPCLOSE) && !ischild)
                               || ((flags & XCCLOSE) && ischild)))
                 close(close_fd);
-        if (ischild) {                /* child */
+        if (ischild) {          /* child */
 #ifdef KSH
                 /* Do this before restoring signal */
                 if (flags & XCOPROC)
@@ -278,7 +278,7 @@ exchild(t, flags, close_fd)
                                 close(fd);
                         }
                 }
-                remove_job(j, "child");        /* in case of `jobs` command */
+                remove_job(j, "child"); /* in case of `jobs` command */
                 nzombie = 0;
                 Flag(FTALKING) = 0;
                 tty_close();
@@ -333,8 +333,8 @@ startlast()
 int
 waitlast()
 {
-        int        rv;
-        Job        *j;
+        int     rv;
+        Job     *j;
 
         j = last_job;
         if (!j || !(j->flags & JF_STARTED)) {
@@ -354,12 +354,12 @@ waitlast()
 int
 waitfor(cp, sigp)
         const char *cp;
-        int        *sigp;
+        int     *sigp;
 {
-        int        rv;
-        Job        *j;
-        int        ecode;
-        int        flags = JW_INTERRUPT|JW_ASYNCNOTIFY;
+        int     rv;
+        Job     *j;
+        int     ecode;
+        int     flags = JW_INTERRUPT|JW_ASYNCNOTIFY;
 
         *sigp = 0;
 
@@ -399,12 +399,12 @@ waitfor(cp, sigp)
 int
 j_kill(cp, sig)
         const char *cp;
-        int        sig;
+        int     sig;
 {
-        Job        *j;
-        Proc        *p;
-        int        rv = 0;
-        int        ecode;
+        Job     *j;
+        Proc    *p;
+        int     rv = 0;
+        int     ecode;
 
         if ((j = j_lookup(cp, &ecode)) == (Job *) 0) {
                 bi_errorf("%s: %s", cp, lookup_msgs[ecode]);
@@ -429,8 +429,8 @@ j_kill(cp, sig)
 int
 j_stopped_running()
 {
-        Job        *j;
-        int        which = 0;
+        Job     *j;
+        int     which = 0;
 
         for (j = job_list; j != (Job *) 0; j = j->next) {
         }
@@ -449,19 +449,19 @@ j_stopped_running()
 int
 j_jobs(cp, slp, nflag)
         const char *cp;
-        int        slp;                /* 0: short, 1: long, 2: pgrp */
-        int        nflag;
+        int     slp;            /* 0: short, 1: long, 2: pgrp */
+        int     nflag;
 {
-        Job        *j, *tmp;
-        int        how;
-        int        zflag = 0;
+        Job     *j, *tmp;
+        int     how;
+        int     zflag = 0;
 
         if (nflag < 0) { /* kludge: print zombies */
                 nflag = 0;
                 zflag = 1;
         }
         if (cp) {
-                int        ecode;
+                int     ecode;
 
                 if ((j = j_lookup(cp, &ecode)) == (Job *) 0) {
                         bi_errorf("%s: %s", cp, lookup_msgs[ecode]);
@@ -494,7 +494,7 @@ j_jobs(cp, slp, nflag)
 void
 j_notify()
 {
-        Job        *j, *tmp;
+        Job     *j, *tmp;
         for (j = job_list; j; j = j->next) {
                 /* Remove job after doing reports so there aren't
                  * multiple +/- jobs.
@@ -528,7 +528,7 @@ static void
 j_set_async(j)
         Job *j;
 {
-        Job        *jl, *oldest;
+        Job     *jl, *oldest;
 
         if (async_job && (async_job->flags & (JF_KNOWN|JF_ZOMBIE)) == JF_ZOMBIE)
                 remove_job(async_job, "async");
@@ -564,7 +564,7 @@ static void
 j_startjob(j)
         Job *j;
 {
-        Proc        *p;
+        Proc    *p;
 
         j->flags |= JF_STARTED;
         for (p = j->proc_list; p->next; p = p->next)
@@ -579,11 +579,11 @@ j_startjob(j)
  */
 static int
 j_waitj(j, flags, where)
-        Job        *j;
-        int        flags;                /* see JW_* */
+        Job     *j;
+        int     flags;          /* see JW_* */
         const char *where;
 {
-        int        rv;
+        int     rv;
 
         /*
          * No auto-notify on the job we are waiting on.
@@ -613,7 +613,7 @@ j_waitj(j, flags, where)
         j->flags &= ~(JF_WAITING|JF_W_ASYNCNOTIFY);
 
         if (j->flags & JF_FG) {
-                WAIT_T        status;
+                WAIT_T  status;
 
                 j->flags &= ~JF_FG;
                 if (tty_fd >= 0) {
@@ -635,11 +635,11 @@ j_waitj(j, flags, where)
                                 /* Don't use tty mode if job is stopped and
                                  * later restarted and exits.  Consider
                                  * the sequence:
-                                 *        vi foo (stopped)
-                                 *        ...
-                                 *        stty something
-                                 *        ...
-                                 *        fg (vi; ZZ)
+                                 *      vi foo (stopped)
+                                 *      ...
+                                 *      stty something
+                                 *      ...
+                                 *      fg (vi; ZZ)
                                  * mode should be that of the stty, not what
                                  * was before the vi started.
                                  */
@@ -672,21 +672,21 @@ j_waitj(j, flags, where)
  */
 static void
 j_sigchld(sig)
-        int        sig;
+        int     sig;
 {
-        int                errno_ = errno;
-        Job                *j;
-        Proc                UNINITIALIZED(*p);
-        int                pid;
-        WAIT_T                status;
-        struct tms        t0, t1;
+        int             errno_ = errno;
+        Job             *j;
+        Proc            UNINITIALIZED(*p);
+        int             pid;
+        WAIT_T          status;
+        struct tms      t0, t1;
 
         ksh_times(&t0);
         do {
                 pid = wait(&status);
 
-                if (pid <= 0)        /* return if would block (0) ... */
-                        break;        /* ... or no children or interrupted (-1) */
+                if (pid <= 0)   /* return if would block (0) ... */
+                        break;  /* ... or no children or interrupted (-1) */
 
                 ksh_times(&t1);
 
@@ -714,7 +714,7 @@ found:
                 else
                         p->state = PEXITED;
 
-                check_job(j);        /* check to see if entire job is done */
+                check_job(j);   /* check to see if entire job is done */
         }
         while (0);
 
@@ -733,10 +733,10 @@ found:
  */
 static void
 check_job(j)
-        Job        *j;
+        Job     *j;
 {
-        int        jstate;
-        Proc        *p;
+        int     jstate;
+        Proc    *p;
 
         /* XXX debugging (nasty - interrupt routine using shl_out) */
         if (!(j->flags & JF_STARTED)) {
@@ -748,7 +748,7 @@ check_job(j)
         jstate = PRUNNING;
         for (p=j->proc_list; p != (Proc *) 0; p = p->next) {
                 if (p->state == PRUNNING)
-                        return;        /* some processes still running */
+                        return; /* some processes still running */
                 if (p->state > jstate)
                         jstate = p->state;
         }
@@ -811,18 +811,18 @@ check_job(j)
  */
 static void
 j_print(j, how, shf)
-        Job                *j;
-        int                how;
-        struct shf        *shf;
+        Job             *j;
+        int             how;
+        struct shf      *shf;
 {
-        Proc        *p;
-        int        state;
-        WAIT_T        status;
-        int        coredumped;
-        char        jobchar = ' ';
-        char        buf[64];
+        Proc    *p;
+        int     state;
+        WAIT_T  status;
+        int     coredumped;
+        char    jobchar = ' ';
+        char    buf[64];
         const char *filler;
-        int        output = 0;
+        int     output = 0;
 
         if (how == JP_PGRP) {
                 /* POSIX doesn't say what to do it there is no process
@@ -922,11 +922,11 @@ j_print(j, how, shf)
 static Job *
 j_lookup(cp, ecodep)
         const char *cp;
-        int        *ecodep;
+        int     *ecodep;
 {
-        Job                *j, *last_match;
-        Proc                *p;
-        int                len, job = 0;
+        Job             *j, *last_match;
+        Proc            *p;
+        int             len, job = 0;
 
         if (digit(*cp)) {
                 job = atoi(cp);
@@ -970,7 +970,7 @@ j_lookup(cp, ecodep)
                                 return j;
                 break;
 
-          case '?':                /* %?string */
+          case '?':             /* %?string */
                 last_match = (Job *) 0;
                 for (j = job_list; j != (Job *) 0; j = j->next)
                         for (p = j->proc_list; p != (Proc *) 0; p = p->next)
@@ -986,7 +986,7 @@ j_lookup(cp, ecodep)
                         return last_match;
                 break;
 
-          default:                /* %string */
+          default:              /* %string */
                 len = strlen(cp);
                 last_match = (Job *) 0;
                 for (j = job_list; j != (Job *) 0; j = j->next)
@@ -1007,8 +1007,8 @@ j_lookup(cp, ecodep)
         return (Job *) 0;
 }
 
-static Job        *free_jobs;
-static Proc        *free_procs;
+static Job      *free_jobs;
+static Proc     *free_procs;
 
 /* allocate a new job and fill in the job number.
  *
@@ -1017,8 +1017,8 @@ static Proc        *free_procs;
 static Job *
 new_job()
 {
-        int        i;
-        Job        *newj, *j;
+        int     i;
+        Job     *newj, *j;
 
         if (free_jobs != (Job *) 0) {
                 newj = free_jobs;
@@ -1045,7 +1045,7 @@ new_job()
 static Proc *
 new_proc()
 {
-        Proc        *p;
+        Proc    *p;
 
         if (free_procs != (Proc *) 0) {
                 p = free_procs;
@@ -1063,11 +1063,11 @@ new_proc()
  */
 static void
 remove_job(j, where)
-        Job        *j;
+        Job     *j;
         const char *where;
 {
-        Proc        *p, *tmp;
-        Job        **prev, *curr;
+        Proc    *p, *tmp;
+        Job     **prev, *curr;
 
         prev = &job_list;
         curr = *prev;
@@ -1105,10 +1105,10 @@ remove_job(j, where)
  */
 static void
 put_job(j, where)
-        Job        *j;
-        int        where;
+        Job     *j;
+        int     where;
 {
-        Job        **prev, *curr;
+        Job     **prev, *curr;
 
         /* Remove job from list (if there) */
         prev = &job_list;
@@ -1142,11 +1142,11 @@ put_job(j, where)
  */
 static int
 kill_job(j, sig)
-        Job        *j;
-        int        sig;
+        Job     *j;
+        int     sig;
 {
-        Proc        *p;
-        int        rval = 0;
+        Proc    *p;
+        int     rval = 0;
 
         for (p = j->proc_list; p != (Proc *) 0; p = p->next)
                 if (p->pid != 0)

@@ -74,8 +74,8 @@ void
 tty_init(init_ttystate)
         int init_ttystate;
 {
-        int        do_close = 1;
-        int        tfd;
+        int     do_close = 1;
+        int     tfd;
 
         if (tty_fd >= 0) {
                 close(tty_fd);
@@ -87,7 +87,7 @@ tty_init(init_ttystate)
 #if !defined(__SCO__)
 #if defined(__amigaos4__)
         if ((tfd = -1) < 0) {
-#else        
+#else   
         if ((tfd = open("/dev/tty", O_RDWR, 0)) < 0) {
 #endif
 

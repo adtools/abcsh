@@ -3,7 +3,7 @@
  */
 
 #include "sh.h"
-#include "ksh_stat.h"         /* umask() */
+#include "ksh_stat.h"   /* umask() */
 #include "ksh_time.h"
 #include "ksh_times.h"
 
@@ -17,7 +17,7 @@ int amigaos_getstdfd(int fd);
 
 #endif
 
-static        char *clocktos ARGS((INT32 t));
+static  char *clocktos ARGS((INT32 t));
 
 
 /* :, false and true */
@@ -419,7 +419,7 @@ c_read(wp)
                         shf_flush(shf);
 #else
                         close(fd);
-#endif                        
+#endif                  
                         return 1;
                 }
         }
@@ -470,18 +470,18 @@ c_eval(wp)
                  * A strict reading of POSIX says we don't do this (though
                  * it is traditionally done). [from 1003.2-1992]
                  *    3.9.1: Simple Commands
-                 *        ... If there is a command name, execution shall
-                 *        continue as described in 3.9.1.1.  If there
-                 *        is no command name, but the command contained a command
-                 *        substitution, the command shall complete with the exit
-                 *        status of the last command substitution
+                 *      ... If there is a command name, execution shall
+                 *      continue as described in 3.9.1.1.  If there
+                 *      is no command name, but the command contained a command
+                 *      substitution, the command shall complete with the exit
+                 *      status of the last command substitution
                  *    3.9.1.1: Command Search and Execution
-                 *        ...(1)...(a) If the command name matches the name of
-                 *        a special built-in utility, that special built-in
-                 *        utility shall be invoked.
+                 *      ...(1)...(a) If the command name matches the name of
+                 *      a special built-in utility, that special built-in
+                 *      utility shall be invoked.
                  * 3.14.5: Eval
-                 *        ... If there are no arguments, or only null arguments,
-                 *        eval shall return an exit status of zero.
+                 *      ... If there are no arguments, or only null arguments,
+                 *      eval shall return an exit status of zero.
                  */
                 exstat = subst_exstat;
         }
@@ -590,7 +590,7 @@ c_exitreturn(wp)
                 how = LSHELL;
         }
 
-        quitenv();        /* get rid of any i/o redirections */
+        quitenv();      /* get rid of any i/o redirections */
         unwind(how);
         /*NOTREACHED*/
         return 0;
@@ -747,9 +747,9 @@ timex(t, f)
         struct op *t;
         int f;
 {
-#define TF_NOARGS        BIT(0)
-#define TF_NOREAL        BIT(1)                /* don't report real time */
-#define TF_POSIX        BIT(2)                /* report in posix format */
+#define TF_NOARGS       BIT(0)
+#define TF_NOREAL       BIT(1)          /* don't report real time */
+#define TF_POSIX        BIT(2)          /* report in posix format */
         int rv = 0;
         struct tms t0, t1, tms;
         INT32 t0t, t1t = 0;
@@ -810,7 +810,7 @@ timex_hook(t, app)
         Getopt opt;
 
         ksh_getopt_reset(&opt, 0);
-        opt.optind = 0;        /* start at the start */
+        opt.optind = 0; /* start at the start */
         while ((optc = ksh_getopt(wp, &opt, ":p")) != EOF)
                 switch (optc) {
                   case 'p':
@@ -845,7 +845,7 @@ clocktos(t)
         /* note: posix says must use max precision, ie, if clk_tck is
          * 1000, must print 3 places after decimal (if non-zero, else 1).
          */
-        if (CLK_TCK != 100)        /* convert to 1/100'ths */
+        if (CLK_TCK != 100)     /* convert to 1/100'ths */
             t = (t < 1000000000/CLK_TCK) ?
                     (t * 100) / CLK_TCK : (t / CLK_TCK) * 100;
 
@@ -895,8 +895,8 @@ c_builtin(wp)
         return 0;
 }
 
-extern        int c_test ARGS((char **wp));                /* in c_test.c */
-extern        int c_ulimit ARGS((char **wp));                /* in c_ulimit.c */
+extern  int c_test ARGS((char **wp));           /* in c_test.c */
+extern  int c_ulimit ARGS((char **wp));         /* in c_ulimit.c */
 
 /* A leading = means assignments before command are kept;
  * a leading * means a POSIX special builtin;

@@ -5,7 +5,7 @@
 #include "sh.h"
 
 #ifdef TEST_ALLOC
-# define shellf        printf
+# define shellf printf
 # ifndef DEBUG_ALLOC
 #  define DEBUG_ALLOC
 # endif /* DEBUG_ALLOC */
@@ -84,12 +84,12 @@ _chmem_afree(ptr, ap, file, line)
 
 # if DEBUG_ALLOC
 void acheck ARGS((Area *ap));
-#  define ACHECK(ap)        acheck(ap)
+#  define ACHECK(ap)    acheck(ap)
 # else /* DEBUG_ALLOC */
 #  define ACHECK(ap)
 # endif /* DEBUG_ALLOC */
 
-#define        ICELLS        200                /* number of Cells in small Block */
+#define ICELLS  200             /* number of Cells in small Block */
 
 typedef union Cell Cell;
 typedef struct Block Block;
@@ -102,22 +102,22 @@ typedef struct Block Block;
  * linked together via dp->next.
  */
 
-#define NOBJECT_FIELDS        2        /* the block and size `fields' */
+#define NOBJECT_FIELDS  2       /* the block and size `fields' */
 
 union Cell {
-        size_t        size;
+        size_t  size;
         Cell   *next;
         Block  *block;
-        struct {int _;} junk;        /* alignment */
-        double djunk;                /* alignment */
+        struct {int _;} junk;   /* alignment */
+        double djunk;           /* alignment */
 };
 
 struct Block {
-        Block  *next;                /* list of Blocks in Area */
-        Block  *prev;                /* previous block in list */
-        Cell   *freelist;        /* object free list */
-        Cell   *last;                /* &b.cell[size] */
-        Cell        cell [1];        /* [size] Cells for allocation */
+        Block  *next;           /* list of Blocks in Area */
+        Block  *prev;           /* previous block in list */
+        Cell   *freelist;       /* object free list */
+        Cell   *last;           /* &b.cell[size] */
+        Cell    cell [1];       /* [size] Cells for allocation */
 };
 
 static Block aempty = {&aempty, &aempty, aempty.cell, aempty.cell};
@@ -233,13 +233,13 @@ asplit(ap, bp, fp, fpp, cells)
         Cell *fpp;
         int cells;
 {
-        Cell *dp = fp;        /* allocated object */
+        Cell *dp = fp;  /* allocated object */
         int split = (fp-1)->size - cells;
 
         ACHECK(ap);
         if (split < 0)
                 aerror(ap, "allocated object too small");
-        if (split <= NOBJECT_FIELDS) {        /* allocate all */
+        if (split <= NOBJECT_FIELDS) {  /* allocate all */
                 fp = fp->next;
         } else {                /* allocate head, free tail */
                 Cell *next = fp->next; /* needed, as cells may be 0 */
@@ -369,7 +369,7 @@ aresize(ptr, size, ap)
                 split = oldcells - cells;
                 if (split <= NOBJECT_FIELDS) /* cannot split */
                         ;
-                else {                /* shrink head, free tail */
+                else {          /* shrink head, free tail */
                         Block *bp = (dp-2)->block;
 
                         (dp-1)->size = cells;
@@ -432,7 +432,7 @@ afree(ptr, ap)
         if (dp + (dp-1)->size == fp-NOBJECT_FIELDS) { /* adjacent */
                 (dp-1)->size += (fp-1)->size + NOBJECT_FIELDS;
                 dp->next = fp->next;
-        } else                        /* non-adjacent */
+        } else                  /* non-adjacent */
                 dp->next = fp;
 
         /* join previous with object */
@@ -441,7 +441,7 @@ afree(ptr, ap)
         else if (fpp + (fpp-1)->size == dp-NOBJECT_FIELDS) { /* adjacent */
                 (fpp-1)->size += (dp-1)->size + NOBJECT_FIELDS;
                 fpp->next = dp->next;
-        } else                        /* non-adjacent */
+        } else                  /* non-adjacent */
                 fpp->next = dp;
 
         /* If whole block is free (and we have some other blocks

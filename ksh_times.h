@@ -15,9 +15,9 @@ struct tms {
 #include <sys/times.h>
 #endif
 
-extern INT32        ksh_times ARGS((struct tms *));
+extern INT32    ksh_times ARGS((struct tms *));
 
 #ifdef HAVE_TIMES
-extern INT32        times ARGS((struct tms *));
+extern INT32    times ARGS((struct tms *));
 #endif /* HAVE_TIMES */
 #endif /* KSH_TIMES_H */

@@ -4,14 +4,14 @@
 
 #include "sh.h"
 
-#define INDENT        4
+#define INDENT  4
 
-#define tputc(c, shf)        shf_putchar(c, shf);
-static void         ptree ARGS((struct op *t, int indent, struct shf *f));
-static void         pioact ARGS((struct shf *f, int indent, struct ioword *iop));
-static void        tputC ARGS((int c, struct shf *shf));
-static void        tputS ARGS((char *wp, struct shf *shf));
-static void        vfptreef ARGS((struct shf *shf, int indent, const char *fmt, va_list va));
+#define tputc(c, shf)   shf_putchar(c, shf);
+static void     ptree ARGS((struct op *t, int indent, struct shf *f));
+static void     pioact ARGS((struct shf *f, int indent, struct ioword *iop));
+static void     tputC ARGS((int c, struct shf *shf));
+static void     tputS ARGS((char *wp, struct shf *shf));
+static void     vfptreef ARGS((struct shf *shf, int indent, const char *fmt, va_list va));
 static struct ioword **iocopy ARGS((struct ioword **iow, Area *ap));
 static void     iofree ARGS((struct ioword **iow, Area *ap));
 
@@ -180,7 +180,7 @@ ptree(t, indent, shf)
                 break;
         }
         if ((ioact = t->ioact) != NULL) {
-                int        need_nl = 0;
+                int     need_nl = 0;
 
                 while (*ioact != NULL)
                         pioact(shf, indent, *ioact++);
@@ -272,10 +272,10 @@ tputC(c, shf)
         register int c;
         register struct shf *shf;
 {
-        if ((c&0x60) == 0) {                /* C0|C1 */
+        if ((c&0x60) == 0) {            /* C0|C1 */
                 tputc((c&0x80) ? '$' : '^', shf);
                 tputc(((c&0x7F)|0x40), shf);
-        } else if ((c&0x7F) == 0x7F) {        /* DEL */
+        } else if ((c&0x7F) == 0x7F) {  /* DEL */
                 tputc((c&0x80) ? '$' : '^', shf);
                 tputc('?', shf);
         } else
@@ -290,11 +290,11 @@ tputS(wp, shf)
         register int c, quoted=0;
 
         /* problems:
-         *        `...` -> $(...)
-         *        'foo' -> "foo"
+         *      `...` -> $(...)
+         *      'foo' -> "foo"
          * could change encoding to:
-         *        OQUOTE ["'] ... CQUOTE ["']
-         *         COMSUB [(`] ...\0        (handle $ ` \ and maybe " in `...` case)
+         *      OQUOTE ["'] ... CQUOTE ["']
+         *      COMSUB [(`] ...\0       (handle $ ` \ and maybe " in `...` case)
          */
         while (1)
                 switch ((c = *wp++)) {
@@ -328,7 +328,7 @@ tputS(wp, shf)
                         wp++;
                         break;
                   case OQUOTE:
-                          quoted = 1;
+                        quoted = 1;
                         tputc('"', shf);
                         break;
                   case CQUOTE:
@@ -369,7 +369,7 @@ tputS(wp, shf)
 int
 fptreef(struct shf *shf, int indent, const char *fmt, ...)
 {
-  va_list        va;
+  va_list       va;
 
   SH_VA_START(va, fmt);
   
@@ -418,7 +418,7 @@ vfptreef(shf, indent, fmt, va)
                         while (*p)
                                 tputc(*p++, shf);
                         break;
-                  case 'S':        /* word */
+                  case 'S':     /* word */
                         p = va_arg(va, char *);
                         tputS(p, shf);
                         break;
@@ -432,11 +432,11 @@ vfptreef(shf, indent, fmt, va)
                         while (*p)
                                 tputc(*p++, shf);
                         break;
-                  case 'T':        /* format tree */
+                  case 'T':     /* format tree */
                         ptree(va_arg(va, struct op *), indent, shf);
                         break;
-                  case ';':        /* newline or ; */
-                  case 'N':        /* newline or space */
+                  case ';':     /* newline or ; */
+                  case 'N':     /* newline or space */
                         if (shf->flags & SHF_STRING) {
                                 if (c == ';')
                                         tputc(';', shf);
@@ -595,9 +595,9 @@ wdstrip(wp)
         shf_sopen((char *) 0, 32, SHF_WR | SHF_DYNAMIC, &shf);
 
         /* problems:
-         *        `...` -> $(...)
-         *        x${foo:-"hi"} -> x${foo:-hi}
-         *        x${foo:-'hi'} -> x${foo:-hi}
+         *      `...` -> $(...)
+         *      x${foo:-"hi"} -> x${foo:-hi}
+         *      x${foo:-'hi'} -> x${foo:-hi}
          */
         while (1)
                 switch ((c = *wp++)) {
@@ -653,7 +653,7 @@ wdstrip(wp)
                 }
 }
 
-static        struct ioword **
+static  struct ioword **
 iocopy(iow, ap)
         register struct ioword **iow;
         Area *ap;
@@ -722,7 +722,7 @@ tfree(t, ap)
         afree((void*)t, ap);
 }
 
-static        void
+static  void
 iofree(iow, ap)
         struct ioword **iow;
         Area *ap;

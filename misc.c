@@ -3,16 +3,16 @@
  */
 
 #include "sh.h"
-#include <ctype.h>        /* for FILECHCONV */
+#include <ctype.h>      /* for FILECHCONV */
 #include <limits.h>
 
 #ifndef UCHAR_MAX
-# define UCHAR_MAX        0xFF
+# define UCHAR_MAX      0xFF
 #endif
 
-short ctypes [UCHAR_MAX+1];        /* type bits for unsigned char */
+short ctypes [UCHAR_MAX+1];     /* type bits for unsigned char */
 
-static int        do_gmatch ARGS((const unsigned char *s, const unsigned char *p,
+static int      do_gmatch ARGS((const unsigned char *s, const unsigned char *p,
                         const unsigned char *se, const unsigned char *pe,
                         int isfile));
 static const unsigned char *cclass ARGS((const unsigned char *p, int sub));
@@ -121,29 +121,29 @@ const struct option options[] = {
          * Options are sorted by their longnames - the order of these
          * entries MUST match the order of sh_flag F* enumerations in sh.h.
          */
-        { "allexport",        'a',                OF_ANY },
-        { "braceexpand",  0,                OF_ANY }, /* non-standard */
-        { "bgnice",          0,                OF_ANY },
-        { (char *) 0,         'c',            OF_CMDLINE },
-        { "errexit",        'e',                OF_ANY },
-        { "ignoreeof",          0,                OF_ANY },
-        { "interactive",'i',            OF_CMDLINE },
-        { "keyword",        'k',                OF_ANY },
-        { "markdirs",        'X',                OF_ANY },
-        { "noclobber",        'C',                OF_ANY },
-        { "noexec",        'n',                OF_ANY },
-        { "noglob",        'f',                OF_ANY },
-        { "nounset",        'u',                OF_ANY },
-        { "physical",          0,                OF_ANY }, /* non-standard */
-        { "posix",          0,                OF_ANY }, /* non-standard */
-        { "stdin",        's',            OF_CMDLINE }, /* pseudo non-standard */
-        { "trackall",        'h',                OF_ANY },
-        { "verbose",        'v',                OF_ANY },
-        { "xtrace",        'x',                OF_ANY },
+        { "allexport",  'a',            OF_ANY },
+        { "braceexpand",  0,            OF_ANY }, /* non-standard */
+        { "bgnice",       0,            OF_ANY },
+        { (char *) 0,   'c',        OF_CMDLINE },
+        { "errexit",    'e',            OF_ANY },
+        { "ignoreeof",    0,            OF_ANY },
+        { "interactive",'i',        OF_CMDLINE },
+        { "keyword",    'k',            OF_ANY },
+        { "markdirs",   'X',            OF_ANY },
+        { "noclobber",  'C',            OF_ANY },
+        { "noexec",     'n',            OF_ANY },
+        { "noglob",     'f',            OF_ANY },
+        { "nounset",    'u',            OF_ANY },
+        { "physical",     0,            OF_ANY }, /* non-standard */
+        { "posix",        0,            OF_ANY }, /* non-standard */
+        { "stdin",      's',        OF_CMDLINE }, /* pseudo non-standard */
+        { "trackall",   'h',            OF_ANY },
+        { "verbose",    'v',            OF_ANY },
+        { "xtrace",     'x',            OF_ANY },
         /* Anonymous flags: used internally by shell only
          * (not visable to user)
          */
-        { (char *) 0,        0,                OF_INTERNAL }, /* FTALKING_I */
+        { (char *) 0,   0,              OF_INTERNAL }, /* FTALKING_I */
 };
 
 /*
@@ -166,7 +166,7 @@ struct options_info {
         int opt_width;
         struct {
                 const char *name;
-                int        flag;
+                int     flag;
         } opts[NELEM(options)];
 };
 
@@ -239,8 +239,8 @@ getoptions()
 /* change a Flag(*) value; takes care of special actions */
 void
 change_flag(f, what, newval)
-        enum sh_flag f;        /* flag to change */
-        int what;        /* what is changing the flag (command line vs set) */
+        enum sh_flag f; /* flag to change */
+        int what;       /* what is changing the flag (command line vs set) */
         int newval;
 {
         int oldval;
@@ -267,8 +267,8 @@ change_flag(f, what, newval)
 int
 parse_args(argv, what, setargsp)
         char **argv;
-        int        what;                /* OF_CMDLINE or OF_SET */
-        int        *setargsp;
+        int     what;           /* OF_CMDLINE or OF_SET */
+        int     *setargsp;
 {
         static char cmd_opts[NELEM(options) + 3]; /* o:\0 */
         static char set_opts[NELEM(options) + 5]; /* Ao;s\0 */
@@ -469,9 +469,9 @@ gmatch(s, p, isfile)
 /* Returns if p is a syntacticly correct globbing pattern, false
  * if it contains no pattern characters or if there is a syntax error.
  * Syntax errors are:
- *        - [ with no closing ]
- *        - imballenced $(...) expression
- *        - [...] and *(...) not nested (eg, [a$(b|]c), *(a[b|c]d))
+ *      - [ with no closing ]
+ *      - imballenced $(...) expression
+ *      - [...] and *(...) not nested (eg, [a$(b|]c), *(a[b|c]d))
  */
 /*XXX
 - if no magic,
@@ -510,7 +510,7 @@ has_globbing(xp, xpe)
                         /* XXX Do we need to check ranges here? POSIX Q */
                 } else if (c == ']') {
                         if (in_bracket) {
-                                if (bnest)                /* [a*(b]) */
+                                if (bnest)              /* [a*(b]) */
                                         return 0;
                                 in_bracket = 0;
                         }
@@ -521,11 +521,11 @@ has_globbing(xp, xpe)
                         else
                                 nest++;
                 } else if (c == '|') {
-                        if (in_bracket && !bnest)        /* *(a[foo|bar]) */
+                        if (in_bracket && !bnest)       /* *(a[foo|bar]) */
                                 return 0;
                 } else if (c == /*(*/ ')') {
                         if (in_bracket) {
-                                if (!bnest--)                /* *(a[b)c] */
+                                if (!bnest--)           /* *(a[b)c] */
                                         return 0;
                         } else if (nest)
                                 nest--;
@@ -749,17 +749,17 @@ static void qsort1 ARGS((void **base, void **lim, int (*f)(void *, void *)));
 
 void
 qsortp(base, n, f)
-        void **base;                                /* base address */
-        size_t n;                                /* elements */
+        void **base;                            /* base address */
+        size_t n;                               /* elements */
         int (*f) ARGS((void *, void *));        /* compare function */
 {
         qsort1(base, base + n, f);
 }
 
-#define        swap2(a, b)        {\
+#define swap2(a, b)     {\
         register void *t; t = *(a); *(a) = *(b); *(b) = t;\
 }
-#define        swap3(a, b, c)        {\
+#define swap3(a, b, c)  {\
         register void *t; t = *(a); *(a) = *(c); *(c) = *(b); *(b) = t;\
 }
 
@@ -864,21 +864,21 @@ ksh_getopt_reset(go, flags)
  * a call to bi_errorf().
  *
  * Non-standard features:
- *        - ';' is like ':' in options, except the argument is optional
- *          (if it isn't present, optarg is set to 0).
- *          Used for 'set -o'.
- *        - ',' is like ':' in options, except the argument always immediately
- *          follows the option character (optarg is set to the null string if
- *          the option is missing).
- *          Used for 'read -u2', 'print -u2' and fc -40.
- *        - '#' is like ':' in options, expect that the argument is optional
- *          and must start with a digit.  If the argument doesn't start with a
- *          digit, it is assumed to be missing and normal option processing
- *          continues (optarg is set to 0 if the option is missing).
- *          Used for 'typeset -LZ4'.
- *        - accepts +c as well as -c IF the GF_PLUSOPT flag is present.  If an
- *          option starting with + is accepted, the GI_PLUS flag will be set
- *          in go->info.
+ *      - ';' is like ':' in options, except the argument is optional
+ *        (if it isn't present, optarg is set to 0).
+ *        Used for 'set -o'.
+ *      - ',' is like ':' in options, except the argument always immediately
+ *        follows the option character (optarg is set to the null string if
+ *        the option is missing).
+ *        Used for 'read -u2', 'print -u2' and fc -40.
+ *      - '#' is like ':' in options, expect that the argument is optional
+ *        and must start with a digit.  If the argument doesn't start with a
+ *        digit, it is assumed to be missing and normal option processing
+ *        continues (optarg is set to 0 if the option is missing).
+ *        Used for 'typeset -LZ4'.
+ *      - accepts +c as well as -c IF the GF_PLUSOPT flag is present.  If an
+ *        option starting with + is accepted, the GI_PLUS flag will be set
+ *        in go->info.
  */
 int
 ksh_getopt(argv, go, options)

@@ -23,11 +23,11 @@
  *      $Id$
  */
 /* Changes to sigact.h for pdksh, Michael Rendell <michael@cs.mun.ca>:
- *        - changed SIG_HDLR to void for use with GNU autoconf
- *        - ifdef'd out ARGS(), volatile and const initializations
- *        - ifdef'd out sigset_t definition - let autoconf handle it
- *        - ifdef out routines not used in ksh if IS_KSH is defined
- *          (same in sigact.c).
+ *      - changed SIG_HDLR to void for use with GNU autoconf
+ *      - ifdef'd out ARGS(), volatile and const initializations
+ *      - ifdef'd out sigset_t definition - let autoconf handle it
+ *      - ifdef out routines not used in ksh if IS_KSH is defined
+ *        (same in sigact.c).
  */
 #ifndef _SIGACT_H
 #define _SIGACT_H
@@ -46,8 +46,8 @@
 # define ARGS(p) p
 #else
 # define ARGS(p) ()
-# define volatile                        /* don't optimize please */
-# define const                                /* read only */
+# define volatile                       /* don't optimize please */
+# define const                          /* read only */
 #endif
 #endif
 
@@ -73,19 +73,19 @@ handler_t Signal        ARGS((int sig, handler_t disp));
 #ifndef SA_NOCLDSTOP
 /* we assume we need the fake sigaction */
 /* sa_flags */
-#define        SA_NOCLDSTOP        1                /* don't send SIGCHLD on child stop */
-#define SA_RESTART        2                /* re-start I/O */
+#define SA_NOCLDSTOP    1               /* don't send SIGCHLD on child stop */
+#define SA_RESTART      2               /* re-start I/O */
 
 /* sigprocmask flags */
-#ifdef __amigaos4__                /* AmigaOS4 changes by Thomas Frieden */
+#ifdef __amigaos4__             /* AmigaOS4 changes by Thomas Frieden */
 #undef SIG_BLOCK
 #undef SIG_UNBLOCK
 #undef SIG_SETMASK
 #endif
 
-#define        SIG_BLOCK        1
-#define        SIG_UNBLOCK        2
-#define        SIG_SETMASK        4
+#define SIG_BLOCK       1
+#define SIG_UNBLOCK     2
+#define SIG_SETMASK     4
 
 #if 0 /* autoconf will define sigset_t if it isn't available */
 /*
@@ -103,32 +103,32 @@ typedef unsigned int sigset_t;
  */
 struct sigaction
 {
-  handler_t        sa_handler;
-  sigset_t        sa_mask;
-  int                sa_flags;
+  handler_t     sa_handler;
+  sigset_t      sa_mask;
+  int           sa_flags;
 };
 
 
-int        sigaction        ARGS(( int sig, struct sigaction *act, struct sigaction *oact ));
-int        sigaddset        ARGS(( sigset_t *mask, int sig ));
+int     sigaction       ARGS(( int sig, struct sigaction *act, struct sigaction *oact ));
+int     sigaddset       ARGS(( sigset_t *mask, int sig ));
 #ifndef IS_KSH
-int        sigdelset        ARGS(( sigset_t *mask, int sig ));
+int     sigdelset       ARGS(( sigset_t *mask, int sig ));
 #endif /* IS_KSH */
-int        sigemptyset        ARGS(( sigset_t *mask ));
+int     sigemptyset     ARGS(( sigset_t *mask ));
 #ifndef IS_KSH
-int        sigfillset        ARGS(( sigset_t *mask ));
-int        sigismember        ARGS(( sigset_t *mask, int sig ));
-int        sigpending        ARGS(( sigset_t *set ));
+int     sigfillset      ARGS(( sigset_t *mask ));
+int     sigismember     ARGS(( sigset_t *mask, int sig ));
+int     sigpending      ARGS(( sigset_t *set ));
 #endif /* IS_KSH */
-#ifdef __amigaos4__                /* AmigaOS4 cahnges by Thomas Frieden */
-int        sigprocmask        ARGS(( int how, const sigset_t *set, sigset_t *oset ));
+#ifdef __amigaos4__             /* AmigaOS4 cahnges by Thomas Frieden */
+int     sigprocmask     ARGS(( int how, const sigset_t *set, sigset_t *oset ));
 #else
-int        sigprocmask        ARGS(( int how, sigset_t *set, sigset_t *oset ));
+int     sigprocmask     ARGS(( int how, sigset_t *set, sigset_t *oset ));
 #endif
-int        sigsuspend        ARGS(( sigset_t *mask ));
+int     sigsuspend      ARGS(( sigset_t *mask ));
         
 #ifndef sigmask
-# define sigmask(s)        (1<<((s)-1))        /* convert SIGnum to mask */
+# define sigmask(s)     (1<<((s)-1))    /* convert SIGnum to mask */
 #endif
 #if !defined(NSIG) && defined(_NSIG)
 # define NSIG _NSIG

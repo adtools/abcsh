@@ -8,8 +8,8 @@
 
 
 /* flags to shf_emptybuf() */
-#define EB_READSW        0x01        /* about to switch to reading */
-#define EB_GROW                0x02        /* grow buffer if necessary (STRING+DYNAMIC) */
+#define EB_READSW       0x01    /* about to switch to reading */
+#define EB_GROW         0x02    /* grow buffer if necessary (STRING+DYNAMIC) */
 
 /*
  * Replacement stdio routines.  Stdio is too flakey on too many machines
@@ -17,8 +17,8 @@
  * file descriptors.
  */
 
-static int        shf_fillbuf        ARGS((struct shf *shf));
-static int        shf_emptybuf        ARGS((struct shf *shf, int flags));
+static int      shf_fillbuf     ARGS((struct shf *shf));
+static int      shf_emptybuf    ARGS((struct shf *shf, int flags));
 
 /* Open a file.  First three args are for open(), last arg is flags for
  * this package.  Returns NULL if file could not be opened, or if a dup
@@ -341,7 +341,7 @@ shf_emptybuf(shf, flags)
                 shf->flags &= ~SHF_READING;
         }
         if (shf->flags & SHF_STRING) {
-                unsigned char        *nbuf;
+                unsigned char   *nbuf;
 
                 /* Note that we assume SHF_ALLOCS is not set if SHF_ALLOCB
                  * is set... (changing the shf pointer could cause problems)
@@ -794,48 +794,48 @@ shf_smprintf(const char *fmt, ...)
         return shf_sclose(&shf); /* null terminates */
 }
 
-#undef FP                          /* if you want floating point stuff */
+#undef FP                       /* if you want floating point stuff */
 
 #define BUF_SIZE        128
-#define FPBUF_SIZE        (DMAXEXP+16)/* this must be >
-                                 *        MAX(DMAXEXP, log10(pow(2, DSIGNIF)))
+#define FPBUF_SIZE      (DMAXEXP+16)/* this must be >
+                                 *      MAX(DMAXEXP, log10(pow(2, DSIGNIF)))
                                  *    + ceil(log10(DMAXEXP)) + 8 (I think).
                                  * Since this is hard to express as a
                                  * constant, just use a large buffer.
                                  */
 
 /*
- *        What kinda of machine we on?  Hopefully the C compiler will optimize
+ *      What kinda of machine we on?  Hopefully the C compiler will optimize
  *  this out...
  *
- *        For shorts, we want sign extend for %d but not for %[oxu] - on 16 bit
+ *      For shorts, we want sign extend for %d but not for %[oxu] - on 16 bit
  *  machines it don't matter.  Assmumes C compiler has converted shorts to
  *  ints before pushing them.
  */
-#define POP_INT(f, s, a) (((f) & FL_LONG) ?                                \
-                                va_arg((a), unsigned long)                \
-                            :                                                \
-                                (sizeof(int) < sizeof(long) ?                \
-                                        ((s) ?                                \
-                                                (long) va_arg((a), int)        \
-                                            :                                \
-                                                va_arg((a), unsigned))        \
-                                    :                                        \
+#define POP_INT(f, s, a) (((f) & FL_LONG) ?                             \
+                                va_arg((a), unsigned long)              \
+                            :                                           \
+                                (sizeof(int) < sizeof(long) ?           \
+                                        ((s) ?                          \
+                                                (long) va_arg((a), int) \
+                                            :                           \
+                                                va_arg((a), unsigned))  \
+                                    :                                   \
                                         va_arg((a), unsigned)))
 
-#define ABIGNUM                32000        /* big numer that will fit in a short */
-#define LOG2_10                3.321928094887362347870319429        /* log base 2 of 10 */
+#define ABIGNUM         32000   /* big numer that will fit in a short */
+#define LOG2_10         3.321928094887362347870319429   /* log base 2 of 10 */
 
-#define        FL_HASH                0x001        /* `#' seen */
-#define FL_PLUS                0x002        /* `+' seen */
-#define FL_RIGHT        0x004        /* `-' seen */
-#define FL_BLANK        0x008        /* ` ' seen */
-#define FL_SHORT        0x010        /* `h' seen */
-#define FL_LONG                0x020        /* `l' seen */
-#define FL_ZERO                0x040        /* `0' seen */
-#define FL_DOT                0x080        /* '.' seen */
-#define FL_UPPER        0x100        /* format character was uppercase */
-#define FL_NUMBER        0x200        /* a number was formated %[douxefg] */
+#define FL_HASH         0x001   /* `#' seen */
+#define FL_PLUS         0x002   /* `+' seen */
+#define FL_RIGHT        0x004   /* `-' seen */
+#define FL_BLANK        0x008   /* ` ' seen */
+#define FL_SHORT        0x010   /* `h' seen */
+#define FL_LONG         0x020   /* `l' seen */
+#define FL_ZERO         0x040   /* `0' seen */
+#define FL_DOT          0x080   /* '.' seen */
+#define FL_UPPER        0x100   /* format character was uppercase */
+#define FL_NUMBER       0x200   /* a number was formated %[douxefg] */
 
 
 #ifdef FP
@@ -843,9 +843,9 @@ shf_smprintf(const char *fmt, ...)
 
 static double
 my_ceil(d)
-        double        d;
+        double  d;
 {
-        double                i;
+        double          i;
 
         return d - modf(d, &i) + (d < 0 ? -1 : 1);
 }
@@ -857,26 +857,26 @@ shf_vfprintf(shf, fmt, args)
         const char *fmt;
         va_list args;
 {
-        char                c, *s;
-        int                UNINITIALIZED(tmp);
-        int                field, precision;
-        int                len;
-        int                flags;
-        unsigned long        lnum;
+        char            c, *s;
+        int             UNINITIALIZED(tmp);
+        int             field, precision;
+        int             len;
+        int             flags;
+        unsigned long   lnum;
                                         /* %#o produces the longest output */
-        char                numbuf[(BITS(long) + 2) / 3 + 1];
+        char            numbuf[(BITS(long) + 2) / 3 + 1];
         /* this stuff for dealing with the buffer */
-        int                nwritten = 0;
+        int             nwritten = 0;
 #ifdef FP
         /* should be in <math.h>
          *  extern double frexp();
          */
         extern char *ecvt();
 
-        double                fpnum;
-        int                expo, decpt;
-        char                style;
-        char                fpbuf[FPBUF_SIZE];
+        double          fpnum;
+        int             expo, decpt;
+        char            style;
+        char            fpbuf[FPBUF_SIZE];
 #endif /* FP */
 
         if (!fmt)
@@ -889,7 +889,7 @@ shf_vfprintf(shf, fmt, args)
                         continue;
                 }
                 /*
-                 *        This will accept flags/fields in any order - not
+                 *      This will accept flags/fields in any order - not
                  *  just the order specified in printf(3), but this is
                  *  the way _doprnt() seems to work (on bsd and sysV).
                  *  The only resriction is that the format character must
@@ -947,7 +947,7 @@ shf_vfprintf(shf, fmt, args)
                                 while (c = *fmt++, digit(c))
                                         tmp = tmp * 10 + c - '0';
                                 --fmt;
-                                if (tmp < 0)                /* overflow? */
+                                if (tmp < 0)            /* overflow? */
                                         tmp = 0;
                                 if (flags & FL_DOT)
                                         precision = tmp;
@@ -961,7 +961,7 @@ shf_vfprintf(shf, fmt, args)
                 if (precision < 0)
                         precision = 0;
 
-                if (!c)                /* nasty format */
+                if (!c)         /* nasty format */
                         break;
 
                 if (c >= 'A' && c <= 'Z') {
@@ -1053,16 +1053,16 @@ shf_vfprintf(shf, fmt, args)
                         char *p;
 
                         /*
-                         *        This could proabably be done better,
+                         *      This could proabably be done better,
                          *  but it seems to work.  Note that gcvt()
                          *  is not used, as you cannot tell it to
                          *  not strip the zeros.
                          */
                         flags |= FL_NUMBER;
                         if (!(flags & FL_DOT))
-                                precision = 6;        /* default */
+                                precision = 6;  /* default */
                         /*
-                         *        Assumes doubles are pushed on
+                         *      Assumes doubles are pushed on
                          *  the stack.  If this is not so, then
                          *  FL_LONG/FL_SHORT should be checked.
                          */
@@ -1071,7 +1071,7 @@ shf_vfprintf(shf, fmt, args)
                         style = c;
                         /*
                          *  This is the same as
-                         *        expo = ceil(log10(fpnum))
+                         *      expo = ceil(log10(fpnum))
                          *  but doesn't need -lm.  This is an
                          *  aproximation as expo is rounded up.
                          */
@@ -1146,7 +1146,7 @@ shf_vfprintf(shf, fmt, args)
                                 (void) memcpy(s, p, precision);
                                 s += precision;
                                 /*
-                                 *        `g' format strips trailing
+                                 *      `g' format strips trailing
                                  *  zeros after the decimal.
                                  */
                                 if (c == 'g' && !(flags & FL_HASH)) {
@@ -1205,7 +1205,7 @@ shf_vfprintf(shf, fmt, args)
                 }
 
                 /*
-                 *        At this point s should point to a string that is
+                 *      At this point s should point to a string that is
                  *  to be formatted, and len should be the length of the
                  *  string.
                  */

@@ -19,7 +19,7 @@ errorf(const char *fmt, ...)
 {
         va_list va;
 
-        shl_stdout_ok = 0;        /* debugging: note that stdout not valid */
+        shl_stdout_ok = 0;      /* debugging: note that stdout not valid */
         exstat = 1;
         if (*fmt) {
                 error_prefix(TRUE);
@@ -54,7 +54,7 @@ bi_errorf(const char *fmt, ...)
 {
         va_list va;
 
-        shl_stdout_ok = 0;        /* debugging: note that stdout not valid */
+        shl_stdout_ok = 0;      /* debugging: note that stdout not valid */
         exstat = 1;
         if (*fmt) {
                 error_prefix(TRUE);
@@ -207,14 +207,14 @@ can_seek(fd)
                 SHF_UNBUF : 0;
 }
 
-struct shf        shf_iob[3];
+struct shf      shf_iob[3];
 
 void
 initio()
 {
-        shf_fdopen(1, SHF_WR, shl_stdout);        /* force buffer allocation */
+        shf_fdopen(1, SHF_WR, shl_stdout);      /* force buffer allocation */
         shf_fdopen(2, SHF_WR, shl_out);
-        shf_fdopen(2, SHF_WR, shl_spare);        /* force buffer allocation */
+        shf_fdopen(2, SHF_WR, shl_spare);       /* force buffer allocation */
         initio_done = 1;
         kshdebug_init();
 }
@@ -247,26 +247,26 @@ savefd(fd, noclose)
         int noclose;
 {
         int nfd;
-//        printf("savefd(%d, %d)\n", fd, noclose);
+//      printf("savefd(%d, %d)\n", fd, noclose);
 
         if (fd < FDBASE) {
-//                printf("dupbase(%d, %d)\n", fd, FDBASE);
+//              printf("dupbase(%d, %d)\n", fd, FDBASE);
                 nfd = ksh_dupbase(fd, FDBASE);
-//                printf("nfd = %d\n", nfd);
+//              printf("nfd = %d\n", nfd);
                 if (nfd < 0) {
                         if (errno == EBADF)
                                 return -1;
                         else
                                 errorf("too many files open in shell");
-//                printf("Closing\n");fflush(stdout);                
+//              printf("Closing\n");fflush(stdout);             
                 }
                 if (!noclose)
                         close(fd);
         } else
                 nfd = fd;
-//        printf("fd_clexec(%d)\n");fflush(stdout);        
+//      printf("fd_clexec(%d)\n");fflush(stdout);       
         fd_clexec(nfd);
-//        printf("Done\n");
+//      printf("Done\n");
         return nfd;
 }
 
@@ -276,7 +276,7 @@ restfd(fd, ofd)
 {
         if (fd == 2)
                 shf_flush(&shf_iob[fd]);
-        if (ofd < 0)                /* original fd closed */
+        if (ofd < 0)            /* original fd closed */
                 close(fd);
         else if (fd != ofd) {
                 ksh_dup2(ofd, fd, TRUE); /* XXX: what to do if this fails? */
