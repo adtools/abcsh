@@ -106,6 +106,7 @@ execute(t, flags)
                 return exchild(t, flags & ~XTIME, -1); /* run in sub-process */
 
         newenv(E_EXEC);
+
         if (trap)
                 runtraps(0);
 
@@ -169,6 +170,19 @@ execute(t, flags)
               //      rv = execute(t->left, flags|XFORK);
               /* save old enevironment */
               struct globals globenv;
+	      Trap sigtrap_backup[SIGNALS+1];
+	      int i;
+
+	      memcpy(sigtrap_backup, sigtraps, sizeof(Trap)*(SIGNALS+1));
+	      for (i = 0; i < SIGNALS+1; i++)
+	      {
+	      	sigtraps[i].trap = 0;
+	      	sigtraps[i].set = 0;
+	      	sigtraps[i].flags = 0;
+	      	sigtraps[i].cursig = 0;
+	      	sigtraps[i].shtrap = 0;
+	      }
+
 
               copyenv(&globenv);
               e->type = E_SUBSHELL;
@@ -181,6 +195,8 @@ execute(t, flags)
                 rv = exstat;
               }
 
+	       cleartraps();
+	       memcpy(sigtraps, sigtrap_backup, sizeof(Trap)*(SIGNALS+1));
               restoreenv(&globenv);
           }
                 break;
