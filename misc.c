@@ -4,11 +4,6 @@
 
 #include "sh.h"
 #include <ctype.h>      /* for FILECHCONV */
-#include <limits.h>
-
-#ifndef UCHAR_MAX
-# define UCHAR_MAX      0xFF
-#endif
 
 short ctypes [UCHAR_MAX+1];     /* type bits for unsigned char */
 

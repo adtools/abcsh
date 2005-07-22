@@ -42,6 +42,8 @@ void printflags(struct tbl *t);
 /*
  * handle systems that don't have F_SETFD
  */
+
+
 #ifndef F_SETFD
 # ifndef MAXFD
 #   define  MAXFD 64
@@ -170,18 +172,18 @@ execute(t, flags)
               //      rv = execute(t->left, flags|XFORK);
               /* save old enevironment */
               struct globals globenv;
-	      Trap sigtrap_backup[SIGNALS+1];
-	      int i;
+              Trap sigtrap_backup[SIGNALS+1];
+              int i;
 
-	      memcpy(sigtrap_backup, sigtraps, sizeof(Trap)*(SIGNALS+1));
-	      for (i = 0; i < SIGNALS+1; i++)
-	      {
-	      	sigtraps[i].trap = 0;
-	      	sigtraps[i].set = 0;
-	      	sigtraps[i].flags = 0;
-	      	sigtraps[i].cursig = 0;
-	      	sigtraps[i].shtrap = 0;
-	      }
+              memcpy(sigtrap_backup, sigtraps, sizeof(Trap)*(SIGNALS+1));
+              for (i = 0; i < SIGNALS+1; i++)
+              {
+                sigtraps[i].trap = 0;
+                sigtraps[i].set = 0;
+                sigtraps[i].flags = 0;
+                sigtraps[i].cursig = 0;
+                sigtraps[i].shtrap = 0;
+              }
 
 
               copyenv(&globenv);
@@ -195,8 +197,8 @@ execute(t, flags)
                 rv = exstat;
               }
 
-	       cleartraps();
-	       memcpy(sigtraps, sigtrap_backup, sizeof(Trap)*(SIGNALS+1));
+               cleartraps();
+               memcpy(sigtraps, sigtrap_backup, sizeof(Trap)*(SIGNALS+1));
               restoreenv(&globenv);
           }
                 break;
@@ -1796,6 +1798,11 @@ void copyenv(struct globals *globenv )
       globenv->fd[i] = savefd(i,TRUE);
      // if(globenv->fd[i]>=0) dup2(i,globenv->fd[i]);
   }
+
+  /* Copy the current state of the ctypes array */
+
+  memcpy(globenv->ctypes,ctypes,UCHAR_MAX+1);
+
   /* note other stuff nay need doing! */
 
 
@@ -1839,6 +1846,10 @@ void restoreenv(struct globals *globenv)
   {
       if(globenv->fd[i]>=0) restfd(i,globenv->fd[i]);
   }
+
+  /* restore ctypes array */
+  memcpy(ctypes,globenv->ctypes,UCHAR_MAX + 1);
+
   /* restore working dir */
 
   if (globenv->current_wd)

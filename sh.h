@@ -16,6 +16,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
+
+#ifndef UCHAR_MAX
+# define UCHAR_MAX      0xFF
+#endif
 
 #ifdef __amigaos4__
 #define __USE_INLINE__
@@ -560,7 +565,7 @@ struct globals
     Area *aperm;
     char *current_wd;
     int fd[NUFILE];
-
+    char *ctypes[UCHAR_MAX + 1];
 };
 
 #define open(a,b, ...)  __open((a),(b))
