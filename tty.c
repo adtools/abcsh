@@ -120,8 +120,11 @@ tty_init(init_ttystate)
                 warningf(FALSE, "j_ttyinit: dup of tty fd failed: %s",
                         strerror(errno));
         } else if (fd_clexec(tty_fd) < 0) {
-                warningf(FALSE, "j_ttyinit: can't set close-on-exec flag: %s",
-                        strerror(errno));
+          /* Supress this warning as everything seems to work with clexec */
+          /* Moreover Modifying exec.c to use internal fd_clexec breaks things! */
+
+          //      warningf(FALSE, "j_ttyinit: can't set close-on-exec flag: %s",
+          //              strerror(errno));
                 close(tty_fd);
                 tty_fd = -1;
         } else if (init_ttystate)
