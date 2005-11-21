@@ -22,6 +22,12 @@
 #define __USE_RUNCOMMAND__
 
 
+/* clib2 specific controls */
+int __minimum_os_lib_version = 51;
+char * __minimum_os_lib_error = "Requires AmigaOS 4.0";
+BOOL __open_locale = FALSE;
+
+
 /*used to stdin/out fds*/
 #ifndef CLIBHACK
 int amigain = -1, amigaout = -1;
@@ -121,9 +127,17 @@ int pipe(int filedes[2])
         char pipe_name[1024];
 
 #ifdef USE_TEMPFILES
+#if defined(__amigaos4__)
+        sprintf(pipe_name, "/T/%x.%08x", pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
+#else
         sprintf(pipe_name, "/T/%x.%08x", pipenum++,GetUniqueID());
+#endif
+#else
+#if defined(__amigaos4__)
+        sprintf(pipe_name, "/PIPE/%x%08x/4096/0", pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
 #else
         sprintf(pipe_name, "/PIPE/%x%08x/4096/0", pipenum++,GetUniqueID());
+#endif
 #endif
 
 /*      printf("pipe: %s \n", pipe_name);*/
@@ -223,15 +237,12 @@ char *convert_path_u2a(const char *filename)
 
         }
 
-
-
-
         __translate_unix_to_amiga_path_name(&filename,&nti);
 
         return strdup(filename);
 }
 
-static void createvars(char **envp)
+static void createvars(char * const* envp)
 {
     /* Set a loal var to indicate to any subsequent sh that it is not */
     /* The top level shell and so should only inherit local amigaos vars */
@@ -554,8 +565,10 @@ LONG execute_child(STRPTR args, int len)
             lastresult = exstat;
         }
         restoreenv(&globenv);
+#if !defined(__amigaos4__)
         Forbid();
         Signal(parent, SIGBREAKF_CTRL_F);
+#endif
 
         return 0;
 }
@@ -645,32 +658,35 @@ exchild(t, flags, close_fd)
         else name=strdup("new sh process");
 
         proc = CreateNewProcTags(
-            NP_Entry,               execute_child,
-            NP_Child,               TRUE,
-            NP_StackSize,           ((struct Process *)thisTask)->pr_StackSize,
-            NP_Input,               amigafd[0],
-            NP_Output,              amigafd[1],
+            NP_Entry,                execute_child,
+            NP_Child,                TRUE,
+            NP_StackSize,            ((struct Process *)thisTask)->pr_StackSize,
+            NP_Input,                amigafd[0],
+            NP_Output,               amigafd[1],
 #ifdef CLIBHACK
-            NP_CloseOutput,         FALSE,
-            NP_CloseInput,          FALSE,
-            NP_Error,               amigafd[2],
-            NP_CloseError,          FALSE,
+            NP_CloseOutput,          FALSE,
+            NP_CloseInput,           FALSE,
+            NP_Error,                amigafd[2],
+            NP_CloseError,           FALSE,
 #else
-            NP_CloseOutput,         amigafd_close[1] ,
-            NP_CloseInput,          amigafd_close[0] ,
+            NP_CloseOutput,          amigafd_close[1] ,
+            NP_CloseInput,           amigafd_close[0] ,
 #endif/*CLIBHACK*/
-            NP_Cli,                 TRUE,
-            NP_Name,                name,
+            NP_Cli,                  TRUE,
+            NP_Name,                 name,
 #ifdef __amigaos4__
-            NP_UserData,            (int)&taskdata,
+            NP_UserData,             (int)&taskdata,
+            NP_NotifyOnDeathSigTask, thisTask,
 #endif
             TAG_DONE);
 
 #ifndef __amigaos4__
 #warning this code has been included!
         proc->pr_Task.tc_UserData = &taskdata;
-#endif
         Wait(SIGBREAKF_CTRL_F);
+#else
+        Wait(SIGF_CHILD);
+#endif
 
         if(name)
             free(name);
@@ -724,10 +740,8 @@ exchild(t, flags, close_fd)
         return lastresult;
 }
 
-/* The following are wrappaers for selected fcntl.h functions */
+/* The following are wrappers for selected fcntl.h functions */
 /* They allow usage of absolute amigaos paths as well unix style */
-
-
 
 #ifdef open
 #undef open
@@ -794,8 +808,3 @@ int __lstat(const char * path, struct stat *buffer)
         return lstat(path, buffer);
 
 }
-
-
-
-
-

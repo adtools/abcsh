@@ -864,7 +864,7 @@ makenv()
                                 XPput(env, vp->val.s);
                         }
         XPput(env, NULL);
-        ap = XPclose(env);
+        ap = (char **) XPclose(env);
         return (char **) ap;
 }
 

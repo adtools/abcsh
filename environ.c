@@ -12,6 +12,8 @@ char **environ = NULL;
 
 #ifdef __amigaos4__
 
+#define MAX_ENV_SIZE 1024  /* maximum number of environ entries */
+
 #ifdef AUTOINIT
 #ifdef __GNUC__
 void ___makeenviron() __attribute__((constructor));
@@ -25,23 +27,22 @@ void ___freeenviron() __attribute__((destructor));
 
 
 uint32
-size_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
-{
-        if(strlen(message->sv_GDir) <= 4)
-        {
-                hook->h_Data = (APTR)(((uint32)hook->h_Data) + 1);
-        }
-        return 0;
-}
-
-uint32
 copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
 {
+        static uint32 env_size = 1;  /* environ is null terminated */
+
         if(strlen(message->sv_GDir) <= 4)
         {
+                if ( env_size == MAX_ENV_SIZE )
+                {
+                        return 0;
+                }
+
+                ++env_size;
+
                 char **env = (char **)hook->h_Data;
                 uint32 size = strlen(message->sv_Name) + 1 + message->sv_VarLen + 1 + 1;
-                char *buffer=(char *)AllocVec((uint32)size,MEMF_ANY|MEMF_CLEAR);
+                char *buffer=(char *)malloc(size);
 
                 snprintf(buffer,size-1,"%s=%s", message->sv_Name, message->sv_Var);
 
@@ -59,8 +60,9 @@ ___makeenviron()
 
         char varbuf[8];
         uint32 flags=0;
+        size_t environ_size=MAX_ENV_SIZE * sizeof(char*);
 
-        if(GetVar("ABCSH_IMPORT_LOCAL",varbuf,8,GVF_LOCAL_ONLY) > 0)
+        if(GetVar("ABCSH_IMPORT_LOCAL",varbuf,sizeof(varbuf),GVF_LOCAL_ONLY) > 0)
         {
             flags = GVF_LOCAL_ONLY;
         }
@@ -69,18 +71,15 @@ ___makeenviron()
             flags = GVF_GLOBAL_ONLY;
         }
 
-
-        hook.h_Entry = size_env;
-        hook.h_Data = 0;
-
-        ScanVars(&hook, flags, 0);
-        hook.h_Data = (APTR)(((uint32)hook.h_Data) + 1);
-
-        environ = (char **)AllocVec((uint32)hook.h_Data*sizeof(char **), MEMF_ANY|MEMF_CLEAR );
+        environ = (char **)malloc(environ_size);
         if (!environ)
         {
                 return;
         }
+
+        memset(environ, 0, environ_size);
+
+        memset(&hook, 0, sizeof(struct Hook));
         hook.h_Entry = copy_env;
         hook.h_Data = environ;
 
@@ -93,9 +92,9 @@ ___freeenviron()
         char **i;
         for(i=environ;*i!=NULL;i++)
         {
-                FreeVec(*i);
+                free(*i);
         }
 
-        FreeVec(environ);
+        free(environ);
 }
 #endif

@@ -142,7 +142,7 @@ main(argc, argv)
 
         init_histvec();
 
-        def_path = "/gcc/bin:/sdk/c:/c";
+        def_path = "/gcc/bin:/sdk/c:/sdk/local/c:/c";
 
         /* Set PATH to def_path (will set the path global variable).
          * (import of environment below will probably change this setting).
