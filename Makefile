@@ -11,7 +11,7 @@ CLIBHACK = -DCLIBHACK
 KSH= -DKSH
 
 DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK) $(KSH)
-LIBS = -lm -lunix -lc -lnet -lauto
+LIBS = -lm -lnet -lunix -lauto
 
 CPPFLAGS =
 CFLAGS = -g -O
