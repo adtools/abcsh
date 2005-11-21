@@ -233,6 +233,9 @@ main(argc, argv)
 
 
         ksheuid = geteuid();
+        kshuid = getuid();
+        kshgid = getgid();
+        kshegid = getegid();
         safe_prompt = ksheuid ? "$ " : "# ";
         {
                 struct tbl *vp = global("PS1");

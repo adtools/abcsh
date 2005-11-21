@@ -105,6 +105,7 @@ yylex(cf)
         register char *wp;      /* output word pointer */
         char *sp, *dp;
         int c2;
+        int last_terminal_was_bracket;
 
 
   Again:
@@ -694,11 +695,13 @@ Done:
 
                   case '(':  /*)*/
 #ifdef KSH
-                        if ((c2 = getsc()) == '(') /*)*/
-                                /* XXX need to handle ((...); (...)) */
-                                c = MDPAREN;
-                        else
-                                ungetsc(c2);
+                        if (!Flag(FSH)) {
+                                if ((c2 = getsc()) == '(') /*)*/
+                                        /* XXX need to handle ((...); (...)) */
+                                        c = MDPAREN;
+                                else
+                                        ungetsc(c2);
+                        }
 #endif /* KSH */
                         return c;
                   /*(*/
@@ -715,6 +718,8 @@ Done:
 #endif /* KSH */
                 )       /* ONEWORD? */
                 return LWORD;
+
+        last_terminal_was_bracket = c == '(';
         ungetsc(c);             /* unget terminator */
 
         /* copy word to unprefixed string ident */
@@ -739,6 +744,15 @@ Done:
                 if ((cf & ALIAS) && (p = tsearch(aliases, ident, h))
                     && (p->flag & ISSET))
                 {
+
+                   if (last_terminal_was_bracket) {
+                   /* The token is probably part of function's definition,
+                    * and is should not be aliased. Moreover we remove the alias
+                    * so it won't clash with the function name
+                    * robert@debian.org, Feb 26th, 2005
+                    */
+                	tdelete(p);
+                   } else {
                         register Source *s;
 
                         for (s = source; s->type == SALIAS; s = s->next)
@@ -752,6 +766,7 @@ Done:
                         source = s;
                         afree(yylval.cp, ATEMP);
                         goto Again;
+                     }
                 }
         }
 
@@ -1071,7 +1086,7 @@ set_prompt(to, s)
                  */
                 {
                         struct shf *shf;
-                        char *ps1;
+                        char * volatile ps1;
                         Area *saved_atemp;
 
                         ps1 = str_val(global("PS1"));

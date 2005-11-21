@@ -876,7 +876,7 @@ c_exec(wp)
                          * keeps them open).
                          */
 #ifdef KSH
-                        if (i > 2 && e->savefd[i])
+                        if (!Flag(FSH) &&i > 2 && e->savefd[i])
                                 fd_clexec(i);
 #endif /* KSH */
                 }

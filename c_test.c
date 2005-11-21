@@ -342,7 +342,7 @@ test_eval(te, op, opnd1, opnd2, do_eval)
           case TO_FILUID: /* -O */
                 return test_stat(opnd1, &b1) == 0 && b1.st_uid == ksheuid;
           case TO_FILGID: /* -G */
-                return test_stat(opnd1, &b1) == 0 && b1.st_gid == getegid();
+                return test_stat(opnd1, &b1) == 0 && b1.st_gid == kshegid;
         /*
          * Binary Operators
          */
@@ -470,10 +470,12 @@ test_eaccess(path, mode)
                 return 0;
         }
 
-        /* On most (all?) unixes, access() says everything is executable for
+        res = eaccess(path, mode);
+        /*
+         * On most (all?) unixes, access() says everything is executable for
          * root - avoid this on files by using stat().
          */
-        if ((mode & X_OK) && ksheuid == 0) {
+        if (res == 0 && ksheuid == 0 && (mode & X_OK)) {
                 struct stat statb;
 
                 if (stat(path, &statb) < 0)
@@ -483,13 +485,7 @@ test_eaccess(path, mode)
                 else
                         res = (statb.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH))
                                 ? 0 : -1;
-                /* Need to check other permissions?  If so, use access() as
-                 * this will deal with root on NFS.
-                 */
-                if (res == 0 && (mode & (R_OK|W_OK)))
-                        res = eaccess(path, mode);
-        } else
-                res = eaccess(path, mode);
+        }
 
         return res;
 }

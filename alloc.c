@@ -283,7 +283,9 @@ aresize(ptr, size, ap)
          * working (as it assumes size < ICELLS means it is not
          * a `large object').
          */
-        if (oldcells > ICELLS && cells > ICELLS) {
+        if (oldcells > ICELLS && cells > ICELLS 
+            && ((dp-2)->block->last == dp+oldcells) /* don't destroy blocks which have grown! */
+           ) {
                 Block *bp = (dp-2)->block;
                 Block *nbp;
                 /* Saved in case realloc fails.. */
@@ -334,7 +336,7 @@ aresize(ptr, size, ap)
          * (need to check that cells < ICELLS so we don't make an
          * object a `large' - that would mess everything up).
          */
-        if (dp && cells > oldcells && cells <= ICELLS) {
+        if (dp && cells > oldcells) {
                 Cell *fp, *fpp;
                 Block *bp = (dp-2)->block;
                 int need = cells - oldcells - NOBJECT_FIELDS;
@@ -365,7 +367,7 @@ aresize(ptr, size, ap)
          * it to malloc...)
          * Note: this also handles cells == oldcells (a no-op).
          */
-        if (dp && cells <= oldcells && oldcells <= ICELLS) {
+        if (dp && cells <= oldcells) {
                 int split;
 
                 split = oldcells - cells;
@@ -413,7 +415,9 @@ afree(ptr, ap)
 
         /* If this is a large object, just free it up... */
         /* Release object... */
-        if ((dp-1)->size > ICELLS) {
+        if ((dp-1)->size > ICELLS
+            && (bp->last == dp + (dp-1)->size) /* don't free non-free blocks which have grown! */
+           ) {
                 ablockfree(bp, ap);
                 ACHECK(ap);
                 return;

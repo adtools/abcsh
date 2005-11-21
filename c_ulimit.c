@@ -101,6 +101,9 @@ c_ulimit(wp)
 #ifdef RLIMIT_SWAP
                 { "swap(kbytes)", RLIMIT_SWAP, RLIMIT_SWAP, 1024, 'w' },
 #endif
+#ifdef RLIMIT_LOCKS
+                { "flocks", RLIMIT, RLIMIT_LOCKS, RLIMIT_LOCKS, -1, 'L' },
+#endif
                 { (char *) 0 }
             };
         static char     options[3 + NELEM(limits)];

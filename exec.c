@@ -85,6 +85,7 @@ execute(t, flags)
 {
         int i;
         volatile int rv = 0;
+        volatile int rv_prop = 0; /* rv being propogated or newly generated? */
         int pv[2];
         char ** volatile ap;
         char *s, *cp;
@@ -201,6 +202,7 @@ execute(t, flags)
                memcpy(sigtraps, sigtrap_backup, sizeof(Trap)*(SIGNALS+1));
               restoreenv(&globenv);
           }
+                rv_prop = 1;
                 break;
 
           case TPIPE:
@@ -310,8 +312,10 @@ execute(t, flags)
                 e->savefd[1] = savefd(1, 0);
 
                 openpipe(pv);
-                ksh_dup2(pv[0], 0, FALSE);
-                close(pv[0]);
+                if (pv[0] != 0) {
+                        ksh_dup2(pv[0], 0, FALSE);
+                        close(pv[0]);
+                }
                 coproc.write = pv[1];
                 coproc.job = (void *) 0;
 
@@ -353,6 +357,7 @@ execute(t, flags)
                         rv = execute(t->right, flags & XERROK);
                 else
                         flags |= XERROK;
+                rv_prop = 1;
                 break;
 
           case TBANG:
@@ -401,6 +406,7 @@ execute(t, flags)
                         }
                 }
                 rv = 0; /* in case of a continue */
+                rv_prop = 1;
                 if (t->type == TFOR) {
                         while (*ap != NULL) {
                                 setstr(global(t->str), *ap++, KSH_UNWIND_ERROR);
@@ -412,6 +418,7 @@ execute(t, flags)
                         for (;;) {
                                 if (!(cp = do_selectargs(ap, is_first))) {
                                         rv = 1;
+                                        rv_prop = 0;
                                         break;
                                 }
                                 is_first = FALSE;
@@ -443,6 +450,7 @@ execute(t, flags)
                 rv = 0; /* in case of a continue */
                 while ((execute(t->left, XERROK) == 0) == (t->type == TWHILE))
                         rv = execute(t->right, flags & XERROK);
+                rv_prop = 1;
                 break;
 
           case TIF:
@@ -452,6 +460,7 @@ execute(t, flags)
                 rv = execute(t->left, XERROK) == 0 ?
                         execute(t->right->left, flags & XERROK) :
                         execute(t->right->right, flags & XERROK);
+                rv_prop = 1;
                 break;
 
           case TCASE:
@@ -464,10 +473,12 @@ execute(t, flags)
                 break;
           Found:
                 rv = execute(t->left, flags & XERROK);
+                rv_prop = 1;
                 break;
 
           case TBRACE:
                 rv = execute(t->left, flags & XERROK);
+                rv_prop = 1;
                 break;
 
           case TFUNCT:
@@ -479,6 +490,7 @@ execute(t, flags)
                  * (allows "ls -l | time grep foo").
                  */
                 rv = timex(t, flags & ~XEXEC);
+                rv_prop = 1;
                 break;
 
           case TEXEC:           /* an eval'd TCOM */
@@ -507,7 +519,7 @@ execute(t, flags)
         quitenv();              /* restores IO */
         if ((flags&XEXEC))
                 unwind(LEXIT);  /* exit child */
-        if (rv != 0 && !(flags & XERROK)) {
+        if (rv != 0 && !rv_prop && !(flags & XERROK)) {
                 if (Flag(FERREXIT))
                         unwind(LERROR);
                 trapsig(SIGERR_);
@@ -527,18 +539,19 @@ comexec(t, tp, ap, flags)
         int volatile flags;
 {
         int i;
-        int rv = 0;
+        volatile int rv = 0;
         register char *cp;
         register char **lastp;
         static struct op texec; /* Must be static (XXX but why?) */
         int type_flags;
         int keepasn_ok;
         int fcflags = FC_BI|FC_FUNC|FC_PATH;
+        int bourne_function_call = 0;
 
 #ifdef KSH
         /* snag the last argument for $_ XXX not the same as at&t ksh,
          * which only seems to set $_ after a newline (but not in
-         * functions/dot scripts, but in interactive and scipt) -
+         * functions/dot scripts, but in interactive and script) -
          * perhaps save last arg here and set it in shell()?.
          */
 
@@ -621,9 +634,10 @@ comexec(t, tp, ap, flags)
                 newblock();
                 /* ksh functions don't keep assignments, POSIX functions do. */
                 if (keepasn_ok && tp && tp->type == CFUNC
-                    && !(tp->flag & FKSH))
+                    && !(tp->flag & FKSH)) {
+                        bourne_function_call = 1;
                         type_flags = 0;
-                else
+                } else
                         type_flags = LOCAL|LOCAL_COPY|EXPORTV;
         }
         if (Flag(FEXPORT))
@@ -640,6 +654,8 @@ comexec(t, tp, ap, flags)
                                 shf_flush(shl_out);
                 }
                 typeset(cp, type_flags, 0, 0, 0);
+                if (bourne_function_call && !(type_flags & EXPORT))
+                        typeset(cp, LOCAL|LOCAL_COPY|EXPORT, 0, 0, 0);
         }
 
         if ((cp = *ap) == NULL) {
@@ -783,12 +799,11 @@ comexec(t, tp, ap, flags)
                 }
 
 #ifdef KSH
-                /* set $_ to program's full path */
-                /* setstr() can't fail here */
-                {
-                    struct tbl *tb;
-                    tb = typeset("_",LOCAL|EXPORTV,0,INTEGER,0);
-                    setstr(tb, tp->val.s, KSH_RETURN_ERROR);
+                if (!Flag(FSH)) {
+                        /* set $_ to program's full path */
+                        /* setstr() can't fail here */
+                        setstr(typeset("_", LOCAL|EXPORT, 0, INTEGER, 0), tp->val.s,
+                               KSH_RETURN_ERROR);
                 }
 #endif /* KSH */
 
@@ -1265,6 +1280,8 @@ iosetup(iop, tp)
                                 snptreef((char *) 0, 32, "%R", &iotmp), emsg);
                         return -1;
                 }
+                if (u == iop->unit)
+                return 0;                /* "dup from" == "dup to" */
                 break;
           }
         }
@@ -1281,13 +1298,14 @@ iosetup(iop, tp)
                 return -1;
         }
         /* Do not save if it has already been redirected (i.e. "cat >x >y"). */
-        if (e->savefd[iop->unit] == 0)
+        if (e->savefd[iop->unit] == 0) {
                 /* c_exec() assumes e->savefd[fd] set for any redirections.
                  * Ask savefd() not to close iop->unit - allows error messages
                  * to be seen if iop->unit is 2; also means we can't lose
                  * the fd (eg, both dup2 below and dup2 in restfd() failing).
                  */
                 e->savefd[iop->unit] = savefd(iop->unit, 1);
+        }
 
         if (do_close)
                 close(iop->unit);

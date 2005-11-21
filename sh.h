@@ -233,6 +233,9 @@ EXTERN  const char *kshname;    /* $0 */
 EXTERN  pid_t   kshpid;         /* $$, shell pid */
 EXTERN  pid_t   procpid;        /* pid of executing process */
 EXTERN  int     ksheuid;        /* effective uid of shell */
+EXTERN  int     kshegid;        /* effective gid of shell */
+EXTERN  int     kshuid;        /* real uid of shell */
+EXTERN  int     kshgid;        /* real gid of shell */
 EXTERN  int     exstat;         /* exit status */
 EXTERN  int     subst_exstat;   /* exit status of last $(..)/`..` */
 EXTERN  const char *safe_prompt; /* safe prompt if PS1 substitution fails */
@@ -353,6 +356,7 @@ enum sh_flag {
         FNOUNSET,       /* -u: using an unset var is an error */
         FPHYSICAL,      /* -o physical: don't do logical cd's/pwd's */
         FPOSIX,         /* -o posix: be posixly correct */
+        FSH,            /* -o sh: favor sh behavour */
         FSTDIN,         /* -s: (invocation) parse stdin */
         FTRACKALL,      /* -h: create tracked aliases for all commands */
         FVERBOSE,       /* -v: echo input */

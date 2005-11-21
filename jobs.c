@@ -413,7 +413,7 @@ j_kill(cp, sig)
         int     sig;
 {
         Job     *j;
-        Proc    *p;
+/*      Proc    *p; */ /* unused */
         int     rv = 0;
         int     ecode;
 

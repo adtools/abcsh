@@ -131,6 +131,7 @@ const struct option options[] = {
         { "nounset",    'u',            OF_ANY },
         { "physical",     0,            OF_ANY }, /* non-standard */
         { "posix",        0,            OF_ANY }, /* non-standard */
+        { "sh",           0,            OF_ANY }, /* non-standard */ /* from OpenBSD */
         { "stdin",      's',        OF_CMDLINE }, /* pseudo non-standard */
         { "trackall",   'h',            OF_ANY },
         { "verbose",    'v',            OF_ANY },

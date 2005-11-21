@@ -491,7 +491,7 @@ tcopy(t, ap)
                 for (tw = t->vars; *tw++ != NULL; )
                         ;
                 rw = r->vars = (char **)
-                        alloc((int)(tw - t->vars) * sizeof(*tw), ap);
+                        alloc((tw - t->vars + 1) * sizeof(*tw), ap);
                 for (tw = t->vars; *tw != NULL; )
                         *rw++ = wdcopy(*tw++, ap);
                 *rw = NULL;
@@ -503,7 +503,7 @@ tcopy(t, ap)
                 for (tw = t->args; *tw++ != NULL; )
                         ;
                 rw = r->args = (char **)
-                        alloc((int)(tw - t->args) * sizeof(*tw), ap);
+                        alloc((tw - t->args + 1) * sizeof(*tw), ap);
                 for (tw = t->args; *tw != NULL; )
                         *rw++ = wdcopy(*tw++, ap);
                 *rw = NULL;
@@ -663,7 +663,7 @@ iocopy(iow, ap)
 
         for (ior = iow; *ior++ != NULL; )
                 ;
-        ior = (struct ioword **) alloc((int)(ior - iow) * sizeof(*ior), ap);
+        ior = (struct ioword **) alloc((ior - iow + 1) * sizeof(*ior), ap);
 
         for (i = 0; iow[i] != NULL; i++) {
                 register struct ioword *p, *q;

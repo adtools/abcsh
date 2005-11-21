@@ -703,7 +703,7 @@ expand(cp, wp, f)
 
                                   case '=':
                                         /* Note first unquoted = for ~ */
-                                        if (!(f & DOTEMP_) && !saw_eq) {
+                                        if (!(f & DOTEMP_) && !saw_eq && (f & DOASNTILDE)) {
                                                 saw_eq = 1;
                                                 tilde_ok = 1;
                                         }

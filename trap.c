@@ -51,7 +51,9 @@ static void
 alarm_catcher(sig)
         int sig;
 {
-        if (ksh_tmout_state == TMOUT_READING) {
+        int errno_ = errno;
+
+	if (ksh_tmout_state == TMOUT_READING) {
                 int left = alarm(0);
 
                 if (left == 0) {
@@ -60,6 +62,7 @@ alarm_catcher(sig)
                 } else
                         alarm(left);
         }
+        errno = errno_;
         return;
 }
 #endif /* KSH */
@@ -94,6 +97,7 @@ trapsig(i)
         int i;
 {
         Trap *p = &sigtraps[i];
+        int errno_ = errno;
 
         trap = p->set = 1;
         if (p->flags & TF_DFL_INTR)
@@ -106,6 +110,7 @@ trapsig(i)
                 (*p->shtrap)(i);
         if (sigtraps[i].cursig == trapsig) /* this for SIGCHLD,SIGALRM */
                 sigaction(i, &Sigact_trap, (struct sigaction *) 0);
+        errno = errno_;
         return;
 }
 
