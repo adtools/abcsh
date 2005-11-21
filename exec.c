@@ -654,8 +654,8 @@ comexec(t, tp, ap, flags)
                                 shf_flush(shl_out);
                 }
                 typeset(cp, type_flags, 0, 0, 0);
-                if (bourne_function_call && !(type_flags & EXPORT))
-                        typeset(cp, LOCAL|LOCAL_COPY|EXPORT, 0, 0, 0);
+                if (bourne_function_call && !(type_flags & EXPORTV))
+                        typeset(cp, LOCAL|LOCAL_COPY|EXPORTV, 0, 0, 0);
         }
 
         if ((cp = *ap) == NULL) {
@@ -802,7 +802,7 @@ comexec(t, tp, ap, flags)
                 if (!Flag(FSH)) {
                         /* set $_ to program's full path */
                         /* setstr() can't fail here */
-                        setstr(typeset("_", LOCAL|EXPORT, 0, INTEGER, 0), tp->val.s,
+                        setstr(typeset("_", LOCAL|EXPORTV, 0, INTEGER, 0), tp->val.s,
                                KSH_RETURN_ERROR);
                 }
 #endif /* KSH */
