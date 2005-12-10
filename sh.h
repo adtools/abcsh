@@ -502,15 +502,6 @@ EXTERN int      current_wd_size;
 #define OBRACE  '{'
 #define CBRACE  '}'
 
-/* Determine the location of the system (common) profile */
-//#ifndef KSH_SYSTEM_PROFILE
-//# ifdef AMIGA
-//#  define KSH_SYSTEM_PROFILE "/s/abc-shell.profile"
-//# else /* AMIGA */
-//#  define KSH_SYSTEM_PROFILE "/etc/profile"
-//# endif /* __NeXT */
-//#endif /* KSH_SYSTEM_PROFILE */
-
 /* Used by v_evaluate() and setstr() to control action when error occurs */
 #define KSH_UNWIND_ERROR        0       /* unwind the stack (longjmp) */
 #define KSH_RETURN_ERROR        1       /* return 1/0 for success/failure */

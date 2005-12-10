@@ -285,6 +285,10 @@ main(int argc, char *argv[])
                 /* include $ENV */
                 env_file = str_val(global("ENV"));
 
+                /* If env isn't set, include default environment */
+                if (env_file == null)
+                        env_file = "/S/abc-shell.kshrc";
+
                 env_file = substitute(env_file, DOTILDE);
                 if (*env_file != '\0')
                         include(env_file, 0, (char **) 0, 1);
