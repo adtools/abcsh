@@ -4,8 +4,8 @@
 
 #include "sh.h"
 #include <pwd.h>
-#include "ksh_dir.h"
-#include "ksh_stat.h"
+#include <dirent.h>
+#include <sys/stat.h>
 
 #if  defined(AMIGA) && !defined(CLIBHACK)
 char amigaos_getc(int fd);
@@ -50,32 +50,27 @@ typedef struct Expand {
 #define XARG            3       /* expanding $*, $@ */
 #define XCOM            4       /* expanding $() */
 #define XNULLSUB        5       /* "$@" when $# is 0 (don't generate word) */
+#define XSUBMID         6       /* middle of expanding ${} */
 
 /* States used for field splitting */
 #define IFS_WORD        0       /* word has chars (or quotes) */
 #define IFS_WS          1       /* have seen IFS white-space */
 #define IFS_NWS         2       /* have seen IFS non-white-space */
 
-static  int     varsub ARGS((Expand *xp, char *sp, char *word, int *stypep, int *slenp));
-static  int     comsub ARGS((Expand *xp, char *cp));
-static  char   *trimsub ARGS((char *str, char *pat, int how));
-static  void    glob ARGS((char *cp, XPtrV *wp, int markdirs));
-static  void    globit ARGS((XString *xs, char **xpp, char *sp, XPtrV *wp,
-                             int check));
-static char     *maybe_expand_tilde ARGS((char *p, XString *dsp, char **dpp,
-                                          int isassign));
-static  char   *tilde ARGS((char *acp));
-static  char   *homedir ARGS((char *name));
-
-static void     alt_expand ARGS((XPtrV *wp, char *start, char *exp_start,
-                                 char *end, int fdo));
+static  int     varsub(Expand *, char *, char *, int *, int *);
+static  int     comsub(Expand *, char *);
+static  char   *trimsub(char *, char *, int);
+static  void    glob(char *, XPtrV *, int);
+static  void    globit(XString *, char **, char *, XPtrV *, int);
+static char     *maybe_expand_tilde(char *, XString *, char **, int);
+static  char   *tilde(char *);
+static  char   *homedir(char *);
+static void     alt_expand(XPtrV *, char *, char *, char *, int);
 
 
 /* compile and expand word */
 char *
-substitute(cp, f)
-        const char *cp;
-        int f;
+substitute(const char *cp, int f)
 {
         struct source *s, *sold;
 
@@ -94,9 +89,7 @@ substitute(cp, f)
  * expand arg-list
  */
 char **
-eval(ap, f)
-        register char **ap;
-        int f;
+eval(char **ap, int f)
 {
         XPtrV w;
 
@@ -114,9 +107,7 @@ eval(ap, f)
  * expand string
  */
 char *
-evalstr(cp, f)
-        char *cp;
-        int f;
+evalstr(char *cp, int f)
 {
         XPtrV w;
 
@@ -132,9 +123,7 @@ evalstr(cp, f)
  * used from iosetup to expand redirection files
  */
 char *
-evalonestr(cp, f)
-        register char *cp;
-        int f;
+evalonestr(char *cp, int f)
 {
         XPtrV w;
 
@@ -167,23 +156,23 @@ typedef struct SubType {
 } SubType;
 
 void
-expand(cp, wp, f)
-        char *cp;               /* input word */
-        register XPtrV *wp;     /* output words */
-        int f;                  /* DO* flags */
+expand(char *cp,                /* input word */
+        XPtrV *wp,              /* output words */
+        int f)                  /* DO* flags */
 {
-        register int UNINITIALIZED(c);
-        register int type;      /* expansion type */
-        register int quote = 0; /* quoted */
+        int c = 0;
+        int type;               /* expansion type */
+        int quote = 0;          /* quoted */
         XString ds;             /* destination string */
-        register char *dp, *sp; /* dest., source */
+        char *dp, *sp;          /* dest., source */
         int fdo, word;          /* second pass flags; have word */
-        int doblank;            /* field spliting of parameter/command subst */
+        int doblank;            /* field splitting of parameter/command subst */
         Expand x;               /* expansion variables */
         SubType st_head, *st;
-        int UNINITIALIZED(newlines); /* For trailing newlines in COMSUB */
+        int newlines = 0;       /* For trailing newlines in COMSUB */
         int saw_eq, tilde_ok;
         int make_magic;
+        size_t len;
 
         if (cp == NULL)
                 internal_errorf(1, "expand(NULL)");
@@ -272,7 +261,7 @@ expand(cp, wp, f)
                                         v.type = 10; /* not default */
                                         v.name[0] = '\0';
                                         v_evaluate(&v, substitute(sp, 0),
-                                                KSH_UNWIND_ERROR);
+                                                KSH_UNWIND_ERROR, true);
                                         sp = strchr(sp, 0) + 1;
                                         for (p = str_val(&v); *p; ) {
                                                 Xcheck(ds, dp);
@@ -297,12 +286,12 @@ expand(cp, wp, f)
                                         char endc;
                                         char *str, *end;
 
+                                        sp = varname - 2; /* restore sp */
                                         end = (char *) wdscan(sp, CSUBST);
                                         /* ({) the } or x is already skipped */
                                         endc = *end;
                                         *end = EOS;
-                                        str = snptreef((char *) 0, 64, "%S",
-                                                        varname - 1);
+                                        str = snptreef(NULL, 64, "%S", sp);
                                         *end = endc;
                                         errorf("%s: bad substitution", str);
                                 }
@@ -422,10 +411,10 @@ expand(cp, wp, f)
                                          * fatal for special builtins (setstr
                                          * does readonly check).
                                          */
-                                        setstr(st->var, debunk(
-                                                (char *) alloc(strlen(dp) + 1,
-                                                        ATEMP), dp),
-                                                KSH_UNWIND_ERROR);
+                                        len = strlen(dp) + 1;
+                                        setstr(st->var,
+                                                debunk((char *) alloc(len, ATEMP),
+                                                dp, len), KSH_UNWIND_ERROR);
                                         x.str = str_val(st->var);
                                         type = XSUB;
                                         if (f&DOBLANK)
@@ -439,7 +428,7 @@ expand(cp, wp, f)
                                         errorf("%s: %s", st->var->name,
                                             dp == s ?
                                               "parameter null or not set"
-                                            : (debunk(s, s), s));
+                                            : (debunk(s, s, strlen(s) + 1), s));
                                     }
                                 }
                                 st = st->prev;
@@ -482,6 +471,7 @@ expand(cp, wp, f)
                         continue;
 
                   case XSUB:
+                  case XSUBMID:
                         if ((c = *x.str++) == 0) {
                                 type = XBASE;
                                 if (f&DOBLANK)
@@ -616,8 +606,8 @@ expand(cp, wp, f)
                 }
 
                 /* check for end of word or IFS separation */
-                if (c == 0 || (!quote && (f & DOBLANK) && doblank && !make_magic
-                               && ctype(c, C_IFS)))
+                if (c == 0 || (!quote && (f & DOBLANK) && doblank &&
+                        !make_magic && ctype(c, C_IFS)))
                 {
                         /* How words are broken up:
                          *                 |       value of c
@@ -630,8 +620,8 @@ expand(cp, wp, f)
                          * Note that IFS_NWS/0 generates a word (at&t ksh
                          * doesn't do this, but POSIX does).
                          */
-                        if (word == IFS_WORD
-                            || (!ctype(c, C_IFSWS) && (c || word == IFS_NWS)))
+                        if (word == IFS_WORD ||
+                                (!ctype(c, C_IFSWS) && (c || word == IFS_NWS)))
                         {
                                 char *p;
 
@@ -641,8 +631,8 @@ expand(cp, wp, f)
                                 if (fdo & DOBRACE_)
                                         /* also does globbing */
                                         alt_expand(wp, p, p,
-                                                   p + Xlength(ds, (dp - 1)),
-                                                   fdo | (f & DOMARKDIRS));
+                                                p + Xlength(ds, (dp - 1)),
+                                                fdo | (f & DOMARKDIRS));
                                 else
 
                                 if (fdo & DOGLOB)
@@ -650,7 +640,7 @@ expand(cp, wp, f)
                                 else if ((f & DOPAT) || !(fdo & DOMAGIC_))
                                         XPput(*wp, p);
                                 else
-                                        XPput(*wp, debunk(p, p));
+                                        XPput(*wp, debunk(p, p, strlen(p) + 1));
                                 fdo = 0;
                                 saw_eq = 0;
                                 tilde_ok = (f & (DOTILDE|DOASNTILDE)) ? 1 : 0;
@@ -662,6 +652,19 @@ expand(cp, wp, f)
                         if (word != IFS_NWS)
                                 word = ctype(c, C_IFSWS) ? IFS_WS : IFS_NWS;
                 } else {
+                        if (type == XSUB) {
+                                if (word == IFS_NWS &&
+                                        Xlength(ds, dp) == 0) {
+                                                char *p;
+
+                                                if ((p = strdup("")) == NULL)
+                                                        internal_errorf(1, "unable "
+                                                                "to allocate memory");
+                                                XPput(*wp, p);
+                                }
+                                type = XSUBMID;
+                        }
+
                         /* age tilde_ok info - ~ code tests second bit */
                         tilde_ok <<= 1;
                         /* mark any special second pass chars */
@@ -693,8 +696,8 @@ expand(cp, wp, f)
                                   case OBRACE:
                                   case ',':
                                   case CBRACE:
-                                        if ((f & DOBRACE_) && (c == OBRACE
-                                                || (fdo & DOBRACE_)))
+                                        if ((f & DOBRACE_) && (c == OBRACE ||
+                                                (fdo & DOBRACE_)))
                                         {
                                                 fdo |= DOBRACE_|DOMAGIC_;
                                                 *dp++ = MAGIC;
@@ -719,9 +722,9 @@ expand(cp, wp, f)
                                          * Note that tilde_ok must be preserved
                                          * through the sequence ${A=a=}~
                                          */
-                                        if (type == XBASE
-                                            && (f & (DOTILDE|DOASNTILDE))
-                                            && (tilde_ok & 2))
+                                        if (type == XBASE &&
+                                            (f & (DOTILDE|DOASNTILDE)) &&
+                                            (tilde_ok & 2))
                                         {
                                                 char *p, *dp_x;
 
@@ -760,12 +763,9 @@ expand(cp, wp, f)
  * Prepare to generate the string returned by ${} substitution.
  */
 static int
-varsub(xp, sp, word, stypep, slenp)
-        Expand *xp;
-        char *sp;
-        char *word;
-        int *stypep;    /* becomes qualifier type */
-        int *slenp;     /* " " len (=, :=, etc.) valid iff *stypep != 0 */
+varsub(Expand *xp, char *sp, char *word,
+        int *stypep,    /* becomes qualifier type */
+        int *slenp)     /* " " len (=, :=, etc.) valid iff *stypep != 0 */
 {
         int c;
         int state;      /* next state: XBASE, XARG, XSUB, XNULLSUB */
@@ -791,6 +791,7 @@ varsub(xp, sp, word, stypep, slenp)
                 if ((p=strchr(sp,'[')) && (p[1]=='*'||p[1]=='@') && p[2]==']') {
                         int n = 0;
                         int max = 0;
+
                         vp = global(arrayname(sp));
                         if (vp->flag & (ISSET|ARRAY))
                                 zero_ok = 1;
@@ -849,6 +850,7 @@ varsub(xp, sp, word, stypep, slenp)
                 }
                 if (e->loc->argc == 0) {
                         xp->str = null;
+                        xp->var = global(sp);
                         state = c == '@' ? XNULLSUB : XSUB;
                 } else {
                         xp->u.strv = (const char **) e->loc->argv + 1;
@@ -864,6 +866,7 @@ varsub(xp, sp, word, stypep, slenp)
                           case '=':     /* can't assign to a vector */
                           case '%':     /* can't trim a vector (yet) */
                           case '#':
+                          case '?':
                                 return -1;
                         }
                         XPinit(wv, 32);
@@ -886,8 +889,8 @@ varsub(xp, sp, word, stypep, slenp)
                         }
                 } else {
                         /* Can't assign things like $! or $1 */
-                        if ((stype & 0x7f) == '='
-                            && (ctype(*sp, C_VAR1) || digit(*sp)))
+                        if ((stype & 0x7f) == '=' &&
+                                (ctype(*sp, C_VAR1) || digit(*sp)))
                                 return -1;
                         xp->var = global(sp);
                         xp->str = str_val(xp->var);
@@ -901,9 +904,9 @@ varsub(xp, sp, word, stypep, slenp)
             (((stype&0x80) ? *xp->str=='\0' : xp->str==null) ? /* undef? */
              c == '=' || c == '-' || c == '?' : c == '+'))
                 state = XBASE;  /* expand word instead of variable value */
-        if (Flag(FNOUNSET) && xp->str == null
-            && (ctype(c, C_SUBOP2) || (state != XBASE && c != '+')))
-                errorf("%s: parameter not set", sp);
+        if (Flag(FNOUNSET) && xp->str == null &&
+                (ctype(c, C_SUBOP2) || (state != XBASE && c != '+')))
+                        errorf("%s: parameter not set", sp);
         return state;
 }
 
@@ -911,17 +914,11 @@ varsub(xp, sp, word, stypep, slenp)
  * Run the command in $(...) and read its output.
  */
 
-
-
-
-
 static int
-comsub(xp, cp)
-        register Expand *xp;
-        char *cp;
+comsub(Expand *xp, char *cp)
 {
         Source *s, *sold;
-        register struct op *t;
+        struct op *t;
         struct shf *shf;
         char c;
         struct globals globenv;
@@ -937,7 +934,7 @@ comsub(xp, cp)
 
         if (t != NULL && t->type == TCOM && /* $(<file) */
             *t->args == NULL && *t->vars == NULL && t->ioact != NULL) {
-                register struct ioword *io = *t->ioact;
+                struct ioword *io = *t->ioact;
                 char *name;
 
                 if ((io->flag&IOTYPE) != IOREAD)
@@ -956,7 +953,7 @@ comsub(xp, cp)
 #else
                 openpipe(pv);//printf("PIPE\n"); fflush(stdout);
                 shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
-                shf->ispipe = TRUE;
+                shf->ispipe = true;
 #endif
 
 #if defined(AMIGA) && !defined(CLIBHACK)
@@ -984,7 +981,7 @@ comsub(xp, cp)
                 amigaos_comsub++;
 #else
                 ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
-                ksh_dup2(pv[1], 1, FALSE);//printf("dups2\n"); fflush(stdout);
+                ksh_dup2(pv[1], 1, false);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);
                 copyenv(&globenv);
                 e->type = E_SUBSHELL;
@@ -1009,19 +1006,16 @@ comsub(xp, cp)
  */
 
 static char *
-trimsub(str, pat, how)
-        register char *str;
-        char *pat;
-        int how;
+trimsub(char *str, char *pat, int how)
 {
-        register char *end = strchr(str, 0);
-        register char *p, c;
+        char *end = strchr(str, 0);
+        char *p, c;
 
         switch (how&0xff) {     /* UCHAR_MAX maybe? */
           case '#':             /* shortest at begining */
                 for (p = str; p <= end; p++) {
                         c = *p; *p = '\0';
-                        if (gmatch(str, pat, FALSE)) {
+                        if (gmatch(str, pat, false)) {
                                 *p = c;
                                 return p;
                         }
@@ -1031,7 +1025,7 @@ trimsub(str, pat, how)
           case '#'|0x80:        /* longest match at begining */
                 for (p = end; p >= str; p--) {
                         c = *p; *p = '\0';
-                        if (gmatch(str, pat, FALSE)) {
+                        if (gmatch(str, pat, false)) {
                                 *p = c;
                                 return p;
                         }
@@ -1040,13 +1034,13 @@ trimsub(str, pat, how)
                 break;
           case '%':             /* shortest match at end */
                 for (p = end; p >= str; p--) {
-                        if (gmatch(p, pat, FALSE))
+                        if (gmatch(p, pat, false))
                                 return str_nsave(str, p - str, ATEMP);
                 }
                 break;
           case '%'|0x80:        /* longest match at end */
                 for (p = str; p <= end; p++) {
-                        if (gmatch(p, pat, FALSE))
+                        if (gmatch(p, pat, false))
                                 return str_nsave(str, p - str, ATEMP);
                 }
                 break;
@@ -1062,22 +1056,19 @@ trimsub(str, pat, how)
 
 /* XXX cp not const 'cause slashes are temporarily replaced with nulls... */
 static void
-glob(cp, wp, markdirs)
-        char *cp;
-        register XPtrV *wp;
-        int markdirs;
+glob(char *cp, XPtrV *wp, int markdirs)
 {
         int oldsize = XPsize(*wp);
 
         if (glob_str(cp, wp, markdirs) == 0)
-                XPput(*wp, debunk(cp, cp));
+                XPput(*wp, debunk(cp, cp, strlen(cp) + 1));
         else
                 qsortp(XPptrv(*wp) + oldsize, (size_t)(XPsize(*wp) - oldsize),
                         xstrcmp);
 }
 
 #define GF_NONE         0
-#define GF_EXCHECK      BIT(0)          /* do existance check on file */
+#define GF_EXCHECK      BIT(0)          /* do existence check on file */
 #define GF_GLOBBED      BIT(1)          /* some globbing has been done */
 #define GF_MARKDIR      BIT(2)          /* add trailing / to directories */
 
@@ -1085,10 +1076,7 @@ glob(cp, wp, markdirs)
  * the number of matches found.
  */
 int
-glob_str(cp, wp, markdirs)
-        char *cp;
-        XPtrV *wp;
-        int markdirs;
+glob_str(char *cp, XPtrV *wp, int markdirs)
 {
         int oldsize = XPsize(*wp);
         XString xs;
@@ -1102,14 +1090,13 @@ glob_str(cp, wp, markdirs)
 }
 
 static void
-globit(xs, xpp, sp, wp, check)
-        XString *xs;            /* dest string */
-        char **xpp;             /* ptr to dest end */
-        char *sp;               /* source path */
-        register XPtrV *wp;     /* output list */
-        int check;              /* GF_* flags */
+globit(XString *xs,             /* dest string */
+        char **xpp,             /* ptr to dest end */
+        char *sp,               /* source path */
+        XPtrV *wp,              /* output list */
+        int check)              /* GF_* flags */
 {
-        register char *np;      /* next source component */
+        char *np;               /* next source component */
         char *xp = *xpp;
         char *se;
         char odirsep;
@@ -1124,8 +1111,8 @@ globit(xs, xpp, sp, wp, check)
                  * any patterns were expanded and the markdirs option is set.
                  * Symlinks make things a bit tricky...
                  */
-                if ((check & GF_EXCHECK)
-                    || ((check & GF_MARKDIR) && (check & GF_GLOBBED)))
+                if ((check & GF_EXCHECK) ||
+                        ((check & GF_MARKDIR) && (check & GF_GLOBBED)))
                 {
 #define stat_check()    (stat_done ? stat_done : \
                             (stat_done = stat(Xstring(*xs, xp), &statb) < 0 \
@@ -1139,36 +1126,26 @@ globit(xs, xpp, sp, wp, check)
                          * slashes from regular files (eg, /etc/passwd/).
                          * SunOS 4.1.3 does this...
                          */
-                        if ((check & GF_EXCHECK) && xp > Xstring(*xs, xp)
-                            && ISDIRSEP(xp[-1]) && !S_ISDIR(lstatb.st_mode)
-#ifdef S_ISLNK
-                            && (!S_ISLNK(lstatb.st_mode)
-                                || stat_check() < 0
-                                || !S_ISDIR(statb.st_mode))
-#endif /* S_ISLNK */
-                                )
-                                return;
+                        if ((check & GF_EXCHECK) && xp > Xstring(*xs, xp) &&
+                                ISDIRSEP(xp[-1]) && !S_ISDIR(lstatb.st_mode) &&
+                                (!S_ISLNK(lstatb.st_mode) ||
+                                stat_check() < 0 || !S_ISDIR(statb.st_mode)))
+                                        return;
                         /* Possibly tack on a trailing / if there isn't already
                          * one and if the file is a directory or a symlink to a
                          * directory
                          */
-                        if (((check & GF_MARKDIR) && (check & GF_GLOBBED))
-                            && xp > Xstring(*xs, xp) && !ISDIRSEP(xp[-1])
-                            && (S_ISDIR(lstatb.st_mode)
-#ifdef S_ISLNK
-                                || (S_ISLNK(lstatb.st_mode)
-                                    && stat_check() > 0
-                                    && S_ISDIR(statb.st_mode))
-#endif /* S_ISLNK */
-                                    ))
+                        if (((check & GF_MARKDIR) && (check & GF_GLOBBED)) &&
+                                xp > Xstring(*xs, xp) && !ISDIRSEP(xp[-1]) &&
+                                (S_ISDIR(lstatb.st_mode) ||
+                                (S_ISLNK(lstatb.st_mode) && stat_check() > 0 &&
+                                S_ISDIR(statb.st_mode))))
                         {
                                 *xp++ = DIRSEP;
                                 *xp = '\0';
                         }
                 }
-# define KLUDGE_VAL     0
-                XPput(*wp, str_nsave(Xstring(*xs, xp), Xlength(*xs, xp)
-                        + KLUDGE_VAL, ATEMP));
+                XPput(*wp, str_nsave(Xstring(*xs, xp), Xlength(*xs, xp), ATEMP));
                 return;
         }
 
@@ -1197,7 +1174,7 @@ globit(xs, xpp, sp, wp, check)
          */
         if (!has_globbing(sp, se)) {
                 XcheckN(*xs, xp, se - sp + 1);
-                debunk(xp, sp);
+                debunk(xp, sp, Xnleft(*xs, xp));
                 xp += strlen(xp);
                 *xpp = xp;
                 globit(xs, xpp, np, wp, check);
@@ -1219,11 +1196,11 @@ globit(xs, xpp, sp, wp, check)
                         if (name[0] == '.' &&
                             (name[1] == 0 || (name[1] == '.' && name[2] == 0)))
                                 continue; /* always ignore . and .. */
-                        if ((*name == '.' && *sp != '.')
-                            || !gmatch(name, sp, TRUE))
-                                continue;
+                        if ((*name == '.' && *sp != '.') ||
+                                !gmatch(name, sp, true))
+                                        continue;
 
-                        len = NLENGTH(d) + 1;
+                        len = strlen(d->d_name) + 1;
                         XcheckN(*xs, xp, len);
                         memcpy(xp, name, len);
                         *xpp = xp + len - 1;
@@ -1244,12 +1221,9 @@ globit(xs, xpp, sp, wp, check)
 /* Check if p contains something that needs globbing; if it does, 0 is
  * returned; if not, p is copied into xs/xp after stripping any MAGICs
  */
-static int      copy_non_glob ARGS((XString *xs, char **xpp, char *p));
+static int      copy_non_glob(XString *xs, char **xpp, char *p);
 static int
-copy_non_glob(xs, xpp, p)
-        XString *xs;
-        char **xpp;
-        char *p;
+copy_non_glob(XString *xs, char **xpp, char *p)
 {
         char *xp;
         int len = strlen(p);
@@ -1286,27 +1260,28 @@ copy_non_glob(xs, xpp, p)
 
 /* remove MAGIC from string */
 char *
-debunk(dp, sp)
-        char *dp;
-        const char *sp;
+debunk(char *dp, const char *sp, size_t dlen)
 {
         char *d, *s;
 
         if ((s = strchr(sp, MAGIC))) {
-                memcpy(dp, sp, s - sp);
-                for (d = dp + (s - sp); *s; s++)
-                        if (!ISMAGIC(*s) || !(*++s & 0x80)
-                            || !strchr("*+?@! ", *s & 0x7f))
-                                *d++ = *s;
+                if (s - sp >= dlen)
+                        return dp;
+		memcpy(dp, sp, s - sp);
+                for (d = dp + (s - sp); *s && (d - dp < dlen); s++)
+                        if (!ISMAGIC(*s) || !(*++s & 0x80) ||
+                                !strchr("*+?@! ", *s & 0x7f))
+                                        *d++ = *s;
                         else {
                                 /* extended pattern operators: *+?@! */
                                 if ((*s & 0x7f) != ' ')
                                         *d++ = *s & 0x7f;
-                                *d++ = '(';
+                                if (d-dp < dlen)
+                                        *d++ = '(';
                         }
                 *d = '\0';
         } else if (dp != sp)
-                strcpy(dp, sp);
+                strlcpy(dp, sp, dlen);
         return dp;
 }
 
@@ -1315,11 +1290,7 @@ debunk(dp, sp)
  * past the name, otherwise returns 0.
  */
 static char *
-maybe_expand_tilde(p, dsp, dpp, isassign)
-        char *p;
-        XString *dsp;
-        char **dpp;
-        int isassign;
+maybe_expand_tilde(char *p, XString *dsp, char **dpp, int isassign)
 {
         XString ts;
         char *dp = *dpp;
@@ -1335,7 +1306,8 @@ maybe_expand_tilde(p, dsp, dpp, isassign)
                 p += 2;
         }
         *tp = '\0';
-        r = (p[0] == EOS || p[0] == CHAR || p[0] == CSUBST) ? tilde(Xstring(ts, tp)) : (char *) 0;
+        r = (p[0] == EOS || p[0] == CHAR || p[0] == CSUBST) ?
+                tilde(Xstring(ts, tp)) : (char *) 0;
         Xfree(ts, tp);
         if (r) {
                 while (*r) {
@@ -1357,8 +1329,7 @@ maybe_expand_tilde(p, dsp, dpp, isassign)
  */
 
 static char *
-tilde(cp)
-        char *cp;
+tilde(char *cp)
 {
         char *dp;
 
@@ -1384,10 +1355,9 @@ tilde(cp)
  */
 
 static char *
-homedir(name)
-        char *name;
+homedir(char *name)
 {
-        register struct tbl *ap;
+        struct tbl *ap;
 
         ap = tenter(homedirs, name, hash(name));
         if (!(ap->flag & ISSET)) {
@@ -1404,14 +1374,10 @@ homedir(name)
 
 
 static void
-alt_expand(wp, start, exp_start, end, fdo)
-        XPtrV *wp;
-        char *start, *exp_start;
-        char *end;
-        int fdo;
+alt_expand(XPtrV *wp, char *start, char *exp_start, char *end, int fdo)
 {
-        int UNINITIALIZED(count);
-        char *brace_start, *brace_end, *UNINITIALIZED(comma);
+        int count = 0;
+        char *brace_start, *brace_end, *comma = NULL;
         char *field_start;
         char *p;
 
@@ -1444,7 +1410,7 @@ alt_expand(wp, start, exp_start, end, fdo)
                 if (fdo & DOGLOB)
                         glob(start, wp, fdo & DOMARKDIRS);
                 else
-                        XPput(*wp, debunk(start, start));
+                        XPput(*wp, debunk(start, start, end - start));
                 return;
         }
         brace_end = p;
@@ -1460,8 +1426,8 @@ alt_expand(wp, start, exp_start, end, fdo)
                 if (ISMAGIC(*p)) {
                         if (*++p == OBRACE)
                                 count++;
-                        else if ((*p == CBRACE && --count == 0)
-                                 || (*p == ',' && count == 1))
+                        else if ((*p == CBRACE && --count == 0) ||
+                                (*p == ',' && count == 1))
                         {
                                 char *new;
                                 int l1, l2, l3;
@@ -1475,7 +1441,7 @@ alt_expand(wp, start, exp_start, end, fdo)
                                 memcpy(new + l1 + l2, brace_end, l3);
                                 new[l1 + l2 + l3] = '\0';
                                 alt_expand(wp, new, new + l1,
-                                           new + l1 + l2 + l3, fdo);
+                                        new + l1 + l2 + l3, fdo);
                                 field_start = p + 1;
                         }
                 }

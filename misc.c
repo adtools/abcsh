@@ -4,23 +4,21 @@
 
 #include "sh.h"
 #include <ctype.h>      /* for FILECHCONV */
+#include <stdio.h>      /* clib2 - for MAXPATHLEN */
 
 short ctypes [UCHAR_MAX+1];     /* type bits for unsigned char */
 
-static int      do_gmatch ARGS((const unsigned char *s, const unsigned char *p,
-                        const unsigned char *se, const unsigned char *pe,
-                        int isfile));
-static const unsigned char *cclass ARGS((const unsigned char *p, int sub));
+static int do_gmatch(const unsigned char *, const unsigned char *,
+        const unsigned char *, const unsigned char *);
+static const unsigned char *cclass(const unsigned char *, int);
 
 /*
  * Fast character classes
  */
 void
-setctypes(s, t)
-        register const char *s;
-        register int t;
+setctypes(const char *s, int t)
 {
-        register int i;
+        int i;
 
         if (t & C_IFS) {
                 for (i = 0; i < UCHAR_MAX+1; i++)
@@ -32,9 +30,9 @@ setctypes(s, t)
 }
 
 void
-initctypes()
+initctypes(void)
 {
-        register int c;
+        int c;
 
         for (c = 'a'; c <= 'z'; c++)
                 ctypes[c] |= C_ALPHA;
@@ -53,11 +51,9 @@ initctypes()
 /* convert unsigned long to base N string */
 
 char *
-ulton(n, base)
-        register unsigned long n;
-        int base;
+ulton(long unsigned int n, int base)
 {
-        register char *p;
+        char *p;
         static char buf [20];
 
         p = &buf[sizeof(buf)];
@@ -70,11 +66,17 @@ ulton(n, base)
 }
 
 char *
-str_save(s, ap)
-        register const char *s;
-        Area *ap;
+str_save(const char *s, Area *ap)
 {
-        return s ? strcpy((char*) alloc((size_t)strlen(s)+1, ap), s) : NULL;
+        size_t len;
+        char *p;
+
+        if (!s)
+                return NULL;
+        len = strlen(s)+1;
+        p = alloc(len, ap);
+        strlcpy(p, s, len+1);
+        return (p);
 }
 
 /* Allocate a string of size n+1 and copy upto n characters from the possibly
@@ -82,10 +84,7 @@ str_save(s, ap)
  * (unless n < 0).
  */
 char *
-str_nsave(s, n, ap)
-        register const char *s;
-        int n;
-        Area *ap;
+str_nsave(const char *s, int n, Area *ap)
 {
         char *ns;
 
@@ -98,10 +97,7 @@ str_nsave(s, n, ap)
 
 /* called from expand.h:XcheckN() to grow buffer */
 char *
-Xcheck_grow_(xsp, xp, more)
-        XString *xsp;
-        char *xp;
-        int more;
+Xcheck_grow_(XString *xsp, char *xp, int more)
 {
         char *old_beg = xsp->beg;
 
@@ -120,18 +116,20 @@ const struct option options[] = {
         { "braceexpand",  0,            OF_ANY }, /* non-standard */
         { "bgnice",       0,            OF_ANY },
         { (char *) 0,   'c',        OF_CMDLINE },
+        { "csh-history",  0,            OF_ANY }, /* non-standard */
         { "errexit",    'e',            OF_ANY },
         { "ignoreeof",    0,            OF_ANY },
-        { "interactive",'i',        OF_CMDLINE },
+        { "interactive", 'i',        OF_CMDLINE },
         { "keyword",    'k',            OF_ANY },
         { "markdirs",   'X',            OF_ANY },
+        { (char *) 0,   'm',                 0 }, /* so FMONITOR not ifdef'd */
         { "noclobber",  'C',            OF_ANY },
         { "noexec",     'n',            OF_ANY },
         { "noglob",     'f',            OF_ANY },
         { "nounset",    'u',            OF_ANY },
         { "physical",     0,            OF_ANY }, /* non-standard */
         { "posix",        0,            OF_ANY }, /* non-standard */
-        { "sh",           0,            OF_ANY }, /* non-standard */ /* from OpenBSD */
+        { "sh",           0,            OF_ANY }, /* non-standard */
         { "stdin",      's',        OF_CMDLINE }, /* pseudo non-standard */
         { "trackall",   'h',            OF_ANY },
         { "verbose",    'v',            OF_ANY },
@@ -146,8 +144,7 @@ const struct option options[] = {
  * translate -o option into F* constant (also used for test -o option)
  */
 int
-option(n)
-        const char *n;
+option(const char *n)
 {
         int i;
 
@@ -166,16 +163,12 @@ struct options_info {
         } opts[NELEM(options)];
 };
 
-static char *options_fmt_entry ARGS((void *arg, int i, char *buf, int buflen));
-static void printoptions ARGS((int verbose));
+static char *options_fmt_entry(void *arg, int i, char *buf, int buflen);
+static void printoptions(int verbose);
 
 /* format a single select menu item */
 static char *
-options_fmt_entry(arg, i, buf, buflen)
-        void *arg;
-        int i;
-        char *buf;
-        int buflen;
+options_fmt_entry(void *arg, int i, char *buf, int buflen)
 {
         struct options_info *oi = (struct options_info *) arg;
 
@@ -186,8 +179,7 @@ options_fmt_entry(arg, i, buf, buflen)
 }
 
 static void
-printoptions(verbose)
-        int verbose;
+printoptions(int verbose)
 {
         int i;
 
@@ -207,7 +199,7 @@ printoptions(verbose)
                                         oi.opt_width = len;
                         }
                 print_columns(shl_stdout, n, options_fmt_entry, &oi,
-                              oi.opt_width + 5);
+                        oi.opt_width + 5, 1);
         } else {
                 /* short version ala ksh93 */
                 shprintf("set");
@@ -219,11 +211,11 @@ printoptions(verbose)
 }
 
 char *
-getoptions()
+getoptions(void)
 {
         int i;
         char m[(int) FNFLAGS + 1];
-        register char *cp = m;
+        char *cp = m;
 
         for (i = 0; i < NELEM(options); i++)
                 if (options[i].c && Flag(i))
@@ -234,10 +226,9 @@ getoptions()
 
 /* change a Flag(*) value; takes care of special actions */
 void
-change_flag(f, what, newval)
-        enum sh_flag f; /* flag to change */
-        int what;       /* what is changing the flag (command line vs set) */
-        int newval;
+change_flag(enum sh_flag f,
+        int what,         /* flag to change */
+        int newval)       /* what is changing the flag (command line vs set) */
 {
         int oldval;
 
@@ -261,10 +252,9 @@ change_flag(f, what, newval)
  * non-option arguments, -1 if there is an error.
  */
 int
-parse_args(argv, what, setargsp)
-        char **argv;
-        int     what;           /* OF_CMDLINE or OF_SET */
-        int     *setargsp;
+parse_args(char **argv,
+        int     what,           /* OF_CMDLINE or OF_SET */
+        int     *setargsp)
 {
         static char cmd_opts[NELEM(options) + 3]; /* o:\0 */
         static char set_opts[NELEM(options) + 5]; /* Ao;s\0 */
@@ -277,9 +267,11 @@ parse_args(argv, what, setargsp)
         if (cmd_opts[0] == '\0') {
                 char *p, *q;
 
-                strcpy(cmd_opts, "o:"); /* see cmd_opts[] declaration */
+                /* see cmd_opts[] declaration */
+                strlcpy(cmd_opts, "o:", sizeof cmd_opts);
                 p = cmd_opts + strlen(cmd_opts);
-                strcpy(set_opts, "A:o;s"); /* see set_opts[] declaration */
+                /* see set_opts[] declaration */
+                strlcpy(set_opts, "A:o;s", sizeof set_opts);
                 q = set_opts + strlen(set_opts);
                 for (i = 0; i < NELEM(options); i++) {
                         if (options[i].c) {
@@ -348,7 +340,7 @@ parse_args(argv, what, setargsp)
                                     && (what & options[i].flags))
                                 {
                                         change_flag((enum sh_flag) i, what,
-                                                    set);
+                                                set);
                                         break;
                                 }
                         if (i == NELEM(options)) {
@@ -357,9 +349,9 @@ parse_args(argv, what, setargsp)
                         }
                 }
         }
-        if (!(go.info & GI_MINUSMINUS) && argv[go.optind]
-            && (argv[go.optind][0] == '-' || argv[go.optind][0] == '+')
-            && argv[go.optind][1] == '\0')
+        if (!(go.info & GI_MINUSMINUS) && argv[go.optind] &&
+                (argv[go.optind][0] == '-' || argv[go.optind][0] == '+') &&
+                argv[go.optind][1] == '\0')
         {
                 /* lone - clears -v and -x flags */
                 if (argv[go.optind][0] == '-' && !Flag(FPOSIX))
@@ -369,10 +361,10 @@ parse_args(argv, what, setargsp)
         }
         if (setargsp)
                 /* -- means set $#/$* even if there are no arguments */
-                *setargsp = !arrayset && ((go.info & GI_MINUSMINUS)
-                                          || argv[go.optind]);
+                *setargsp = !arrayset && ((go.info & GI_MINUSMINUS) ||
+                        argv[go.optind]);
 
-        if (arrayset && (!*array || *skip_varname(array, FALSE))) {
+        if (arrayset && (!*array || *skip_varname(array, false))) {
                 bi_errorf("%s: is not an identifier", array);
                 return -1;
         }
@@ -393,30 +385,23 @@ parse_args(argv, what, setargsp)
 
 /* parse a decimal number: returns 0 if string isn't a number, 1 otherwise */
 int
-getn(as, ai)
-        const char *as;
-        int *ai;
+getn(const char *as, int *ai)
 {
-        const char *s;
-        register int n;
-        int sawdigit = 0;
+        char *p;
+        int n;
 
-        s = as;
-        if (*s == '-' || *s == '+')
-                s++;
-        for (n = 0; digit(*s); s++, sawdigit = 1)
-                n = n * 10 + (*s - '0');
-        *ai = (*as == '-') ? -n : n;
-        if (*s || !sawdigit)
+        n = strtol(as, &p, 10);
+
+        n = strtol(as, &p, 10);
                 return 0;
+
+        *ai = (int)n;
         return 1;
 }
 
 /* getn() that prints error */
 int
-bi_getn(as, ai)
-        const char *as;
-        int *ai;
+bi_getn(const char *as, int *ai)
 {
         int rv = getn(as, ai);
 
@@ -436,9 +421,7 @@ bi_getn(as, ai)
  */
 
 int
-gmatch(s, p, isfile)
-        const char *s, *p;
-        int isfile;
+gmatch(const char *s, const char *p, int isfile)
 {
         const char *se, *pe;
 
@@ -452,21 +435,20 @@ gmatch(s, p, isfile)
         if (!isfile && !has_globbing(p, pe)) {
                 int len = pe - p + 1;
                 char tbuf[64];
-                char *t = len <= sizeof(tbuf) ? tbuf
-                                : (char *) alloc(len, ATEMP);
-                debunk(t, p);
+                char *t = len <= sizeof(tbuf) ? tbuf :
+                        (char *) alloc(len, ATEMP);
+                debunk(t, p, len);
                 return !strcmp(t, s);
         }
         return do_gmatch((const unsigned char *) s, (const unsigned char *) se,
-                         (const unsigned char *) p, (const unsigned char *) pe,
-                         isfile);
+                         (const unsigned char *) p, (const unsigned char *) pe);
 }
 
 /* Returns if p is a syntacticly correct globbing pattern, false
  * if it contains no pattern characters or if there is a syntax error.
  * Syntax errors are:
  *      - [ with no closing ]
- *      - imballenced $(...) expression
+ *      - imbalenced $(...) expression
  *      - [...] and *(...) not nested (eg, [a$(b|]c), *(a[b|c]d))
  */
 /*XXX
@@ -479,8 +461,7 @@ gmatch(s, p, isfile)
 - return ?
 */
 int
-has_globbing(xp, xpe)
-        const char *xp, *xpe;
+has_globbing(const char *xp, const char *xpe)
 {
         const unsigned char *p = (const unsigned char *) xp;
         const unsigned char *pe = (const unsigned char *) xpe;
@@ -534,12 +515,10 @@ has_globbing(xp, xpe)
 
 /* Function must return either 0 or 1 (assumed by code for 0x80|'!') */
 static int
-do_gmatch(s, se, p, pe, isfile)
-        const unsigned char *s, *p;
-        const unsigned char *se, *pe;
-        int isfile;
+do_gmatch(const unsigned char *s, const unsigned char *se,
+        const unsigned char *p, const unsigned char *pe)
 {
-        register int sc, pc;
+        int sc, pc;
         const unsigned char *prest, *psub, *pnext;
         const unsigned char *srest;
 
@@ -549,10 +528,6 @@ do_gmatch(s, se, p, pe, isfile)
                 pc = *p++;
                 sc = s < se ? *s : '\0';
                 s++;
-                if (isfile) {
-                        sc = FILECHCONV(sc);
-                        pc = FILECHCONV(pc);
-                }
                 if (!ISMAGIC(pc)) {
                         if (sc != pc)
                                 return 0;
@@ -574,7 +549,7 @@ do_gmatch(s, se, p, pe, isfile)
                                 return 1;
                         s--;
                         do {
-                                if (do_gmatch(s, se, p, pe, isfile))
+                                if (do_gmatch(s, se, p, pe))
                                         return 1;
                         } while (s++ < se);
                         return 0;
@@ -590,19 +565,16 @@ do_gmatch(s, se, p, pe, isfile)
                                 return 0;
                         s--;
                         /* take care of zero matches */
-                        if (p[-1] == (0x80 | '*')
-                            && do_gmatch(s, se, prest, pe, isfile))
+                        if (p[-1] == (0x80 | '*') &&
+                                do_gmatch(s, se, prest, pe))
                                 return 1;
                         for (psub = p; ; psub = pnext) {
                                 pnext = pat_scan(psub, pe, 1);
                                 for (srest = s; srest <= se; srest++) {
-                                        if (do_gmatch(s, srest,
-                                                psub, pnext - 2, isfile)
-                                            && (do_gmatch(srest, se,
-                                                          prest, pe, isfile)
-                                                || (s != srest
-                                                    && do_gmatch(srest, se,
-                                                        p - 2, pe, isfile))))
+                                        if (do_gmatch(s, srest, psub, pnext - 2) &&
+                                                (do_gmatch(srest, se, prest, pe) ||
+                                                (s != srest && do_gmatch(srest,
+                                                        se, p - 2, pe))))
                                                 return 1;
                                 }
                                 if (pnext == prest)
@@ -617,17 +589,15 @@ do_gmatch(s, se, p, pe, isfile)
                                 return 0;
                         s--;
                         /* Take care of zero matches */
-                        if (p[-1] == (0x80 | '?')
-                            && do_gmatch(s, se, prest, pe, isfile))
+                        if (p[-1] == (0x80 | '?') &&
+                                do_gmatch(s, se, prest, pe))
                                 return 1;
                         for (psub = p; ; psub = pnext) {
                                 pnext = pat_scan(psub, pe, 1);
                                 srest = prest == pe ? se : s;
                                 for (; srest <= se; srest++) {
-                                        if (do_gmatch(s, srest,
-                                                      psub, pnext - 2, isfile)
-                                            && do_gmatch(srest, se,
-                                                         prest, pe, isfile))
+                                        if (do_gmatch(s, srest, psub, pnext - 2) &&
+                                                do_gmatch(srest, se, prest, pe))
                                                 return 1;
                                 }
                                 if (pnext == prest)
@@ -644,8 +614,8 @@ do_gmatch(s, se, p, pe, isfile)
 
                                 for (psub = p; ; psub = pnext) {
                                         pnext = pat_scan(psub, pe, 1);
-                                        if (do_gmatch(s, srest,
-                                                      psub, pnext - 2, isfile))
+                                        if (do_gmatch(s, srest, psub,
+                                                pnext - 2))
                                         {
                                                 matched = 1;
                                                 break;
@@ -653,9 +623,9 @@ do_gmatch(s, se, p, pe, isfile)
                                         if (pnext == prest)
                                                 break;
                                 }
-                                if (!matched && do_gmatch(srest, se,
-                                                          prest, pe, isfile))
-                                        return 1;
+                                if (!matched &&
+                                        do_gmatch(srest, se, prest, pe))
+                                                return 1;
                         }
                         return 0;
 
@@ -669,11 +639,9 @@ do_gmatch(s, se, p, pe, isfile)
 }
 
 static const unsigned char *
-cclass(p, sub)
-        const unsigned char *p;
-        register int sub;
+cclass(const unsigned char *p, int sub)
 {
-        register int c, d, not, found = 0;
+        int c, d, not, found = 0;
         const unsigned char *orig_p = p;
 
         if ((not = (ISMAGIC(*p) && *++p == NOT)))
@@ -692,8 +660,8 @@ cclass(p, sub)
                 if (c == '\0')
                         /* No closing ] - act as if the opening [ was quoted */
                         return sub == '[' ? orig_p : NULL;
-                if (ISMAGIC(p[0]) && p[1] == '-'
-                    && (!ISMAGIC(p[2]) || p[3] != ']'))
+                if (ISMAGIC(p[0]) && p[1] == '-' &&
+                        (!ISMAGIC(p[2]) || p[3] != ']'))
                 {
                         p += 2; /* MAGIC- */
                         d = *p++;
@@ -716,18 +684,15 @@ cclass(p, sub)
 
 /* Look for next ) or | (if match_sep) in *(foo|bar) pattern */
 const unsigned char *
-pat_scan(p, pe, match_sep)
-        const unsigned char *p;
-        const unsigned char *pe;
-        int match_sep;
+pat_scan(const unsigned char *p, const unsigned char *pe, int match_sep)
 {
         int nest = 0;
 
         for (; p < pe; p++) {
                 if (!ISMAGIC(*p))
                         continue;
-                if ((*++p == /*(*/ ')' && nest-- == 0)
-                    || (*p == '|' && match_sep && nest == 0))
+                if ((*++p == /*(*/ ')' && nest-- == 0) ||
+                        (*p == '|' && match_sep && nest == 0))
                         return ++p;
                 if ((*p & 0x80) && strchr("*+?@! ", *p & 0x7f))
                         nest++;
@@ -741,31 +706,28 @@ pat_scan(p, pe, match_sep)
 /*
  * quick sort of array of generic pointers to objects.
  */
-static void qsort1 ARGS((void **base, void **lim, int (*f)(void *, void *)));
+static void qsort1(void **base, void **lim, int (*f)(void *, void *));
 
 void
-qsortp(base, n, f)
-        void **base;                            /* base address */
-        size_t n;                               /* elements */
-        int (*f) ARGS((void *, void *));        /* compare function */
+qsortp(void **base,                             /* base address */
+        size_t n,                               /* elements */
+        int (*f) (void *, void *))              /* compare function */
 {
         qsort1(base, base + n, f);
 }
 
 #define swap2(a, b)     {\
-        register void *t; t = *(a); *(a) = *(b); *(b) = t;\
+        void *t; t = *(a); *(a) = *(b); *(b) = t;\
 }
 #define swap3(a, b, c)  {\
-        register void *t; t = *(a); *(a) = *(c); *(c) = *(b); *(b) = t;\
+        void *t; t = *(a); *(a) = *(c); *(c) = *(b); *(b) = t;\
 }
 
 static void
-qsort1(base, lim, f)
-        void **base, **lim;
-        int (*f) ARGS((void *, void *));
+qsort1(void **base, void **lim, int (*f) (void *, void *))
 {
-        register void **i, **j;
-        register void **lptr, **hptr;
+        void **i, **j;
+        void **lptr, **hptr;
         size_t n;
         int c;
 
@@ -831,17 +793,14 @@ qsort1(base, lim, f)
 }
 
 int
-xstrcmp(p1, p2)
-        void *p1, *p2;
+xstrcmp(void *p1, void *p2)
 {
         return (strcmp((char *)p1, (char *)p2));
 }
 
 /* Initialize a Getopt structure */
 void
-ksh_getopt_reset(go, flags)
-        Getopt *go;
-        int flags;
+ksh_getopt_reset(Getopt *go, int flags)
 {
         go->optind = 1;
         go->optarg = (char *) 0;
@@ -877,10 +836,7 @@ ksh_getopt_reset(go, flags)
  *        in go->info.
  */
 int
-ksh_getopt(argv, go, options)
-        char **argv;
-        Getopt *go;
-        const char *options;
+ksh_getopt(char **argv, Getopt *go, const char *options)
 {
         char c;
         char *o;
@@ -895,10 +851,10 @@ ksh_getopt(argv, go, options)
                         go->info |= GI_MINUSMINUS;
                         return EOF;
                 }
-                if (arg == (char *) 0
-                    || ((flag != '-' ) /* neither a - nor a + (if + allowed) */
-                        && (!(go->flags & GF_PLUSOPT) || flag != '+'))
-                    || (c = arg[1]) == '\0')
+                if (arg == (char *) 0 ||
+                        ((flag != '-' ) && /* neither a - nor a + (if + allowed) */
+                        (!(go->flags & GF_PLUSOPT) || flag != '+')) ||
+                        (c = arg[1]) == '\0')
                 {
                         go->p = 0;
                         return EOF;
@@ -908,14 +864,14 @@ ksh_getopt(argv, go, options)
                 go->info |= flag == '-' ? GI_MINUS : GI_PLUS;
         }
         go->p++;
-        if (c == '?' || c == ':' || c == ';' || c == ',' || c == '#'
-            || !(o = strchr(options, c)))
+        if (c == '?' || c == ':' || c == ';' || c == ',' || c == '#' ||
+                !(o = strchr(options, c)))
         {
                 if (options[0] == ':') {
                         go->buf[0] = c;
                         go->optarg = go->buf;
                 } else {
-                        warningf(TRUE, "%s%s-%c: unknown option",
+                        warningf(true, "%s%s-%c: unknown option",
                                 (go->flags & GF_NONAME) ? "" : argv[0],
                                 (go->flags & GF_NONAME) ? "" : ": ", c);
                         if (go->flags & GF_ERROR)
@@ -941,7 +897,7 @@ ksh_getopt(argv, go, options)
                                 go->optarg = go->buf;
                                 return ':';
                         }
-                        warningf(TRUE, "%s%s-`%c' requires argument",
+                        warningf(true, "%s%s-`%c' requires argument",
                                 (go->flags & GF_NONAME) ? "" : argv[0],
                                 (go->flags & GF_NONAME) ? "" : ": ", c);
                         if (go->flags & GF_ERROR)
@@ -980,8 +936,7 @@ ksh_getopt(argv, go, options)
  * No trailing newline is printed.
  */
 void
-print_value_quoted(s)
-        const char *s;
+print_value_quoted(const char *s)
 {
         const char *p;
         int inquote = 0;
@@ -1014,12 +969,8 @@ print_value_quoted(s)
  * element
  */
 void
-print_columns(shf, n, func, arg, max_width)
-        struct shf *shf;
-        int n;
-        char *(*func) ARGS((void *, int, char *, int));
-        void *arg;
-        int max_width;
+print_columns(struct shf *shf, int n, char *(*func) (void *, int, char *, int),
+        void *arg, int max_width, int prefcol)
 {
         char *str = (char *) alloc(max_width + 1, ATEMP);
         int i;
@@ -1035,7 +986,7 @@ print_columns(shf, n, func, arg, max_width)
         if (!cols)
                 cols = 1;
         rows = (n + cols - 1) / cols;
-        if (n && cols > rows) {
+        if (prefcol && n && cols > rows) {
                 int tmp = rows;
 
                 rows = cols;
@@ -1065,9 +1016,7 @@ print_columns(shf, n, func, arg, max_width)
 
 /* Strip any nul bytes from buf - returns new length (nbytes - # of nuls) */
 int
-strip_nuls(buf, nbytes)
-        char *buf;
-        int nbytes;
+strip_nuls(char *buf, int nbytes)
 {
         char *dst;
 
@@ -1094,44 +1043,17 @@ strip_nuls(buf, nbytes)
         return nbytes;
 }
 
-/* Copy at most dsize-1 bytes from src to dst, ensuring dst is null terminated.
- * Returns dst.
- */
-char *
-str_zcpy(dst, src, dsize)
-        char *dst;
-        const char *src;
-        int dsize;
-{
-        if (dsize > 0) {
-                int len = strlen(src);
-
-                if (len >= dsize)
-                        len = dsize - 1;
-                memcpy(dst, src, len);
-                dst[len] = '\0';
-        }
-        return dst;
-}
-
 /* Like read(2), but if read fails due to non-blocking flag, resets flag
  * and restarts read.
  */
 int
-blocking_read(fd, buf, nbytes)
-        int fd;
-        char *buf;
-        int nbytes;
+blocking_read(int fd, char *buf, int nbytes)
 {
         int ret;
         int tried_reset = 0;
 
         while ((ret = read(fd, buf, nbytes)) < 0) {
-                if (!tried_reset && (errno == EAGAIN
-#ifdef EWOULDBLOCK
-                                     || errno == EWOULDBLOCK
-#endif /* EWOULDBLOCK */
-                                    ))
+                if (!tried_reset && errno == EAGAIN)
                 {
                         int oerrno = errno;
                         if (reset_nonblock(fd) > 0) {
@@ -1150,52 +1072,29 @@ blocking_read(fd, buf, nbytes)
  * 1 if it was.
  */
 int
-reset_nonblock(fd)
-        int fd;
+reset_nonblock(int fd)
 {
         int flags;
-        int blocking_flags;
 
         if ((flags = fcntl(fd, F_GETFL, 0)) < 0)
                 return -1;
-        /* With luck, the C compiler will reduce this to a constant */
-        blocking_flags = 0;
-#ifdef O_NONBLOCK
-        blocking_flags |= O_NONBLOCK;
-#endif /* O_NONBLOCK */
-#ifdef O_NDELAY
-        blocking_flags |= O_NDELAY;
-#else /* O_NDELAY */
-# ifndef O_NONBLOCK
-        blocking_flags |= FNDELAY; /* hope this exists... */
-# endif /* O_NONBLOCK */
-#endif /* O_NDELAY */
-        if (!(flags & blocking_flags))
+        if (!(flags & O_NONBLOCK))
                 return 0;
-        flags &= ~blocking_flags;
+        flags &= ~O_NONBLOCK;
         if (fcntl(fd, F_SETFL, flags) < 0)
                 return -1;
         return 1;
 }
 
-#ifndef MAXPATHLEN
-# define MAXPATHLEN PATH
-#endif /* MAXPATHLEN */
-
-#define HPUX_GETWD_BUG_CODE
-
 /* Like getcwd(), except bsize is ignored if buf is 0 (MAXPATHLEN is used) */
 char *
-ksh_get_wd(buf, bsize)
-        char *buf;
-        int bsize;
+ksh_get_wd(char *buf, int bsize)
 {
         char *b;
         char *ret;
 
-        /* Before memory allocated */
-        HPUX_GETWD_BUG_CODE
-
+        /* Note: we could just use plain getcwd(), but then we'd had to
+         * inject possibly allocated space into the ATEMP area. */
         /* Assume getcwd() available */
         if (!buf) {
                 bsize = MAXPATHLEN;

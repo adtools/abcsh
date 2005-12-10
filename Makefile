@@ -8,9 +8,8 @@ CPP = $(CC) -E
 
 #use "make CLIBHACK=-UCLIBHACK" to use IDOS io code
 CLIBHACK = -DCLIBHACK
-KSH= -DKSH
 
-DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK) $(KSH)
+DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h -D__STDC_VERSION__=199901L $(CLIBHACK)
 LIBS = -lm -lnet -lunix -lauto
 
 CPPFLAGS =

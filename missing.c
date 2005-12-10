@@ -3,7 +3,7 @@
  */
 
 #include "sh.h"
-#include "ksh_stat.h"
+#include <sys/stat.h>
 #include "ksh_dir.h"
 
 void *

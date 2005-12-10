@@ -11,9 +11,8 @@ LDFLAGS = -mcrt=clib2
 
 #use "make CLIBHACK=-UCLIBHACK" to use IDOS io code
 CLIBHACK = -DCLIBHACK
-KSH= -DKSH
 
-DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h $(CLIBHACK) $(KSH)
+DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h -D__STDC_VERSION__=199901L $(CLIBHACK)
 LIBS = -lm -lnet -lunix
 
 SRCS = alloc.c amigaos.c c_ksh.c c_sh.c c_test.c c_ulimit.c \
@@ -43,6 +42,6 @@ clibhackclean:
 	rm -f amigaos.o c_sh.o c_ksh.o exec.o eval.o
 
 noclibhack: clibhackclean
-	$(MAKE) -f Makfile.os4 CLIBHACK=-UCLIBHACK
+	$(MAKE) -f Makefile.os4 CLIBHACK=-UCLIBHACK
 
 -include $(SRCS:.c=.d)

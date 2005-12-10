@@ -2,7 +2,7 @@
         ulimit -- handle "ulimit" builtin
 
         Reworked to use getrusage() and ulimit() at once (as needed on
-        some schizophenic systems, eg, HP-UX 9.01), made argument parsing
+        some schizophrenic systems, eg, HP-UX 9.01), made argument parsing
         conform to at&t ksh, added autoconf support.  Michael Rendell, May, '94
 
         Eric Gisin, September 1988
@@ -29,8 +29,7 @@
 #endif /* RLIM_INFINITY */
 
 int
-c_ulimit(wp)
-        char **wp;
+c_ulimit(char **wp)
 {
         static const struct limits {
                 const char      *name;
@@ -107,7 +106,7 @@ c_ulimit(wp)
                 { (char *) 0 }
             };
         static char     options[3 + NELEM(limits)];
-        rlim_t          UNINITIALIZED(val);
+        rlim_t          val = 0;
         int             how = SOFT | HARD;
         const struct limits     *l;
         int             set, all = 0;
@@ -159,7 +158,7 @@ c_ulimit(wp)
                 else {
                         long rval;
 
-                        if (!evaluate(wp[0], &rval, KSH_RETURN_ERROR))
+                        if (!evaluate(wp[0], &rval, KSH_RETURN_ERROR, true))
                                 return 1;
                         /* Avoid problems caused by typos that
                          * evaluate misses due to evaluating unset

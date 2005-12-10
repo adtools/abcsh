@@ -8,13 +8,9 @@
 #endif
 
 #ifndef BITSPERBYTE
-# ifdef CHAR_BIT
-#  define BITSPERBYTE   CHAR_BIT
-# else
-#  define BITSPERBYTE   8       /* probably true.. */
-# endif
+# define BITSPERBYTE   CHAR_BIT
 #endif
 
 #ifndef BITS
-# define BITS(t)        (BITSPERBYTE * sizeof(t))
+# define BITS(t)        (CHAR_BIT * sizeof(t))
 #endif

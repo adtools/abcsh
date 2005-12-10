@@ -35,7 +35,7 @@ struct source {
 #define SSTRING         3       /* string */
 #define SWSTR           4       /* string without \n */
 #define SWORDS          5       /* string[] */
-#define SWORDSEP        6       /* string[] seperator */
+#define SWORDSEP        6       /* string[] separator */
 #define SALIAS          7       /* alias expansion */
 #define SREREAD         8       /* read ahead to be re-scanned */
 
@@ -50,9 +50,7 @@ struct source {
  */
 #define SBASE   0               /* outside any lexical constructs */
 #define SWORD   1               /* implicit quoting for substitute() */
-#ifdef KSH
 #define SLETPAREN 2             /* inside (( )), implicit quoting */
-#endif /* KSH */
 #define SSQUOTE 3               /* inside '' */
 #define SDQUOTE 4               /* inside "" */
 #define SBRACE  5               /* inside ${} */
@@ -94,9 +92,7 @@ typedef union {
 #define FUNCTION 274
 #define TIME    275
 #define REDIR   276
-#ifdef KSH
 #define MDPAREN 277             /* (( )) */
-#endif /* KSH */
 #define BANG    278             /* ! */
 #define DBRACKET 279            /* [[ .. ]] */
 #define COPROC  280             /* |& */
@@ -113,6 +109,7 @@ typedef union {
 #define ESACONLY BIT(7)         /* only accept esac keyword */
 #define CMDWORD BIT(8)          /* parsing simple command (alias related) */
 #define HEREDELIM BIT(9)        /* parsing <<,<<- delimiter */
+#define HEREDOC BIT(10)         /* parsing heredoc */
 
 #define HERES   10              /* max << in line */
 

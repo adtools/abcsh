@@ -19,7 +19,7 @@ struct tbl {                    /* table item */
         union {
                 char *s;        /* string */
                 long i;         /* integer */
-                int (*f) ARGS((char **));       /* int function */
+                int (*f)(char **);       /* int function */
                 struct op *t;   /* "function" tree */
         } val;                  /* value */
         int     index;          /* index for an array */
@@ -144,7 +144,7 @@ EXTERN  struct table *homedirs;  /* homedir() cache */
 
 struct builtin {
         const char   *name;
-        int  (*func) ARGS((char **));
+        int  (*func)(char **);
 };
 
 /* these really are externs! Look in table.c for them */

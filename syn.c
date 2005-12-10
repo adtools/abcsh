@@ -10,41 +10,34 @@ struct nesting_state {
         int     start_line;     /* line nesting began on */
 };
 
-static void     yyparse         ARGS((void));
-static struct op *pipeline      ARGS((int cf));
-static struct op *andor         ARGS((void));
-static struct op *c_list        ARGS((int multi));
-static struct ioword *synio     ARGS((int cf));
-static void     musthave        ARGS((int c, int cf));
-static struct op *nested        ARGS((int type, int smark, int emark));
-static struct op *get_command   ARGS((int cf));
-static struct op *dogroup       ARGS((void));
-static struct op *thenpart      ARGS((void));
-static struct op *elsepart      ARGS((void));
-static struct op *caselist      ARGS((void));
-static struct op *casepart      ARGS((int endtok));
-static struct op *function_body ARGS((char *name, int ksh_func));
-static char **  wordlist        ARGS((void));
-static struct op *block         ARGS((int type, struct op *t1, struct op *t2,
-                                      char **wp));
-static struct op *newtp         ARGS((int type));
-static void     syntaxerr       ARGS((const char *what))
-                                                GCC_FUNC_ATTR(noreturn);
-static void     nesting_push ARGS((struct nesting_state *save, int tok));
-static void     nesting_pop ARGS((struct nesting_state *saved));
-static int      assign_command ARGS((char *s));
-static int      inalias ARGS((struct source *s));
-#ifdef KSH
-static int      dbtestp_isa ARGS((Test_env *te, Test_meta meta));
-static const char *dbtestp_getopnd ARGS((Test_env *te, Test_op op,
-                                        int do_eval));
-static int      dbtestp_eval ARGS((Test_env *te, Test_op op, const char *opnd1,
-                                const char *opnd2, int do_eval));
-static void     dbtestp_error ARGS((Test_env *te, int offset, const char *msg));
-#endif /* KSH */
+static void     yyparse(void);
+static struct op *pipeline(int);
+static struct op *andor(void);
+static struct op *c_list(int);
+static struct ioword *synio(int);
+static void     musthave(int, int);
+static struct op *nested(int, int, int);
+static struct op *get_command(int);
+static struct op *dogroup(void);
+static struct op *thenpart(void);
+static struct op *elsepart(void);
+static struct op *caselist(void);
+static struct op *casepart(int);
+static struct op *function_body(char *, int);
+static char **  wordlist(void);
+static struct op *block(int, struct op *, struct op *, char **);
+static struct op *newtp(int);
+static void     syntaxerr(const char *) __attribute__((__noreturn__));
+static void     nesting_push(struct nesting_state *, int);
+static void     nesting_pop(struct nesting_state *);
+static int      assign_command(char *);
+static int      inalias(struct source *);
+static int      dbtestp_isa(Test_env *, Test_meta);
+static const char *dbtestp_getopnd(Test_env *, Test_op, int);
+static int      dbtestp_eval(Test_env *, Test_op, const char *, const char *, int);
+static void     dbtestp_error(Test_env *, int, const char *);
 
 static  struct  op      *outtree; /* yyparse output */
-
 static struct nesting_state nesting;    /* \n changed to ; */
 
 static  int     reject;         /* token(cf) gets symbol again */
@@ -58,7 +51,7 @@ static  int     symbol;         /* yylex value */
         ((reject) ? (symbol) : (REJECT, symbol = yylex(cf)))
 
 static void
-yyparse()
+yyparse(void)
 {
         int c;
 
@@ -73,10 +66,9 @@ yyparse()
 }
 
 static struct op *
-pipeline(cf)
-        int cf;
+pipeline(int cf)
 {
-        register struct op *t, *p, *tl = NULL;
+        struct op *t, *p, *tl = NULL;
 
         t = get_command(cf);
         if (t != NULL) {
@@ -94,10 +86,10 @@ pipeline(cf)
 }
 
 static struct op *
-andor()
+andor(void)
 {
-        register struct op *t, *p;
-        register int c;
+        struct op *t, *p;
+        int c;
 
         t = pipeline(0);
         if (t != NULL) {
@@ -112,11 +104,10 @@ andor()
 }
 
 static struct op *
-c_list(multi)
-        int multi;
+c_list(int multi)
 {
-        register struct op *t = NULL, *p, *tl = NULL;
-        register int c;
+        struct op *t = NULL, *p, *tl = NULL;
+        int c;
         int have_sep;
 
         while (1) {
@@ -150,10 +141,9 @@ c_list(multi)
 }
 
 static struct ioword *
-synio(cf)
-        int cf;
+synio(int cf)
 {
-        register struct ioword *iop;
+        struct ioword *iop;
         int ishere;
 
         if (tpeek(cf) != REDIR)
@@ -175,39 +165,36 @@ synio(cf)
 }
 
 static void
-musthave(c, cf)
-        int c, cf;
+musthave(int c, int cf)
 {
         if ((token(cf)) != c)
                 syntaxerr((char *) 0);
 }
 
 static struct op *
-nested(type, smark, emark)
-        int type, smark, emark;
+nested(int type, int smark, int emark)
 {
-        register struct op *t;
+        struct op *t;
         struct nesting_state old_nesting;
 
         nesting_push(&old_nesting, smark);
-        t = c_list(TRUE);
+        t = c_list(true);
         musthave(emark, KEYWORD|ALIAS);
         nesting_pop(&old_nesting);
         return (block(type, t, NOBLOCK, NOWORDS));
 }
 
 static struct op *
-get_command(cf)
-        int cf;
+get_command(int cf)
 {
-        register struct op *t;
-        register int c, iopn = 0, syniocf;
+        struct op *t;
+        int c, iopn = 0, syniocf;
         struct ioword *iop, **iops;
         XPtrV args, vars;
         struct nesting_state old_nesting;
 
         iops = (struct ioword **) alloc(sizeofN(struct ioword *, NUFILE+1),
-                                        ATEMP);
+                ATEMP);
         XPinit(args, 16);
         XPinit(vars, 16);
 
@@ -268,7 +255,7 @@ get_command(cf)
                                 ACCEPT;
                                 /*(*/
                                 musthave(')', 0);
-                                t = function_body(XPptrv(args)[0], FALSE);
+                                t = function_body(XPptrv(args)[0], false);
                                 goto Leave;
 
                           default:
@@ -287,7 +274,6 @@ get_command(cf)
                 t = nested(TBRACE, '{', '}');
                 break;
 
-#ifdef KSH
           case MDPAREN:
           {
                 static const char let_cmd[] = { CHAR, 'l', CHAR, 'e',
@@ -301,9 +287,7 @@ get_command(cf)
                 XPput(args, yylval.cp);
                 break;
           }
-#endif /* KSH */
 
-#ifdef KSH
           case DBRACKET: /* [[ .. ]] */
                 /* Leave KEYWORD in syniocf (allow if [[ -n 1 ]] then ...) */
                 t = newtp(TDBRACKET);
@@ -321,13 +305,12 @@ get_command(cf)
                         test_parse(&te);
                 }
                 break;
-#endif /* KSH */
 
           case FOR:
           case SELECT:
                 t = newtp((c == FOR) ? TFOR : TSELECT);
                 musthave(LWORD, ARRAYVAR);
-                if (!is_wdvarname(yylval.cp, TRUE))
+                if (!is_wdvarname(yylval.cp, true))
                         yyerror("%s: bad identifier\n",
                                 c == FOR ? "for" : "select");
                 t->str = str_save(ident, ATEMP);
@@ -341,7 +324,7 @@ get_command(cf)
           case UNTIL:
                 nesting_push(&old_nesting, c);
                 t = newtp((c == WHILE) ? TWHILE : TUNTIL);
-                t->left = c_list(TRUE);
+                t->left = c_list(true);
                 t->right = dogroup();
                 nesting_pop(&old_nesting);
                 break;
@@ -358,7 +341,7 @@ get_command(cf)
           case IF:
                 nesting_push(&old_nesting, c);
                 t = newtp(TIF);
-                t->left = c_list(TRUE);
+                t->left = c_list(true);
                 t->right = thenpart();
                 musthave(FI, KEYWORD|ALIAS);
                 nesting_pop(&old_nesting);
@@ -380,7 +363,7 @@ get_command(cf)
 
           case FUNCTION:
                 musthave(LWORD, 0);
-                t = function_body(yylval.cp, TRUE);
+                t = function_body(yylval.cp, true);
                 break;
         }
 
@@ -414,10 +397,10 @@ get_command(cf)
 }
 
 static struct op *
-dogroup()
+dogroup(void)
 {
-        register int c;
-        register struct op *list;
+        int c;
+        struct op *list;
 
         c = token(CONTIN|KEYWORD|ALIAS);
         /* A {...} can be used instead of do...done for for/select loops
@@ -431,19 +414,19 @@ dogroup()
                 c = '}';
         else
                 syntaxerr((char *) 0);
-        list = c_list(TRUE);
+        list = c_list(true);
         musthave(c, KEYWORD|ALIAS);
         return list;
 }
 
 static struct op *
-thenpart()
+thenpart(void)
 {
-        register struct op *t;
+        struct op *t;
 
         musthave(THEN, KEYWORD|ALIAS);
         t = newtp(0);
-        t->left = c_list(TRUE);
+        t->left = c_list(true);
         if (t->left == NULL)
                 syntaxerr((char *) 0);
         t->right = elsepart();
@@ -451,19 +434,19 @@ thenpart()
 }
 
 static struct op *
-elsepart()
+elsepart(void)
 {
-        register struct op *t;
+        struct op *t;
 
         switch (token(KEYWORD|ALIAS|VARASN)) {
           case ELSE:
-                if ((t = c_list(TRUE)) == NULL)
+                if ((t = c_list(true)) == NULL)
                         syntaxerr((char *) 0);
                 return (t);
 
           case ELIF:
                 t = newtp(TELIF);
-                t->left = c_list(TRUE);
+                t->left = c_list(true);
                 t->right = thenpart();
                 return (t);
 
@@ -474,9 +457,9 @@ elsepart()
 }
 
 static struct op *
-caselist()
+caselist(void)
 {
-        register struct op *t, *tl;
+        struct op *t, *tl;
         int c;
 
         c = token(CONTIN|KEYWORD|ALIAS);
@@ -500,11 +483,10 @@ caselist()
 }
 
 static struct op *
-casepart(endtok)
-        int endtok;
+casepart(int endtok)
 {
-        register struct op *t;
-        register int c;
+        struct op *t;
+        int c;
         XPtrV ptns;
 
         XPinit(ptns, 16);
@@ -521,7 +503,7 @@ casepart(endtok)
         t->vars = (char **) XPclose(ptns);
         musthave(')', 0);
 
-        t->left = c_list(TRUE);
+        t->left = c_list(true);
         /* Note: Posix requires the ;; */
         if ((tpeek(CONTIN|KEYWORD|ALIAS)) != endtok)
                 musthave(BREAK, CONTIN|KEYWORD|ALIAS);
@@ -529,9 +511,8 @@ casepart(endtok)
 }
 
 static struct op *
-function_body(name, ksh_func)
-        char *name;
-        int ksh_func;   /* function foo { ... } vs foo() { .. } */
+function_body(char *name, 
+        int ksh_func)   /* function foo { ... } vs foo() { .. } */
 {
         char *sname, *p;
         struct op *t;
@@ -590,9 +571,9 @@ function_body(name, ksh_func)
 }
 
 static char **
-wordlist()
+wordlist(void)
 {
-        register int c;
+        int c;
         XPtrV args;
 
         XPinit(args, 16);
@@ -620,12 +601,9 @@ wordlist()
  */
 
 static struct op *
-block(type, t1, t2, wp)
-        int type;
-        struct op *t1, *t2;
-        char **wp;
+block(int type, struct op *t1, struct op *t2, char **wp)
 {
-        register struct op *t;
+        struct op *t;
 
         t = newtp(type);
         t->left = t1;
@@ -640,48 +618,42 @@ const   struct tokeninfo {
         short   reserved;
 } tokentab[] = {
         /* Reserved words */
-        { "if",         IF,     TRUE },
-        { "then",       THEN,   TRUE },
-        { "else",       ELSE,   TRUE },
-        { "elif",       ELIF,   TRUE },
-        { "fi",         FI,     TRUE },
-        { "case",       CASE,   TRUE },
-        { "esac",       ESAC,   TRUE },
-        { "for",        FOR,    TRUE },
-#ifdef KSH
-        { "select",     SELECT, TRUE },
-#endif /* KSH */
-        { "while",      WHILE,  TRUE },
-        { "until",      UNTIL,  TRUE },
-        { "do",         DO,     TRUE },
-        { "done",       DONE,   TRUE },
-        { "in",         IN,     TRUE },
-        { "function",   FUNCTION, TRUE },
-        { "time",       TIME,   TRUE },
-        { "{",          '{',    TRUE },
-        { "}",          '}',    TRUE },
-        { "!",          BANG,   TRUE },
-#ifdef KSH
-        { "[[",         DBRACKET, TRUE },
-#endif /* KSH */
+        { "if",         IF,     true },
+        { "then",       THEN,   true },
+        { "else",       ELSE,   true },
+        { "elif",       ELIF,   true },
+        { "fi",         FI,     true },
+        { "case",       CASE,   true },
+        { "esac",       ESAC,   true },
+        { "for",        FOR,    true },
+        { "select",     SELECT, true },
+        { "while",      WHILE,  true },
+        { "until",      UNTIL,  true },
+        { "do",         DO,     true },
+        { "done",       DONE,   true },
+        { "in",         IN,     true },
+        { "function",   FUNCTION, true },
+        { "time",       TIME,   true },
+        { "{",          '{',    true },
+        { "}",          '}',    true },
+        { "!",          BANG,   true },
+        { "[[",         DBRACKET, true },
         /* Lexical tokens (0[EOF], LWORD and REDIR handled specially) */
-        { "&&",         LOGAND, FALSE },
-        { "||",         LOGOR,  FALSE },
-        { ";;",         BREAK,  FALSE },
-#ifdef KSH
-        { "((",         MDPAREN, FALSE },
-        { "|&",         COPROC, FALSE },
-#endif /* KSH */
+        { "&&",         LOGAND, false },
+        { "||",         LOGOR,  false },
+        { ";;",         BREAK,  false },
+        { "((",         MDPAREN, false },
+        { "|&",         COPROC, false },
         /* and some special cases... */
-        { "newline",    '\n',   FALSE },
+        { "newline",    '\n',   false },
         { 0 }
 };
 
 void
-initkeywords()
+initkeywords(void)
 {
-        register struct tokeninfo const *tt;
-        register struct tbl *p;
+        struct tokeninfo const *tt;
+        struct tbl *p;
 
         tinit(&keywords, APERM, 32); /* must be 2^n (currently 20 keywords) */
         for (tt = tokentab; tt->name; tt++) {
@@ -695,8 +667,7 @@ initkeywords()
 }
 
 static void
-syntaxerr(what)
-        const char *what;
+syntaxerr(const char *what)
 {
         char redir[6];  /* 2<<- is the longest redirection, I think */
         const char *s;
@@ -748,9 +719,7 @@ syntaxerr(what)
 }
 
 static void
-nesting_push(save, tok)
-        struct nesting_state *save;
-        int tok;
+nesting_push(struct nesting_state *save, int tok)
 {
         *save = nesting;
         nesting.start_token = tok;
@@ -758,17 +727,15 @@ nesting_push(save, tok)
 }
 
 static void
-nesting_pop(saved)
-        struct nesting_state *saved;
+nesting_pop(struct nesting_state *saved)
 {
         nesting = *saved;
 }
 
 static struct op *
-newtp(type)
-        int type;
+newtp(int type)
 {
-        register struct op *t;
+        struct op *t;
 
         t = (struct op *) alloc(sizeof(*t), ATEMP);
         t->type = type;
@@ -781,8 +748,7 @@ newtp(type)
 }
 
 struct op *
-compile(s)
-        Source *s;
+compile(Source *s)
 {
         nesting.start_token = 0;
         nesting.start_line = 0;
@@ -803,8 +769,7 @@ compile(s)
  *      $ 
  */
 static int
-assign_command(s)
-        char *s;
+assign_command(char *s)
 {
         char c = *s;
 
@@ -818,8 +783,7 @@ assign_command(s)
 
 /* Check if we are in the middle of reading an alias */
 static int
-inalias(s)
-        struct source *s;
+inalias(struct source *s)
 {
         for (; s && s->type == SALIAS; s = s->next)
                 if (!(s->flags & SF_ALIASEND))
@@ -827,8 +791,6 @@ inalias(s)
         return 0;
 }
 
-
-#ifdef KSH
 /* Order important - indexed by Test_meta values
  * Note that ||, &&, ( and ) can't appear in as unquoted strings
  * in normal shell input, so these can be interpreted unambiguously
@@ -852,9 +814,7 @@ const char db_gthan[] = { CHAR, '>', EOS };
  * TM_UNOP and TM_BINOP, the returned value is a Test_op).
  */
 static int
-dbtestp_isa(te, meta)
-        Test_env *te;
-        Test_meta meta;
+dbtestp_isa(Test_env *te, Test_meta meta)
 {
         int c = tpeek(ARRAYVAR | (meta == TM_BINOP ? 0 : CONTIN));
         int uqword = 0;
@@ -898,10 +858,7 @@ dbtestp_isa(te, meta)
 }
 
 static const char *
-dbtestp_getopnd(te, op, do_eval)
-        Test_env *te;
-        Test_op op;
-        int do_eval;
+dbtestp_getopnd(Test_env *te, Test_op op, int do_eval)
 {
         int c = tpeek(ARRAYVAR);
 
@@ -915,21 +872,14 @@ dbtestp_getopnd(te, op, do_eval)
 }
 
 static int
-dbtestp_eval(te, op, opnd1, opnd2, do_eval)
-        Test_env *te;
-        Test_op op;
-        const char *opnd1;
-        const char *opnd2;
-        int do_eval;
+dbtestp_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
+        int do_eval)
 {
         return 1;
 }
 
 static void
-dbtestp_error(te, offset, msg)
-        Test_env *te;
-        int offset;
-        const char *msg;
+dbtestp_error(Test_env *te, int offset, const char *msg)
 {
         te->flags |= TEF_ERROR;
 
@@ -942,4 +892,3 @@ dbtestp_error(te, offset, msg)
         }
         syntaxerr(msg);
 }
-#endif /* KSH */

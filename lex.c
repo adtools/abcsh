@@ -3,6 +3,7 @@
  */
 
 #include "sh.h"
+#include <libgen.h>
 #include <ctype.h>
 
 
@@ -50,16 +51,16 @@ struct State_info {
 };
 
 
-static void     readhere ARGS((struct ioword *iop));
-static int      getsc__ ARGS((void));
-static void     getsc_line ARGS((Source *s));
-static int      getsc_bn ARGS((void));
-static char     *get_brace_var ARGS((XString *wsp, char *wp));
-static int      arraysub ARGS((char **strp));
-static const char *ungetsc ARGS((int c));
-static void     gethere ARGS((void));
-static Lex_state *push_state_ ARGS((State_info *si, Lex_state *old_end));
-static Lex_state *pop_state_ ARGS((State_info *si, Lex_state *old_end));
+static void     readhere(struct ioword *);
+static int      getsc__(void);
+static void     getsc_line(Source *);
+static int      getsc_bn(void);
+static char     *get_brace_var(XString *, char *);
+static int      arraysub(char **);
+static const char *ungetsc(int);
+static void     gethere(void);
+static Lex_state *push_state_(State_info *, Lex_state *);
+static Lex_state *pop_state_(State_info *, Lex_state *);
 
 static int backslash_skip;
 static int ignore_backslash_newline;
@@ -95,14 +96,13 @@ static int ignore_backslash_newline;
  */
 
 int
-yylex(cf)
-        int cf;
+yylex(int cf)
 {
         Lex_state states[STATE_BSIZE], *statep;
         State_info state_info;
-        register int c, state;
+        int c, state;
         XString ws;             /* expandable output word */
-        register char *wp;      /* output word pointer */
+        char *wp;               /* output word pointer */
         char *sp, *dp;
         int c2;
         int last_terminal_was_bracket;
@@ -122,13 +122,11 @@ yylex(cf)
 
         if (cf&ONEWORD)
                 state = SWORD;
-#ifdef KSH
         else if (cf&LETEXPR) {
                 *wp++ = OQUOTE;  /* enclose arguments in (double) quotes */
                 state = SLETPAREN;
                 statep->ls_sletparen.nparen = 0;
         }
-#endif /* KSH */
         else {          /* normal lexing */
                 state = (cf & HEREDELIM) ? SHEREDELIM : SBASE;
                 while ((c = getsc()) == ' ' || c == '\t')
@@ -154,16 +152,15 @@ yylex(cf)
         statep->ls_state = state;
 
         /* collect non-special or quoted characters to form word */
-        while (!((c = getsc()) == 0
-                 || ((state == SBASE || state == SHEREDELIM)
-                     && ctype(c, C_LEX1))))
+        while (!((c = getsc()) == 0 ||
+                ((state == SBASE || state == SHEREDELIM) && ctype(c, C_LEX1))))
         {
                 Xcheck(ws, wp);
                 switch (state) {
                   case SBASE:
                         if (c == '[' && (cf & (VARASN|ARRAYVAR))) {
                                 *wp = EOS; /* temporary */
-                                if (is_wdvarname(Xstring(ws, wp), FALSE))
+                                if (is_wdvarname(Xstring(ws, wp), false))
                                 {
                                         char *p, *tmp;
 
@@ -194,9 +191,8 @@ yylex(cf)
                         }
                         /* fall through.. */
                   Sbase1:       /* includes *(...|...) pattern (*+?@!) */
-#ifdef KSH
-                        if (c == '*' || c == '@' || c == '+' || c == '?'
-                            || c == '!')
+                        if (c == '*' || c == '@' || c == '+' || c == '?' ||
+                                c == '!')
                         {
                                 c2 = getsc();
                                 if (c2 == '(' /*)*/ ) {
@@ -207,7 +203,6 @@ yylex(cf)
                                 }
                                 ungetsc(c2);
                         }
-#endif /* KSH */
                         /* fall through.. */
                   Sbase2:       /* doesn't include *(...|...) pattern (*+?@!) */
                         switch (c) {
@@ -524,7 +519,6 @@ yylex(cf)
                   case SWORD:   /* ONEWORD */
                         goto Subst;
 
-#ifdef KSH
                   case SLETPAREN:       /* LETEXPR: (( ... )) */
                         /*(*/
                         if (c == ')') {
@@ -544,7 +538,6 @@ yylex(cf)
                                  */
                                 ++statep->ls_sletparen.nparen;
                         goto Sbase2;
-#endif /* KSH */
 
                   case SHEREDELIM:      /* <<,<<- delimiter */
                         /* XXX chuck this state (and the next) - use
@@ -679,10 +672,8 @@ Done:
                                     (c == '|') ? LOGOR :
                                     (c == '&') ? LOGAND :
                                     YYERRCODE;
-#ifdef KSH
                         else if (c == '|' && c2 == '&')
                                 c = COPROC;
-#endif /* KSH */
                         else
                                 ungetsc(c2);
                         return c;
@@ -694,7 +685,6 @@ Done:
                         return c;
 
                   case '(':  /*)*/
-#ifdef KSH
                         if (!Flag(FSH)) {
                                 if ((c2 = getsc()) == '(') /*)*/
                                         /* XXX need to handle ((...); (...)) */
@@ -702,7 +692,6 @@ Done:
                                 else
                                         ungetsc(c2);
                         }
-#endif /* KSH */
                         return c;
                   /*(*/
                   case ')':
@@ -712,11 +701,7 @@ Done:
 
         *wp++ = EOS;            /* terminate word */
         yylval.cp = Xclose(ws, wp);
-        if (state == SWORD
-#ifdef KSH
-                || state == SLETPAREN
-#endif /* KSH */
-                )       /* ONEWORD? */
+        if (state == SWORD || state == SLETPAREN)       /* ONEWORD? */
                 return LWORD;
 
         last_terminal_was_bracket = c == '(';
@@ -753,7 +738,7 @@ Done:
                     */
                 	tdelete(p);
                    } else {
-                        register Source *s;
+                        Source *s;
 
                         for (s = source; s->type == SALIAS; s = s->next)
                                 if (s->u.tblp == p)
@@ -774,9 +759,9 @@ Done:
 }
 
 static void
-gethere()
+gethere(void)
 {
-        register struct ioword **p;
+        struct ioword **p;
 
         for (p = heres; p < herep; p++)
                 readhere(*p);
@@ -788,10 +773,9 @@ gethere()
  */
 
 static void
-readhere(iop)
-        struct ioword *iop;
+readhere(struct ioword *iop)
 {
-        register int c;
+        int c;
         char *volatile eof;
         char *eofp;
         int skiptabs;
@@ -856,8 +840,8 @@ yyerror(const char *fmt, ...)
                 source = source->next;
         source->str = null;     /* zap pending input */
 
-        error_prefix(TRUE);
-        SH_VA_START(va, fmt);
+        error_prefix(true);
+        va_start(va, fmt);
         shf_vfprintf(shl_out, fmt, va);
         va_end(va);
         errorf(null);
@@ -868,11 +852,9 @@ yyerror(const char *fmt, ...)
  */
 
 Source *
-pushs(type, areap)
-        int type;
-        Area *areap;
+pushs(int type, Area *areap)
 {
-        register Source *s;
+        Source *s;
 
         s = (Source *) alloc(sizeof(Source), areap);
         s->type = type;
@@ -893,10 +875,10 @@ pushs(type, areap)
 }
 
 static int
-getsc__()
+getsc__(void)
 {
-        register Source *s = source;
-        register int c;
+        Source *s = source;
+        int c;
 
         while ((c = *s->str++) == 0) {
                 s->str = NULL;          /* return 0 for EOF by default */
@@ -994,8 +976,7 @@ getsc__()
 }
 
 static void
-getsc_line(s)
-        Source *s;
+getsc_line(Source *s)
 {
         char *xp = Xstring(s->xs, xp);
         int interactive = Flag(FTALKING) && s->type == SSTDIN;
@@ -1006,12 +987,10 @@ getsc_line(s)
         *xp = '\0';
         s->start = s->str = xp;
 
-#ifdef KSH
         if (have_tty && ksh_tmout) {
                 ksh_tmout_state = TMOUT_READING;
                 alarm(ksh_tmout);
         }
-#endif /* KSH */
         {
                 if (interactive) {
                         pprompt(prompt, 0);
@@ -1049,13 +1028,11 @@ getsc_line(s)
          * trap may have been executed.
          */
         source = s;
-#ifdef KSH
         if (have_tty && ksh_tmout)
         {
                 ksh_tmout_state = TMOUT_EXECUTING;
                 alarm(0);
         }
-#endif /* KSH */
         s->start = s->str = Xstring(s->xs, xp);
         strip_nuls(Xstring(s->xs, xp), Xlength(s->xs, xp));
         /* Note: if input is all nulls, this is not eof */
@@ -1070,54 +1047,29 @@ getsc_line(s)
 }
 
 void
-set_prompt(to, s)
-        int to;
-        Source *s;
+set_prompt(int to, Source *s)
 {
+        char *ps1;
+        Area *saved_atemp;
         cur_prompt = to;
 
         switch (to) {
         case PS1: /* command */
-#ifdef KSH
-                /* Substitute ! and !! here, before substitutions are done
-                 * so ! in expanded variables are not expanded.
-                 * NOTE: this is not what at&t ksh does (it does it after
-                 * substitutions, POSIX doesn't say which is to be done.
-                 */
-                {
-                        struct shf *shf;
-                        char * volatile ps1;
-                        Area *saved_atemp;
-
-                        ps1 = str_val(global("PS1"));
-                        shf = shf_sopen((char *) 0, strlen(ps1) * 2,
-                                SHF_WR | SHF_DYNAMIC, (struct shf *) 0);
-                        while (*ps1) {
-                                if (*ps1 != '!' || *++ps1 == '!')
-                                        shf_putchar(*ps1++, shf);
-                                else
-                                        shf_fprintf(shf, "%d",
-                                                s ? s->line + 1 : 0);
-                        }
-                        ps1 = shf_sclose(shf);
-                        saved_atemp = ATEMP;
-                        newenv(E_ERRH);
-                        if (ksh_sigsetjmp(e->jbuf, 0)) {
-                                prompt = safe_prompt;
-                                /* Don't print an error - assume it has already
-                                 * been printed.  Reason is we may have forked
-                                 * to run a command and the child may be
-                                 * unwinding its stack through this code as it
-                                 * exits.
-                                 */
-                        } else
-                                prompt = str_save(substitute(ps1, 0),
-                                                 saved_atemp);
-                        quitenv();
-                }
-#else /* KSH */
-                prompt = str_val(global("PS1"));
-#endif /* KSH */
+                ps1 = str_save(str_val(global("PS1")), ATEMP);
+                saved_atemp = ATEMP;	/* ps1 is freed by substitute() */
+                newenv(E_ERRH);
+                if (ksh_sigsetjmp(e->jbuf, 0)) {
+                        prompt = safe_prompt;
+                        /* Don't print an error - assume it has already
+                         * been printed.  Reason is we may have forked
+                         * to run a command and the child may be
+                         * unwinding its stack through this code as it
+                         * exits.
+                         */
+                } else
+                        prompt = str_save(substitute(ps1, 0),
+                                saved_atemp);
+                quitenv(NULL);
                 break;
 
         case PS2: /* command continuation */
@@ -1126,23 +1078,230 @@ set_prompt(to, s)
         }
 }
 
-/* See also related routine, promptlen() in edit.c */
-void
-pprompt(cp, ntruncate)
-        const char *cp;
-        int ntruncate;
+static int
+dopprompt(const char *sp, int ntruncate, const char **spp, int doprint)
 {
-#if 0
-        char nbuf[32];
-        int c;
+        char strbuf[1024], tmpbuf[1024], *p, *str, nbuf[32], delimiter = '\0';
+        int len, c, n, totlen = 0, indelimit = 0, counting = 1, delimitthis;
+        const char *cp = sp;
+        struct tm *tm;
+        time_t t;
 
-        while (*cp != 0) {
-                if (*cp != '!')
+        if (*cp && cp[1] == '\r') {
+                delimiter = *cp;
+                cp += 2;
+        }
+
+         while (*cp != 0) {
+                delimitthis = 0;
+                if (indelimit && *cp != delimiter)
+                        ;
+                else if (*cp == '\n' || *cp == '\r') {
+                        totlen = 0;
+                        sp = cp + 1;
+                } else if (*cp == '\t') {
+                        if (counting)
+                                totlen = (totlen | 7) + 1;
+                } else if (*cp == delimiter) {
+                        indelimit = !indelimit;
+                        delimitthis = 1;
+                }
+
+                if (*cp == '\\') {
+                        cp++;
+                        if (!*cp)
+                                break;
+                        if (Flag(FSH))
+                                snprintf(strbuf, sizeof strbuf, "\\%c", *cp);
+                        else switch (*cp) {
+                        case 'a':        /* '\' 'a' bell */
+                                strbuf[0] = '\007';
+                                strbuf[1] = '\0';
+                                break;
+                        case 'd':        /* '\' 'd' Dow Mon DD */
+                                time(&t);
+                                tm = localtime(&t);
+                                strftime(strbuf, sizeof strbuf, "%a %b %d", tm);
+                                break;
+                        case 'D':        /* '\' 'D' '{' strftime format '}' */
+                                p = strchr(cp + 2, '}');
+                                if (cp[1] != '{' || p == NULL) {
+                                        snprintf(strbuf, sizeof strbuf,
+                                                "\\%c", *cp);
+                                        break;
+                                }
+                                strlcpy(tmpbuf, cp + 2, sizeof tmpbuf);
+                                p = strchr(tmpbuf, '}');
+                                if (p)
+                                        *p = '\0';
+                                time(&t);
+                                tm = localtime(&t);
+                                strftime(strbuf, sizeof strbuf, tmpbuf, tm);
+                                cp = strchr(cp + 2, '}');
+                                break;
+                        case 'e':        /* '\' 'e' escape */
+                                strbuf[0] = '\033';
+                                strbuf[1] = '\0';
+                                break;
+                        case 'h':        /* '\' 'h' shortened hostname */
+                                gethostname(strbuf, sizeof strbuf);
+                                p = strchr(strbuf, '.');
+                                if (p)
+                                        *p = '\0';
+                                break;
+                        case 'H':        /* '\' 'H' full hostname */
+                                gethostname(strbuf, sizeof strbuf);
+                                break;
+                        case 'j':        /* '\' 'j' number of jobs */
+                                snprintf(strbuf, sizeof strbuf, "%d",
+                                        j_njobs());
+                                break;
+                        case 'l':        /* '\' 'l' basename of tty */
+                                p = ttyname(0);
+                                if (p)
+                                        p = basename(p);
+                                if (p)
+                                        strlcpy(strbuf, p, sizeof strbuf);
+                                break;
+                        case 'n':        /* '\' 'n' newline */
+                                strbuf[0] = '\n';
+                                strbuf[1] = '\0';
+                                totlen = 0;        /* reset for prompt re-print */
+                                sp = cp + 1;
+                                break;
+                        case 'r':        /* '\' 'r' return */
+                                strbuf[0] = '\r';
+                                strbuf[1] = '\0';
+                                totlen = 0;        /* reset for prompt re-print */
+                                sp = cp + 1;
+                                break;
+                        case 's':        /* '\' 's' basename $0 */
+                                strlcpy(strbuf, kshname, sizeof strbuf);
+                                break;
+                        case 't':        /* '\' 't' 24 hour HH:MM:SS */
+                                time(&t);
+                                tm = localtime(&t);
+                                strftime(strbuf, sizeof strbuf, "%T", tm);
+                                break;
+                        case 'T':        /* '\' 'T' 12 hour HH:MM:SS */
+                                time(&t);
+                                tm = localtime(&t);
+                                strftime(strbuf, sizeof strbuf, "%l:%M:%S", tm);
+                                break;
+                        case '@':        /* '\' '@' 12 hour am/pm format */
+                                time(&t);
+                                tm = localtime(&t);
+                                strftime(strbuf, sizeof strbuf, "%r", tm);
+                                break;
+                        case 'A':        /* '\' 'A' 24 hour HH:MM */
+                                time(&t);
+                                tm = localtime(&t);
+                                strftime(strbuf, sizeof strbuf, "%R", tm);
+                                break;
+                        case 'v':        /* '\' 'v' version (short) */
+                                p = strchr(ksh_version, ' ');
+                                if (p)
+                                        p = strchr(p + 1, ' ');
+                                if (p) {
+                                        p++;
+                                        strlcpy(strbuf, p, sizeof strbuf);
+                                        p = strchr(strbuf, ' ');
+                                        if (p)
+                                                *p = '\0';
+                                }
+                                break;
+                        case 'V':        /* '\' 'V' version (long) */
+                                strlcpy(strbuf, ksh_version, sizeof strbuf);
+                                break;
+                        case 'w':        /* '\' 'w' cwd */
+                                p = str_val(global("PWD"));
+                                n = strlen(str_val(global("HOME")));
+                                if (strcmp(p, "/") == 0) {
+                                        strlcpy(strbuf, p, sizeof strbuf);
+                                } else if (strcmp(p, str_val(global("HOME"))) == 0) {
+                                        strbuf[0] = '~';
+                                        strbuf[1] = '\0';
+                                } else if (strncmp(p, str_val(global("HOME")), n)
+                                        == 0 && p[n] == '/') {
+                                        snprintf(strbuf, sizeof strbuf, "~/%s",
+                                                str_val(global("PWD")) + n + 1);
+                                } else
+                                        strlcpy(strbuf, p, sizeof strbuf);
+                                break;
+                        case 'W':        /* '\' 'W' basename(cwd) */
+                                p = str_val(global("PWD"));
+                                strlcpy(strbuf, basename(p), sizeof strbuf);
+                                break;
+                        case '!':	/* '\' '!' history line number XXX busted */
+                                snprintf(strbuf, sizeof strbuf, "%d",
+                                        source->line + 1);
+                                break;
+                        case '#':        /* '\' '#' command line number XXX busted */
+                                snprintf(strbuf, sizeof strbuf, "%d",
+                                        source->line + 1);
+                                break;
+                        case '$':        /* '\' '$' $ or # XXX busted */
+                                strbuf[0] = ksheuid ? '$' : '#';
+                                strbuf[1] = '\0';
+                                break;
+                        case '0':        /* '\' '#' '#' ' #' octal numeric handling */
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                                if ((cp[1] > '7' || cp[1] < '0') ||
+                                        (cp[2] > '7' || cp[2] < '0')) {
+                                        snprintf(strbuf, sizeof strbuf,
+                                                "\\%c", *cp);
+                                        break;
+                                }
+                                n = cp[0] * 8 * 8 + cp[1] * 8 + cp[2];
+                                snprintf(strbuf, sizeof strbuf, "%c", n);
+                                cp += 2;
+                                break;
+                        case '\\':        /* '\' '\' */
+                                strbuf[0] = '\\';
+                                strbuf[1] = '\0';
+                                break;
+                        case '[':        /* '\' '[' .... stop counting */
+                                strbuf[0] = '\0';
+                                counting = 0;
+                                break;
+                        case ']':        /* '\' ']' restart counting */
+                                strbuf[0] = '\0';
+                                counting = 1;
+                                break;
+
+                        default:
+                                snprintf(strbuf, sizeof strbuf, "\\%c", *cp);
+                                break;
+                        }
+                        cp++;
+
+                        str = strbuf;
+                        len = strlen(str);
+                        if (ntruncate) {
+                                if (ntruncate >= len) {
+                                        ntruncate -= len;
+                                        continue;
+                                }
+                                str += ntruncate;
+                                len -= ntruncate;
+                                ntruncate = 0;
+                        }
+                        if (doprint)
+                                shf_write(str, len, shl_out);
+                        if (counting && !indelimit && !delimitthis)
+                                totlen += len;
+                        continue;
+                } else if (*cp != '!')
                         c = *cp++;
                 else if (*++cp == '!')
                         c = *cp++;
                 else {
-                        int len;
                         char *p;
 
                         shf_snprintf(p = nbuf, sizeof(nbuf), "%d",
@@ -1157,26 +1316,44 @@ pprompt(cp, ntruncate)
                                 len -= ntruncate;
                                 ntruncate = 0;
                         }
-                        shf_write(p, len, shl_out);
+                        if (doprint)
+                                shf_write(p, len, shl_out);
+                        if (counting && !indelimit && !delimitthis)
+                                totlen += len;
                         continue;
                 }
                 if (ntruncate)
                         --ntruncate;
-                else
+                else if (doprint) {
                         shf_putc(c, shl_out);
+                }
+                if (counting && !indelimit && !delimitthis)
+                        totlen++;
         }
-#endif /* 0 */
-        shf_puts(cp + ntruncate, shl_out);
-        shf_flush(shl_out);
+        if (doprint)
+                shf_flush(shl_out);
+        if (spp)
+                *spp = sp;
+        return (totlen);
+}
+
+void
+pprompt(const char *cp, int ntruncate)
+{
+        dopprompt(cp, ntruncate, NULL, 1);
+}
+
+int
+promptlen(const char *cp, const char **spp)
+{
+        return dopprompt(cp, 0, spp, 0);
 }
 
 /* Read the variable part of a ${...} expression (ie, up to but not including
  * the :[-+?=#%] or close-brace.
  */
 static char *
-get_brace_var(wsp, wp)
-        XString *wsp;
-        char *wp;
+get_brace_var(XString *wsp, char *wp)
 {
         enum parse_state {
                            PS_INITIAL, PS_SAW_HASH, PS_IDENT,
@@ -1251,8 +1428,7 @@ get_brace_var(wsp, wp)
  * (Returned string double null terminated)
  */
 static int
-arraysub(strp)
-        char **strp;
+arraysub(char **strp)
 {
         XString ws;
         char    *wp;
@@ -1279,8 +1455,7 @@ arraysub(strp)
 
 /* Unget a char: handles case when we are already at the start of the buffer */
 static const char *
-ungetsc(c)
-        int c;
+ungetsc(int c)
 {
         if (backslash_skip)
                 backslash_skip--;
@@ -1304,7 +1479,7 @@ ungetsc(c)
 
 /* Called to get a char that isn't a \newline sequence. */
 static int
-getsc_bn ARGS((void))
+getsc_bn(void)
 {
         int c, c2;
 
@@ -1332,9 +1507,7 @@ getsc_bn ARGS((void))
 }
 
 static Lex_state *
-push_state_(si, old_end)
-        State_info *si;
-        Lex_state *old_end;
+push_state_(State_info *si, Lex_state *old_end)
 {
         Lex_state       *new = alloc(sizeof(Lex_state) * STATE_BSIZE, ATEMP);
 
@@ -1345,9 +1518,7 @@ push_state_(si, old_end)
 }
 
 static Lex_state *
-pop_state_(si, old_end)
-        State_info *si;
-        Lex_state *old_end;
+pop_state_(State_info *si, Lex_state *old_end)
 {
         Lex_state *old_base = si->base;
 

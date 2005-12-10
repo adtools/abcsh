@@ -6,7 +6,7 @@
 #define FROM_TRAP_C
 #include "sh.h"
 
-Trap sigtraps[SIGNALS+1] = {
+Trap sigtraps[NSIG+1] = {
         { SIGEXIT_, "EXIT", "Signal 0" },
 #include "siglist.h"
         { SIGERR_,  "ERR",  "Error handler" },
@@ -15,10 +15,10 @@ Trap sigtraps[SIGNALS+1] = {
 static struct sigaction Sigact_ign, Sigact_trap;
 
 void
-inittraps()
+inittraps(void)
 {
         sigemptyset(&Sigact_ign.sa_mask);
-        Sigact_ign.sa_flags = KSH_SA_FLAGS;
+        Sigact_ign.sa_flags = 0; /* interruptible */
         Sigact_ign.sa_handler = SIG_IGN;
         Sigact_trap = Sigact_ign;
         Sigact_trap.sa_handler = trapsig;
@@ -36,11 +36,10 @@ inittraps()
         setsig(&sigtraps[SIGHUP], trapsig, SS_RESTORE_ORIG);
 }
 
-#ifdef KSH
-static void alarm_catcher ARGS((int sig));
+static void alarm_catcher(int sig);
 
 void
-alarm_init()
+alarm_init(void)
 {
         sigtraps[SIGALRM].flags |= TF_SHELL_USES;
         setsig(&sigtraps[SIGALRM], alarm_catcher,
@@ -48,8 +47,7 @@ alarm_init()
 }
 
 static void
-alarm_catcher(sig)
-        int sig;
+alarm_catcher(int sig)
 {
         int errno_ = errno;
 
@@ -65,27 +63,36 @@ alarm_catcher(sig)
         errno = errno_;
         return;
 }
-#endif /* KSH */
 
 Trap *
-gettrap(name, igncase)
-        const char *name;
-        int igncase;
+gettrap(const char *name, int igncase)
 {
         int i;
-        register Trap *p;
+        Trap *p;
 
         if (digit(*name)) {
                 int n;
 
-                if (getn(name, &n) && 0 <= n && n < SIGNALS)
+                if (getn(name, &n) && 0 <= n && n < NSIG)
                         return &sigtraps[n];
                 return NULL;
         }
-        for (p = sigtraps, i = SIGNALS+1; --i >= 0; p++)
-                if (p->name && (igncase ? strcasecmp(p->name, name) == 0
-                                        : strcmp(p->name, name) == 0))
-                        return p;
+        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
+        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
+                if (p->name) {
+                        if (igncase) {
+                                if (p->name && (!strcasecmp(p->name, name) ||
+                                        (strlen(name) > 3 && !strncasecmp("SIG",
+                                        p->name, 3) &&
+                                        !strcasecmp(p->name, name + 3))))
+                                                return p;
+                        } else {
+                                if (p->name && (!strcmp(p->name, name) ||
+                                        (strlen(name) > 3 && !strncmp("SIG",
+                                        p->name, 3) && !strcmp(p->name, name + 3))))
+                                                return p;
+                        }
+                }
         return NULL;
 }
 
@@ -93,8 +100,7 @@ gettrap(name, igncase)
  * trap signal handler
  */
 void
-trapsig(i)
-        int i;
+trapsig(int i)
 {
         Trap *p = &sigtraps[i];
         int errno_ = errno;
@@ -118,7 +124,7 @@ trapsig(i)
  * work if user has trapped SIGINT.
  */
 void
-intrcheck()
+intrcheck(void)
 {
         if (intrsig)
                 runtraps(TF_DFL_INTR|TF_FATAL);
@@ -128,13 +134,13 @@ intrcheck()
  * termination has been received.
  */
 int
-fatal_trap_check()
+fatal_trap_check(void)
 {
         int i;
         Trap *p;
 
         /* todo: should check if signal is fatal, not the TF_DFL_INTR flag */
-        for (p = sigtraps, i = SIGNALS+1; --i >= 0; p++)
+        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
                 if (p->set && (p->flags & (TF_DFL_INTR|TF_FATAL)))
                         /* return value is used as an exit code */
                         return 128 + p->signal;
@@ -142,19 +148,18 @@ fatal_trap_check()
 }
 
 /* Returns the signal number of any pending traps: ie, a signal which has
- * occured for which a trap has been set or for which the TF_DFL_INTR flag
+ * occurred for which a trap has been set or for which the TF_DFL_INTR flag
  * is set.
  */
 int
-trap_pending()
+trap_pending(void)
 {
         int i;
         Trap *p;
 
-        for (p = sigtraps, i = SIGNALS+1; --i >= 0; p++)
-                if (p->set && ((p->trap && p->trap[0])
-                               || ((p->flags & (TF_DFL_INTR|TF_FATAL))
-                                   && !p->trap)))
+        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
+                if (p->set && ((p->trap && p->trap[0]) ||
+                        ((p->flags & (TF_DFL_INTR|TF_FATAL)) && !p->trap)))
                         return p->signal;
         return 0;
 }
@@ -164,43 +169,39 @@ trap_pending()
  * can interrupt commands.
  */
 void
-runtraps(flag)
-        int flag;
+runtraps(int flag)
 {
         int i;
-        register Trap *p;
+        Trap *p;
 
-#ifdef KSH
         if (ksh_tmout_state == TMOUT_LEAVING) {
                 ksh_tmout_state = TMOUT_EXECUTING;
-                warningf(FALSE, "timed out waiting for input");
+                warningf(false, "timed out waiting for input");
                 unwind(LEXIT);
         } else
                 /* XXX: this means the alarm will have no effect if a trap
                  * is caught after the alarm() was started...not good.
                  */
                 ksh_tmout_state = TMOUT_EXECUTING;
-#endif /* KSH */
         if (!flag)
                 trap = 0;
         if (flag & TF_DFL_INTR)
                 intrsig = 0;
         if (flag & TF_FATAL)
                 fatal_trap = 0;
-        for (p = sigtraps, i = SIGNALS+1; --i >= 0; p++)
-                if (p->set && (!flag
-                               || ((p->flags & flag) && p->trap == (char *) 0)))
+        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
+                if (p->set && (!flag ||
+                        ((p->flags & flag) && p->trap == (char *) 0)))
                         runtrap(p);
 }
 
 void
-runtrap(p)
-        Trap *p;
+runtrap(Trap *p)
 {
         int     i = p->signal;
         char    *trapstr = p->trap;
         int     oexstat;
-        int     UNINITIALIZED(old_changed);
+        int     old_changed = 0;
 
         p->set = 0;
         if (trapstr == (char *) 0) { /* SIG_DFL */
@@ -241,7 +242,7 @@ runtrap(p)
  
 /* clear pending traps and reset user's trap handlers; used after fork(2) */
 void
-cleartraps()
+cleartraps(void)
 {
         int i;
         Trap *p;
@@ -249,7 +250,7 @@ cleartraps()
         trap = 0;
         intrsig = 0;
         fatal_trap = 0;
-        for (i = SIGNALS+1, p = sigtraps; --i >= 0; p++) {
+        for (i = NSIG+1, p = sigtraps; --i >= 0; p++) {
                 p->set = 0;
                 if ((p->flags & TF_USER_SET) && (p->trap && p->trap[0]))
                         settrap(p, (char *) 0);
@@ -258,23 +259,21 @@ cleartraps()
 
 /* restore signals just before an exec(2) */
 void
-restoresigs()
+restoresigs(void)
 {
         int i;
         Trap *p;
 
-        for (i = SIGNALS+1, p = sigtraps; --i >= 0; p++)
+        for (i = NSIG+1, p = sigtraps; --i >= 0; p++)
                 if (p->flags & (TF_EXEC_IGN|TF_EXEC_DFL))
                         setsig(p, (p->flags & TF_EXEC_IGN) ? SIG_IGN : SIG_DFL,
                                 SS_RESTORE_CURR|SS_FORCE);
 }
 
 void
-settrap(p, s)
-        Trap *p;
-        char *s;
+settrap(Trap *p, char *s)
 {
-        handler_t f;
+        sig_t f;
 
         if (p->trap)
                 afree(p->trap, APERM);
@@ -308,7 +307,7 @@ settrap(p, s)
  * kill shell (unless user catches it and exits)
  */
 int
-block_pipe()
+block_pipe(void)
 {
         int restore_dfl = 0;
         Trap *p = &sigtraps[SIGPIPE];
@@ -326,8 +325,7 @@ block_pipe()
 
 /* Called by c_print() to undo whatever block_pipe() did */
 void
-restore_pipe(restore_dfl)
-        int restore_dfl;
+restore_pipe(int restore_dfl)
 {
         if (restore_dfl)
                 setsig(&sigtraps[SIGPIPE], SIG_DFL, SS_RESTORE_CURR);
@@ -338,10 +336,7 @@ restore_pipe(restore_dfl)
  * FTALKING.
  */
 int
-setsig(p, f, flags)
-        Trap *p;
-        handler_t f;
-        int flags;
+setsig(Trap *p, sig_t f, int flags)
 {
         struct sigaction sigact;
 
@@ -354,7 +349,7 @@ setsig(p, f, flags)
         if (!(p->flags & (TF_ORIG_IGN|TF_ORIG_DFL))) {
                 sigaction(p->signal, &Sigact_ign, &sigact);
                 p->flags |= sigact.sa_handler == SIG_IGN ?
-                                        TF_ORIG_IGN : TF_ORIG_DFL;
+                        TF_ORIG_IGN : TF_ORIG_DFL;
                 p->cursig = SIG_IGN;
         }
 
@@ -382,7 +377,7 @@ setsig(p, f, flags)
         if (p->cursig != f) {
                 p->cursig = f;
                 sigemptyset(&sigact.sa_mask);
-                sigact.sa_flags = KSH_SA_FLAGS;
+                sigact.sa_flags = 0 /* interruptible */;
                 sigact.sa_handler = f;
                 sigaction(p->signal, &sigact, (struct sigaction *) 0);
         }
@@ -392,9 +387,7 @@ setsig(p, f, flags)
 
 /* control what signal is set to before an exec() */
 void
-setexecsig(p, restore)
-        Trap *p;
-        int restore;
+setexecsig(Trap *p, int restore)
 {
         /* XXX debugging */
         if (!(p->flags & (TF_ORIG_IGN|TF_ORIG_DFL)))

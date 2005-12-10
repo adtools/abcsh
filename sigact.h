@@ -33,29 +33,6 @@
 #define _SIGACT_H
 
 /*
- * most modern systems use void for signal handlers but
- * not all.
- */
-#ifndef void
-# define void void
-#endif
-
-#if 0 /* ARGS(), volatile and const are already set up in config*.h -mhr */
-#undef ARGS
-#if defined(__STDC__) || defined(__cplusplus)
-# define ARGS(p) p
-#else
-# define ARGS(p) ()
-# define volatile                       /* don't optimize please */
-# define const                          /* read only */
-#endif
-#endif
-
-#ifndef IS_KSH
-handler_t _Signal        ARGS((int sig, handler_t disp));
-#endif /* IS_KSH */
-
-/*
  * if you want to install this header as signal.h,
  * modify this to pick up the original signal.h
  */
@@ -104,23 +81,15 @@ struct sigaction
 };
 
 
-int     sigaction       ARGS(( int sig, struct sigaction *act, struct sigaction *oact ));
-int     sigaddset       ARGS(( sigset_t *mask, int sig ));
-#ifndef IS_KSH
-int     sigdelset       ARGS(( sigset_t *mask, int sig ));
-#endif /* IS_KSH */
-int     sigemptyset     ARGS(( sigset_t *mask ));
-#ifndef IS_KSH
-int     sigfillset      ARGS(( sigset_t *mask ));
-int     sigismember     ARGS(( sigset_t *mask, int sig ));
-int     sigpending      ARGS(( sigset_t *set ));
-#endif /* IS_KSH */
-#ifdef AMIGA            /* AmigaOS4 cahnges by Thomas Frieden */
-int     sigprocmask     ARGS(( int how, const sigset_t *set, sigset_t *oset ));
+int     sigaction(int, struct sigaction *, struct sigaction *);
+int     sigaddset(sigset_t *, int);
+int     sigemptyset(sigset_t *);
+#ifdef AMIGA            /* AmigaOS4 changes by Thomas Frieden */
+int     sigprocmask(int, const sigset_t *, sigset_t *);
 #else
-int     sigprocmask     ARGS(( int how, sigset_t *set, sigset_t *oset ));
+int     sigprocmask(int, sigset_t *, sigset_t *);
 #endif
-int     sigsuspend      ARGS(( sigset_t *mask ));
+int     sigsuspend(sigset_t *);
         
 #ifndef sigmask
 # define sigmask(s)     (1<<((s)-1))    /* convert SIGnum to mask */

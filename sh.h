@@ -4,40 +4,38 @@
 
 /* $Id$ */
 
-# define        ARGS(args)      args    /* prototype declaration */
-
 /* Start of common headers */
-
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <setjmp.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <limits.h>
-
-#ifndef UCHAR_MAX
-# define UCHAR_MAX      0xFF
-#endif
 
 #ifdef __amigaos4__
 #define __USE_INLINE__
 #endif
 
-void *memmove ARGS((void *d, const void *s, size_t n));
-
+#include <stdio.h>
+#include <sys/types.h>
+#include <setjmp.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <stdarg.h>
-#define SH_VA_START(va, argn) va_start(va, argn)
+
+void *memmove(void *, const void *, size_t);
 
 #include <errno.h>
-extern int errno;
 
 #include <fcntl.h>
 #ifndef O_ACCMODE
 # define O_ACCMODE      (O_RDONLY|O_WRONLY|O_RDWR)
 #endif /* !O_ACCMODE */
+
+#ifndef FD_CLOEXEC
+# define FD_CLOEXEC      1
+#endif /* !FD_CLOEXEC */
+
+#ifndef DEFFILEMODE
+# define DEFFILEMODE     (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#endif /* !DEFFILEMODE */
 
 #ifndef F_OK    /* access() arguments */
 # define F_OK 0
@@ -58,11 +56,7 @@ extern int errno;
 # endif /* L_SET */
 #endif /* !SEEK_SET */
 
-/* Some machines (eg, FreeBSD 1.1.5) define CLK_TCK in limits.h
- * (ksh_limval.h assumes limits has been included, if available)
- */
 #include <limits.h>
-
 #include <signal.h>
 
 #ifdef AMIGA
@@ -76,28 +70,9 @@ extern int errno;
 #define SIGALRM 12
 #endif
 
-#ifdef  NSIG
-# define SIGNALS        NSIG
-#else
-# ifdef _SIGMAX /* QNX */
-#  define SIGNALS       _SIGMAX
-# else /* _SIGMAX */
-#  define SIGNALS       32
-# endif /* _SIGMAX */
-#endif  /* NSIG */
-#ifndef SIGCHLD
-# define SIGCHLD SIGCLD
-#endif
-/* struct sigaction.sa_flags is set to KSH_SA_FLAGS.  Used to ensure
- * system calls are interrupted
- */
-#ifdef SA_INTERRUPT
-# define KSH_SA_FLAGS   SA_INTERRUPT
-#else /* SA_INTERRUPT */
-# define KSH_SA_FLAGS   0
-#endif /* SA_INTERRUPT */
+#define KSH_SA_FLAGS   0
 
-typedef void (*handler_t) ARGS((int));  /* signal handler */
+typedef void (*handler_t)(int);  /* signal handler */
 
 #include "sigact.h"                     /* use sjg's fake sigaction() */
 
@@ -120,18 +95,11 @@ typedef void (*handler_t) ARGS((int));  /* signal handler */
 #define ksh_siglongjmp(env,v)   longjmp((env), (v))
 #define ksh_jmp_buf             jmp_buf
 
-extern int dup2 ARGS((int, int));
+extern int dup2(int, int);
 
 #define INT32   int
 
 /* end of common headers */
-
-/* Stop gcc and lint from complaining about possibly uninitialized variables */
-#if defined(__GNUC__) || defined(lint)
-# define UNINITIALIZED(var)     var = 0
-#else
-# define UNINITIALIZED(var)     var
-#endif /* GNUC || lint */
 
 /* some useful #defines */
 #ifdef EXTERN
@@ -191,10 +159,6 @@ extern int amigaos_isrelpath(const char *path);
 # define ksh_strrchr_dirsep(p)  strrchr(p, DIRSEP)
 #endif
 
-typedef int bool_t;
-#define FALSE   0
-#define TRUE    1
-
 #ifndef __amigaos4__
 typedef unsigned char uint8;
 typedef   signed char  int8;
@@ -211,7 +175,7 @@ typedef   signed long  int32;
 /* Table flag type - needs > 16 and < 32 bits */
 typedef INT32 Tflag;
 
-#define NUFILE  10              /* Number of user-accessible files */
+#define NUFILE  32              /* Number of user-accessible files */
 #define FDBASE  10              /* First file usable by Shell */
 
 /* you're not going to run setuid shell scripts, are you? */
@@ -221,25 +185,24 @@ typedef INT32 Tflag;
  * not a char that is used often.  Also, can't use the high bit as it causes
  * portability problems (calling strchr(x, 0x80|'x') is error prone).
  */
-#define MAGIC           (7)/* prefix for *?[!{,} during expand */
+#define MAGIC           (7)     /* prefix for *?[!{,} during expand */
 #define ISMAGIC(c)      ((unsigned char)(c) == MAGIC)
 #define NOT             '!'     /* might use ^ (ie, [!...] vs [^..]) */
 
-#define LINE    1024            /* input line size */
+#define LINE    2048            /* input line size */
 #define PATH    1024            /* pathname size (todo: PATH_MAX/pathconf()) */
-#define ARRAYMAX 1023           /* max array index */
+#define ARRAYMAX 2047           /* max array index */
 
 EXTERN  const char *kshname;    /* $0 */
 EXTERN  pid_t   kshpid;         /* $$, shell pid */
 EXTERN  pid_t   procpid;        /* pid of executing process */
 EXTERN  int     ksheuid;        /* effective uid of shell */
 EXTERN  int     kshegid;        /* effective gid of shell */
-EXTERN  int     kshuid;        /* real uid of shell */
+EXTERN  uid_t     kshuid;        /* real uid of shell */
 EXTERN  int     kshgid;        /* real gid of shell */
 EXTERN  int     exstat;         /* exit status */
 EXTERN  int     subst_exstat;   /* exit status of last $(..)/`..` */
 EXTERN  const char *safe_prompt; /* safe prompt if PS1 substitution fails */
-
 
 /*
  * Area-based allocation built on malloc/free
@@ -253,15 +216,11 @@ typedef struct Area {
 /* rather than it's explicit address */
 /* allows a new permanent space to be created for subshells etc */
 
-EXTERN  Area    perm_space;;          /* permanent object space */
+EXTERN  Area    perm_space;          /* permanent object space */
 EXTERN  Area    *aperm;
 
 #define APERM   aperm
 #define ATEMP   &e->area
-
-#ifdef MEM_DEBUG
-# include "chmem.h" /* a debugging front end for malloc et. al. */
-#endif /* MEM_DEBUG */
 
 #ifdef KSH_DEBUG
 # define kshdebug_init()        kshdebug_init_()
@@ -278,18 +237,18 @@ EXTERN  Area    *aperm;
  * parsing & execution environment
  */
 EXTERN  struct env {
-        short   type;                   /* enviroment type - see below */
+        short   type;                   /* environment type - see below */
         short   flags;                  /* EF_* */
         Area    area;                   /* temporary allocation area */
         struct  block *loc;             /* local variables and functions */
         short  *savefd;                 /* original redirected fd's */
-        struct  env *oenv;              /* link to previous enviroment */
+        struct  env *oenv;              /* link to previous environment */
         ksh_jmp_buf jbuf;               /* long jump back to env creator */
         struct temp *temps;             /* temp files */
 } *e;
 
 /* struct env.type values */
-#define E_NONE  0               /* dummy enviroment */
+#define E_NONE  0               /* dummy environment */
 #define E_PARSE 1               /* parsing command # */
 #define E_FUNC  2               /* executing function # */
 #define E_INCL  3               /* including a file via . # */
@@ -348,7 +307,7 @@ enum sh_flag {
         FERREXIT,       /* -e: quit on error */
         FIGNOREEOF,     /* eof does not exit */
         FTALKING,       /* -i: interactive */
-        FKEYWORD,       /* -k: name=value anywere */
+        FKEYWORD,       /* -k: name=value anywhere */
         FMARKDIRS,      /* mark dirs with / in file name completion */
         FNOCLOBBER,     /* -C: don't overwrite existing files */
         FNOEXEC,        /* -n: don't execute any commands */
@@ -405,10 +364,10 @@ typedef struct trap {
         const char *name;       /* short name */
         const char *mess;       /* descriptive name */
         char   *trap;           /* trap command */
-        int     volatile set;   /* trap pending */
+        volatile sig_atomic_t set;   /* trap pending */
         int     flags;          /* TF_* */
-        handler_t cursig;       /* current handler (valid if TF_ORIG_* set) */
-        handler_t shtrap;       /* shell signal handler */
+        sig_t cursig;       /* current handler (valid if TF_ORIG_* set) */
+        sig_t shtrap;       /* shell signal handler */
 } Trap;
 
 /* values for Trap.flags */
@@ -434,18 +393,16 @@ typedef struct trap {
 #define SS_SHTRAP       BIT(5)  /* trap for internal use (CHLD,ALRM,WINCH) */
 
 #define SIGEXIT_        0       /* for trap EXIT */
-#define SIGERR_         SIGNALS /* for trap ERR */
+#define SIGERR_         NSIG /* for trap ERR */
 
 EXTERN  int volatile trap;      /* traps pending? */
 EXTERN  int volatile intrsig;   /* pending trap interrupts executing command */
 EXTERN  int volatile fatal_trap;/* received a fatal signal */
 #ifndef FROM_TRAP_C
 /* Kludge to avoid bogus re-declaration of sigtraps[] error on AIX 3.2.5 */
-extern  Trap    sigtraps[SIGNALS+1];
+extern  Trap    sigtraps[NSIG+1];
 #endif /* !FROM_TRAP_C */
 
-
-#ifdef KSH
 /*
  * TMOUT support
  */
@@ -457,8 +414,6 @@ enum tmout_enum {
         };
 EXTERN unsigned int ksh_tmout;
 EXTERN enum tmout_enum ksh_tmout_state I__(TMOUT_EXECUTING);
-#endif /* KSH */
-
 
 /* For "You have stopped jobs" message */
 EXTERN int really_exit;
@@ -512,8 +467,6 @@ typedef struct {
 EXTERN Getopt builtin_opt;      /* for shell builtin commands */
 EXTERN Getopt user_opt;         /* parsing state for getopts builtin command */
 
-
-#ifdef KSH
 /* This for co-processes */
 
 typedef INT32 Coproc_id; /* something that won't (realisticly) wrap */
@@ -526,9 +479,9 @@ struct coproc {
         void    *job;           /* 0 or job of co-process using input pipe */
 };
 EXTERN struct coproc coproc;
-#endif /* KSH */
 
 /* Used in jobs.c and by coprocess stuff in exec.c */
+EXTERN sigset_t sm_default, sm_sigchld;
 extern const char ksh_version[];
 
 /* name of called builtin function (used by error functions) */
@@ -548,6 +501,15 @@ EXTERN int      current_wd_size;
 #define CBRACK  ']'
 #define OBRACE  '{'
 #define CBRACE  '}'
+
+/* Determine the location of the system (common) profile */
+//#ifndef KSH_SYSTEM_PROFILE
+//# ifdef AMIGA
+//#  define KSH_SYSTEM_PROFILE "/s/abc-shell.profile"
+//# else /* AMIGA */
+//#  define KSH_SYSTEM_PROFILE "/etc/profile"
+//# endif /* __NeXT */
+//#endif /* KSH_SYSTEM_PROFILE */
 
 /* Used by v_evaluate() and setstr() to control action when error occurs */
 #define KSH_UNWIND_ERROR        0       /* unwind the stack (longjmp) */
@@ -574,14 +536,16 @@ struct globals
 
 #define open(a,b, ...)  __open((a),(b))
 
+/* Used by v_evaluate() and setstr() to control action when error occurs */
+#define KSH_UNWIND_ERROR 0 /* unwind the stack (longjmp) */
+#define KSH_RETURN_ERROR 1 /* return 1/0 for success/failure */
+
 #include "shf.h"
 #include "table.h"
 #include "tree.h"
 #include "expand.h"
 #include "lex.h"
 #include "proto.h"
-
-#undef S_ISLNK
 
 /* be sure not to interfere with anyone else's idea about EXTERN */
 #ifdef EXTERN_DEFINED

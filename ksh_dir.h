@@ -4,4 +4,4 @@
 #include <dirent.h>
 #define NLENGTH(dirent) (strlen(dirent->d_name))
 
-extern DIR *ksh_opendir ARGS((const char *d));
+extern DIR *ksh_opendir(const char *);

@@ -5,27 +5,23 @@
  */
 
 #include "sh.h"
-#include "ksh_stat.h"
+#include <sys/stat.h>
 
 /* No history to be compiled in: dummy routines to avoid lots more ifdefs */
 void
-init_histvec()
+init_histvec(void)
 {
 }
 void
-hist_init(s)
-        Source *s;
+hist_init(Source *s)
 {
 }
 void
-hist_finish()
+hist_finish(void)
 {
 }
 void
-histsave(lno, cmd, dowrite)
-        int lno;
-        const char *cmd;
-        int dowrite;
+histsave(int lno, const char *cmd, int dowrite)
 {
         errorf("history not enabled");
 }

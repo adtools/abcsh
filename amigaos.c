@@ -184,8 +184,8 @@ int pipe(int filedes[2])
         mystdin = Open("CONSOLE:", MODE_OLDFILE);
         mystdout = Open("CONSOLE:", MODE_OLDFILE);
 
-        ksh_dup2(mystdin, 0, FALSE);
-        ksh_dup2(mystdout, 1, FALSE);
+        ksh_dup2(mystdin, 0, false);
+        ksh_dup2(mystdout, 1, false);
         FUNCX;
         return 0;
 }
@@ -247,7 +247,7 @@ static void createvars(char * const* envp)
     /* Set a loal var to indicate to any subsequent sh that it is not */
     /* The top level shell and so should only inherit local amigaos vars */
 
-    SetVar("ABCSH_IMPORT_LOCAL","TRUE",5,GVF_LOCAL_ONLY);
+    SetVar("ABCSH_IMPORT_LOCAL","true",5,GVF_LOCAL_ONLY);
 
     while(*envp != NULL)
     {
@@ -277,15 +277,15 @@ static void createvars(char * const* envp)
     }
 }
 
-static BOOL contains_whitespace(char *string)
+static bool contains_whitespace(char *string)
 {
 
-    if(strchr(string,' ')) return TRUE;
-    if(strchr(string,'\t')) return TRUE;
-    if(strchr(string,'\n')) return TRUE;
-    if(strchr(string,0xA0)) return TRUE;
-    if(strchr(string,'"')) return TRUE;
-    return FALSE;
+    if(strchr(string,' ')) return true;
+    if(strchr(string,'\t')) return true;
+    if(strchr(string,'\n')) return true;
+    if(strchr(string,0xA0)) return true;
+    if(strchr(string,'"')) return true;
+    return false;
 }
 
 static int no_of_escapes(char *string)
@@ -461,7 +461,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
 #ifndef __USE_RUNCOMMAND__
             lastresult = SystemTags(full,
-                SYS_UserShell,TRUE,
+                SYS_UserShell,true,
                 NP_StackSize,  ((struct Process *)thisTask)->pr_StackSize,
                 SYS_Input,((struct Process *)thisTask)->pr_CIS,
                 SYS_Output,((struct Process *)thisTask)->pr_COS,
@@ -585,7 +585,7 @@ exchild(t, flags, close_fd)
 /*close conditions*/
         long amigafd[3];
         int amigafd_close[3] = {0, 0, 0};
-        BOOL procmayclose = FALSE;
+        bool procmayclose = false;
 #else
         /*current input output*/
         long amigafd[2];
@@ -626,7 +626,7 @@ exchild(t, flags, close_fd)
         {
             BPTR lock;
             __get_default_file(i, &amigafd[i]);
-            if(close_fd == i) amigafd_close[i] = TRUE;
+            if(close_fd == i) amigafd_close[i] = true;
 
         }
 #else
@@ -634,7 +634,7 @@ exchild(t, flags, close_fd)
         {
             if (amigain != -1)
             {
-                amigafd_close[0] = FALSE;
+                amigafd_close[0] = false;
                 amigafd[0] = amigain;
             }
             else
@@ -659,20 +659,20 @@ exchild(t, flags, close_fd)
 
         proc = CreateNewProcTags(
             NP_Entry,                execute_child,
-            NP_Child,                TRUE,
+            NP_Child,                true,
             NP_StackSize,            ((struct Process *)thisTask)->pr_StackSize,
             NP_Input,                amigafd[0],
             NP_Output,               amigafd[1],
 #ifdef CLIBHACK
-            NP_CloseOutput,          FALSE,
-            NP_CloseInput,           FALSE,
+            NP_CloseOutput,          false,
+            NP_CloseInput,           false,
             NP_Error,                amigafd[2],
-            NP_CloseError,           FALSE,
+            NP_CloseError,           false,
 #else
             NP_CloseOutput,          amigafd_close[1] ,
             NP_CloseInput,           amigafd_close[0] ,
 #endif/*CLIBHACK*/
-            NP_Cli,                  TRUE,
+            NP_Cli,                  true,
             NP_Name,                 name,
 #ifdef __amigaos4__
             NP_UserData,             (int)&taskdata,
@@ -756,12 +756,12 @@ exchild(t, flags, close_fd)
 int __open(const char * path, int open_flag)
 {
         struct name_translation_info nti;
-        BOOL have_colon = FALSE;
+        bool have_colon = false;
         char *p = (char *)path;
 
         while(p<path + strlen(path))
         {
-            if(*p++ == ':') have_colon=TRUE;
+            if(*p++ == ':') have_colon=true;
         }
         if(have_colon)
         {
@@ -774,12 +774,12 @@ int __open(const char * path, int open_flag)
 int __stat(const char * path, struct stat *buffer)
 {
         struct name_translation_info nti;
-        BOOL have_colon = FALSE;
+        bool have_colon = false;
         char *p = (char *)path;
 
         while(p<path + strlen(path))
         {
-            if(*p++ == ':')have_colon=TRUE;
+            if(*p++ == ':')have_colon=true;
         }
         if(have_colon)
         {
@@ -793,12 +793,12 @@ int __stat(const char * path, struct stat *buffer)
 int __lstat(const char * path, struct stat *buffer)
 {
         struct name_translation_info nti;
-        BOOL have_colon = FALSE;
+        bool have_colon = false;
         char *p = (char *)path;
 
         while(p<path + strlen(path))
         {
-            if(*p++ == ':') have_colon=TRUE;
+            if(*p++ == ':') have_colon=true;
         }
         if(have_colon)
         {

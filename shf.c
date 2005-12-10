@@ -3,7 +3,7 @@
  */
 
 #include "sh.h"
-#include "ksh_stat.h"
+#include <sys/stat.h>
 #include "ksh_limval.h"
 
 #include <proto/dos.h>
@@ -18,19 +18,15 @@
  * file descriptors.
  */
 
-static int	shf_fillbuf	ARGS((struct shf *shf));
-static int	shf_emptybuf	ARGS((struct shf *shf, int flags));
+static int	shf_fillbuf(struct shf *);
+static int	shf_emptybuf(struct shf *, int);
 
 /* Open a file.  First three args are for open(), last arg is flags for
  * this package.  Returns NULL if file could not be opened, or if a dup
  * fails.
  */
 struct shf *
-shf_open(name, oflags, mode, sflags)
-	const char *name;
-	int oflags;
-	int mode;
-	int sflags;
+shf_open(const char *name, int oflags, int mode, int sflags)
 {
 	struct shf *shf;
 	int bsize = sflags & SHF_UNBUF ? (sflags & SHF_RD ? 1 : 0) : SHF_BSIZE;
@@ -52,7 +48,7 @@ shf_open(name, oflags, mode, sflags)
 	if ((sflags & SHF_MAPHI) && fd < FDBASE) {
 		int nfd;
 
-		nfd = ksh_dupbase(fd, FDBASE);
+		nfd = fcntl(fd, F_DUPFD, FDBASE);
 		close(fd);
 		if (nfd < 0) {
 			afree(shf, shf->areap);
@@ -61,74 +57,74 @@ shf_open(name, oflags, mode, sflags)
 		fd = nfd;
 	}
 	sflags &= ~SHF_ACCMODE;
-	sflags |= (oflags & O_ACCMODE) == O_RDONLY ? SHF_RD
-		  : ((oflags & O_ACCMODE) == O_WRONLY ? SHF_WR
-		     : SHF_RDWR);
+	sflags |= (oflags & O_ACCMODE) == O_RDONLY ? SHF_RD :
+                ((oflags & O_ACCMODE) == O_WRONLY ? SHF_WR :
+                        SHF_RDWR);
 
 	return shf_reopen(fd, sflags, shf);
 }
 
 /* Set up the shf structure for a file descriptor.  Doesn't fail. */
 struct shf *
-shf_fdopen(fd, sflags, shf)
-	int fd;
-	int sflags;
-	struct shf *shf;
+shf_fdopen(int fd, int sflags, struct shf *shf)
 {
-	int bsize = sflags & SHF_UNBUF ? (sflags & SHF_RD ? 1 : 0) : SHF_BSIZE;
+        int bsize = sflags & SHF_UNBUF ? (sflags & SHF_RD ? 1 : 0) : SHF_BSIZE;
 
-	/* use fcntl() to figure out correct read/write flags */
-	if (sflags & SHF_GETFL) {
-		int flags = fcntl(fd, F_GETFL, 0);
+        /* use fcntl() to figure out correct read/write flags */
+        if (sflags & SHF_GETFL) {
+                int flags = fcntl(fd, F_GETFL, 0);
 
-		if (flags < 0)
+                if (flags < 0)
 			/* will get an error on first read/write */
 			sflags |= SHF_RDWR;
-		else
-			switch (flags & O_ACCMODE) {
-			case O_RDONLY: sflags |= SHF_RD; break;
-			case O_WRONLY: sflags |= SHF_WR; break;
-			case O_RDWR: sflags |= SHF_RDWR; break;
-			}
-	}
+                else
+                        switch (flags & O_ACCMODE) {
+			        case O_RDONLY:
+                                        sflags |= SHF_RD;
+                                        break;
+                                case O_WRONLY:
+                                        sflags |= SHF_WR;
+                                        break;
+                                case O_RDWR:
+                                        sflags |= SHF_RDWR;
+                                        break;
+                        }
+        }
 
-	if (!(sflags & (SHF_RD | SHF_WR)))
-		internal_errorf(1, "shf_fdopen: missing read/write");
+        if (!(sflags & (SHF_RD | SHF_WR)))
+                internal_errorf(1, "shf_fdopen: missing read/write");
 
-	if (shf) {
-		if (bsize) {
-			shf->buf = (unsigned char *) alloc(bsize, ATEMP);
-			sflags |= SHF_ALLOCB;
-		} else
-			shf->buf = (unsigned char *) 0;
-	} else {
-		shf = (struct shf *) alloc(sizeof(struct shf) + bsize, ATEMP);
-		shf->buf = (unsigned char *) &shf[1];
-		sflags |= SHF_ALLOCS;
-	}
-	shf->areap = ATEMP;
-	shf->fd = fd;
-	shf->rp = shf->wp = shf->buf;
-	shf->rnleft = 0;
-	shf->rbsize = bsize;
-	shf->wnleft = 0; /* force call to shf_emptybuf() */
-	shf->wbsize = sflags & SHF_UNBUF ? 0 : bsize;
-	shf->flags = sflags;
-	shf->errno_ = 0;
-	shf->bsize = bsize;
-	shf->ispipe = FALSE;
+        if (shf) {
+                if (bsize) {
+                        shf->buf = (unsigned char *) alloc(bsize, ATEMP);
+                        sflags |= SHF_ALLOCB;
+                } else
+                        shf->buf = (unsigned char *) 0;
+        } else {
+                shf = (struct shf *) alloc(sizeof(struct shf) + bsize, ATEMP);
+                shf->buf = (unsigned char *) &shf[1];
+                sflags |= SHF_ALLOCS;
+        }
+        shf->areap = ATEMP;
+        shf->fd = fd;
+        shf->rp = shf->wp = shf->buf;
+        shf->rnleft = 0;
+        shf->rbsize = bsize;
+        shf->wnleft = 0; /* force call to shf_emptybuf() */
+        shf->wbsize = sflags & SHF_UNBUF ? 0 : bsize;
+        shf->flags = sflags;
+        shf->errno_ = 0;
+        shf->bsize = bsize;
+        shf->ispipe = false;
 
-	if (sflags & SHF_CLEXEC)
-		fd_clexec(fd);
-	return shf;
+        if (sflags & SHF_CLEXEC)
+                fcntl(fd, F_SETFD, FD_CLOEXEC);
+        return shf;
 }
 
 /* Set up an existing shf (and buffer) to use the given fd */
 struct shf *
-shf_reopen(fd, sflags, shf)
-	int fd;
-	int sflags;
-	struct shf *shf;
+shf_reopen(int fd, int sflags, struct shf *shf)
 {
 	int bsize = sflags & SHF_UNBUF ? (sflags & SHF_RD ? 1 : 0) : SHF_BSIZE;
 
@@ -161,9 +157,9 @@ shf_reopen(fd, sflags, shf)
 	shf->wbsize = sflags & SHF_UNBUF ? 0 : bsize;
 	shf->flags = (shf->flags & (SHF_ALLOCS | SHF_ALLOCB)) | sflags;
 	shf->errno_ = 0;
-	shf->ispipe = FALSE;
+	shf->ispipe = false;
 	if (sflags & SHF_CLEXEC)
-		fd_clexec(fd);
+		fcntl(fd, F_SETFD, FD_CLOEXEC);
 	return shf;
 }
 
@@ -176,15 +172,11 @@ shf_reopen(fd, sflags, shf)
  * When writing, a byte is reserved for a trailing null - see shf_sclose().
  */
 struct shf *
-shf_sopen(buf, bsize, sflags, shf)
-	char *buf;
-	int bsize;
-	int sflags;
-	struct shf *shf;
+shf_sopen(char *buf, int bsize, int sflags, struct shf *shf)
 {
 	/* can't have a read+write string */
-	if (!(sflags & (SHF_RD | SHF_WR))
-	    || (sflags & (SHF_RD | SHF_WR)) == (SHF_RD | SHF_WR))
+	if (!(sflags & (SHF_RD | SHF_WR)) ||
+	        (sflags & (SHF_RD | SHF_WR)) == (SHF_RD | SHF_WR))
 		internal_errorf(1, "shf_sopen: flags 0x%x", sflags);
 
 	if (!shf) {
@@ -207,22 +199,21 @@ shf_sopen(buf, bsize, sflags, shf)
 	shf->flags = sflags | SHF_STRING;
 	shf->errno_ = 0;
 	shf->bsize = bsize;
-	shf->ispipe = FALSE;
+	shf->ispipe = false;
 
 	return shf;
 }
 
 /* Flush and close file descriptor, free the shf structure */
 int
-shf_close(shf)
-	struct shf *shf;
+shf_close(struct shf *shf)
 {
 	int ret = 0;
 
 	if (shf->fd >= 0) {
 	    ret = shf_flush(shf);
 
-	    if(shf->ispipe == TRUE)
+	    if(shf->ispipe == true)
 	    {
 #ifdef USE_TEMPFILES
 		BPTR f=0;
@@ -262,15 +253,14 @@ shf_close(shf)
 
 /* Flush and close file descriptor, don't free file structure */
 int
-shf_fdclose(shf)
-	struct shf *shf;
+shf_fdclose(struct shf *shf)
 {
 	int ret = 0;
 
 	if (shf->fd >= 0) {
 		ret = shf_flush(shf);
 
-		if(shf->ispipe == TRUE)
+		if(shf->ispipe == true)
 		{
 #ifdef USE_TEMPFILES
 		    BPTR f=0;
@@ -314,8 +304,7 @@ shf_fdclose(shf)
  * (does not free string if it was allocated).
  */
 char *
-shf_sclose(shf)
-	struct shf *shf;
+shf_sclose(struct shf *shf)
 {
 	unsigned char *s = shf->buf;
 
@@ -331,8 +320,7 @@ shf_sclose(shf)
 
 /* Flush and free file structure, don't close file descriptor */
 int
-shf_finish(shf)
-	struct shf *shf;
+shf_finish(struct shf *shf)
 {
 	int ret = 0;
 
@@ -350,8 +338,7 @@ shf_finish(shf)
  * buffered.  Returns 0 for success, EOF for (write) error.
  */
 int
-shf_flush(shf)
-	struct shf *shf;
+shf_flush(struct shf *shf)
 {
 	if (shf->flags & SHF_STRING)
 		return (shf->flags & SHF_WR) ? EOF : 0;
@@ -382,9 +369,7 @@ shf_flush(shf)
  * buffer.  Returns 0 for success, EOF for (write) error.
  */
 static int
-shf_emptybuf(shf, flags)
-	struct shf *shf;
-	int flags;
+shf_emptybuf(struct shf *shf, int flags)
 {
 	int ret = 0;
 
@@ -401,19 +386,19 @@ shf_emptybuf(shf, flags)
 			return 0;
 		ret = shf_flush(shf);
 		shf->flags &= ~SHF_READING;
-	}
-	if (shf->flags & SHF_STRING) {
-		unsigned char	*nbuf;
+        }
+        if (shf->flags & SHF_STRING) {
+                unsigned char	*nbuf;
 
 		/* Note that we assume SHF_ALLOCS is not set if SHF_ALLOCB
 		 * is set... (changing the shf pointer could cause problems)
 		 */
-		if (!(flags & EB_GROW) || !(shf->flags & SHF_DYNAMIC)
-		    || !(shf->flags & SHF_ALLOCB))
-			return EOF;
+                if (!(flags & EB_GROW) || !(shf->flags & SHF_DYNAMIC) ||
+                        !(shf->flags & SHF_ALLOCB))
+                        return EOF;
 		/* allocate more space for buffer */
 		nbuf = (unsigned char *) aresize(shf->buf, shf->wbsize * 2,
-						shf->areap);
+                        shf->areap);
 		shf->rp = nbuf + (shf->rp - shf->buf);
 		shf->wp = nbuf + (shf->wp - shf->buf);
 		shf->rbsize += shf->wbsize;
@@ -464,8 +449,7 @@ shf_emptybuf(shf, flags)
 
 /* Fill up a read buffer.  Returns EOF for a read error, 0 otherwise. */
 static int
-shf_fillbuf(shf)
-	struct shf *shf;
+shf_fillbuf(struct shf *shf)
 {
 	if (shf->flags & SHF_STRING)
 		return 0;
@@ -511,10 +495,7 @@ shf_fillbuf(shf)
  * buffer.  Returns 0 for success, EOF otherwise.
  */
 int
-shf_seek(shf, where, from)
-	struct shf *shf;
-	off_t where;
-	int from;
+shf_seek(struct shf *shf, off_t where, int from)
 {
 	if (shf->fd < 0) {
 		errno = EINVAL;
@@ -531,9 +512,8 @@ shf_seek(shf, where, from)
 
 	if (shf->flags & SHF_READING) {
 		if (from == SEEK_CUR &&
-				(where < 0 ?
-					-where >= shf->rbsize - shf->rnleft :
-					where < shf->rnleft)) {
+                        (where < 0 ? -where >= shf->rbsize - shf->rnleft :
+                                where < shf->rnleft)) {
 			shf->rnleft -= where;
 			shf->rp += where;
 			return 0;
@@ -559,10 +539,7 @@ shf_seek(shf, where, from)
  * a read error occurred.
  */
 int
-shf_read(buf, bsize, shf)
-	char *buf;
-	int bsize;
-	struct shf *shf;
+shf_read(char *buf, int bsize, struct shf *shf)
 {
 	int orig_bsize = bsize;
 	int ncopy;
@@ -596,10 +573,7 @@ shf_read(buf, bsize, shf)
  * end of file, returns a pointer to the null byte in buf otherwise.
  */
 char *
-shf_getse(buf, bsize, shf)
-	char *buf;
-	int bsize;
-	struct shf *shf;
+shf_getse(char *buf, int bsize, struct shf *shf)
 {
 	unsigned char *end;
 	int ncopy;
@@ -639,8 +613,7 @@ shf_getse(buf, bsize, shf)
 
 /* Returns the char read.  Returns EOF for error and end of file. */
 int
-shf_getchar(shf)
-	struct shf *shf;
+shf_getchar(struct shf *shf)
 {
 	if (!(shf->flags & SHF_RD))
 		internal_errorf(1, "shf_getchar: flags %x", shf->flags);
@@ -655,9 +628,7 @@ shf_getchar(shf)
  * successful, EOF if there is no room.
  */
 int
-shf_ungetc(c, shf)
-	int c;
-	struct shf *shf;
+shf_ungetc(int c, struct shf *shf)
 {
 	if (!(shf->flags & SHF_RD))
 		internal_errorf(1, "shf_ungetc: flags %x", shf->flags);
@@ -692,9 +663,7 @@ shf_ungetc(c, shf)
  * the char could not be written.
  */
 int
-shf_putchar(c, shf)
-	int c;
-	struct shf *shf;
+shf_putchar(int c, struct shf *shf)
 {
 	if (!(shf->flags & SHF_WR))
 		internal_errorf(1, "shf_putchar: flags %x", shf->flags);
@@ -736,9 +705,7 @@ shf_putchar(c, shf)
  * the string could not be written.
  */
 int
-shf_puts(s, shf)
-	const char *s;
-	struct shf *shf;
+shf_puts(const char *s, struct shf *shf)
 {
 	if (!s)
 		return EOF;
@@ -748,10 +715,7 @@ shf_puts(s, shf)
 
 /* Write a buffer.  Returns nbytes if successful, EOF if there is an error. */
 int
-shf_write(buf, nbytes, shf)
-	const char *buf;
-	int nbytes;
-	struct shf *shf;
+shf_write(const char *buf, int nbytes, struct shf *shf)
 {
 	int orig_nbytes = nbytes;
 	int n;
@@ -817,7 +781,7 @@ shf_fprintf(struct shf *shf, const char *fmt, ...)
 	va_list args;
 	int n;
 
-	SH_VA_START(args, fmt);
+	va_start(args, fmt);
 	n = shf_vfprintf(shf, fmt, args);
 	va_end(args);
 
@@ -836,7 +800,7 @@ shf_snprintf(char *buf, int bsize, const char *fmt, ...)
 			(long) buf, bsize);
 
 	shf_sopen(buf, bsize, SHF_WR, &shf);
-	SH_VA_START(args, fmt);
+	va_start(args, fmt);
 	n = shf_vfprintf(&shf, fmt, args);
 	va_end(args);
 	shf_sclose(&shf); /* null terminates */
@@ -850,7 +814,7 @@ shf_smprintf(const char *fmt, ...)
 	va_list args;
 
 	shf_sopen((char *) 0, 0, SHF_WR|SHF_DYNAMIC, &shf);
-	SH_VA_START(args, fmt);
+	va_start(args, fmt);
 	shf_vfprintf(&shf, fmt, args);
 	va_end(args);
 	return shf_sclose(&shf); /* null terminates */
@@ -871,19 +835,14 @@ shf_smprintf(const char *fmt, ...)
  *  this out...
  *
  *	For shorts, we want sign extend for %d but not for %[oxu] - on 16 bit
- *  machines it don't matter.  Assmumes C compiler has converted shorts to
+ *  machines it don't matter.  Assumes C compiler has converted shorts to
  *  ints before pushing them.
  */
-#define POP_INT(f, s, a) (((f) & FL_LONG) ?				\
-				va_arg((a), unsigned long)		\
-			    :						\
-				(sizeof(int) < sizeof(long) ?		\
-					((s) ?				\
-						(long) va_arg((a), int) \
-					    :				\
-						va_arg((a), unsigned))	\
-				    :					\
-					va_arg((a), unsigned)))
+#define POP_INT(f, s, a)                                                \
+        (((f) & FL_LONG) ? va_arg((a), unsigned long) :                 \
+                (sizeof(int) < sizeof(long) ? ((s) ?                    \
+                (long) va_arg((a), int) : va_arg((a), unsigned)) :      \
+                va_arg((a), unsigned)))
 
 #define ABIGNUM 	32000	/* big numer that will fit in a short */
 #define LOG2_10 	3.321928094887362347870319429	/* log base 2 of 10 */
@@ -904,8 +863,7 @@ shf_smprintf(const char *fmt, ...)
 #include <math.h>
 
 static double
-my_ceil(d)
-	double	d;
+my_ceil(double	d)
 {
 	double		i;
 
@@ -914,13 +872,10 @@ my_ceil(d)
 #endif /* FP */
 
 int
-shf_vfprintf(shf, fmt, args)
-	struct shf *shf;
-	const char *fmt;
-	va_list args;
+shf_vfprintf(struct shf *shf, const char *fmt, va_list args)
 {
 	char		c, *s;
-	int		UNINITIALIZED(tmp);
+	int		tmp = 0;
 	int		field, precision;
 	int		len;
 	int		flags;
@@ -954,7 +909,7 @@ shf_vfprintf(shf, fmt, args)
 		 *	This will accept flags/fields in any order - not
 		 *  just the order specified in printf(3), but this is
 		 *  the way _doprnt() seems to work (on bsd and sysV).
-		 *  The only resriction is that the format character must
+		 *  The only restriction is that the format character must
 		 *  come last :-).
 		 */
 		flags = field = precision = 0;
@@ -1115,7 +1070,7 @@ shf_vfprintf(shf, fmt, args)
 			char *p;
 
 			/*
-			 *	This could proabably be done better,
+			 *	This could probably be done better,
 			 *  but it seems to work.  Note that gcvt()
 			 *  is not used, as you cannot tell it to
 			 *  not strip the zeros.
@@ -1135,7 +1090,7 @@ shf_vfprintf(shf, fmt, args)
 			 *  This is the same as
 			 *	expo = ceil(log10(fpnum))
 			 *  but doesn't need -lm.  This is an
-			 *  aproximation as expo is rounded up.
+			 *  approximation as expo is rounded up.
 			 */
 			(void) frexp(fpnum, &expo);
 			expo = my_ceil(expo / LOG2_10);
@@ -1167,12 +1122,8 @@ shf_vfprintf(shf, fmt, args)
 					/* Overflow check - should
 					 * never have this problem.
 					 */
-					if (decpt >
-						&fpbuf[sizeof(fpbuf)]
-							- s - 8)
-						decpt =
-						 &fpbuf[sizeof(fpbuf)]
-							- s - 8;
+                                        if (decpt > &fpbuf[sizeof(fpbuf)] - s - 8)
+                                                decpt = &fpbuf[sizeof(fpbuf)] - s - 8;
 					(void) memcpy(s, p, decpt);
 					s += decpt;
 					p += decpt;
@@ -1186,11 +1137,8 @@ shf_vfprintf(shf, fmt, args)
 				/* Overflow check - should
 				 * never have this problem.
 				 */
-				if (precision > &fpbuf[sizeof(fpbuf)]
-							- s - 7)
-					precision =
-						&fpbuf[sizeof(fpbuf)]
-						- s - 7;
+                                if (precision > &fpbuf[sizeof(fpbuf)] - s - 7)
+                                        precision = &fpbuf[sizeof(fpbuf)] - s - 7;
 				for (tmp = decpt;  tmp++ < 0 &&
 					    precision > 0 ; precision--)
 					*s++ = '0';
@@ -1200,11 +1148,8 @@ shf_vfprintf(shf, fmt, args)
 				/* Overflow check - should
 				 * never have this problem.
 				 */
-				if (precision > &fpbuf[sizeof(fpbuf)]
-							- s - 7)
-					precision =
-						&fpbuf[sizeof(fpbuf)]
-						- s - 7;
+                                if (precision > &fpbuf[sizeof(fpbuf)] - s - 7)
+                                        precision = &fpbuf[sizeof(fpbuf)] - s - 7;
 				(void) memcpy(s, p, precision);
 				s += precision;
 				/*

@@ -1,63 +1,16 @@
 #include "sh.h"
-#include "ksh_stat.h"
+#include <sys/stat.h>
 
 /*
  *      Contains a routine to search a : separated list of
- *      paths (a la CDPATH) and make appropiate file names.
+ *      paths (a la CDPATH) and make appropriate file names.
  *      Also contains a routine to simplify .'s and ..'s out of
  *      a path name.
  *
  *      Larry Bouzane (larry@cs.mun.ca)
  */
 
-/*
- * $Log$
- * Revision 1.4  2005/03/01 14:08:47  broadblues
- * Move the struct globals to sh.h so it can be used throughout.
- * convert program name to unix path
- * improve release of resources in restoreenv()
- *
- * Revision 1.3  2004/11/24 23:07:12  hnl_dk
- * Frank didtab the sources for me... thanks Frank... sorry for all the mess :-(
- *
- * Revision 1.1  2004/11/17 16:35:11  hnl_dk
- * Amiga Bourne Compatible Shell - Alpha Release
- *
- * Revision 1.2  1994/05/19  18:32:40  michael
- * Merge complete, stdio replaced, various fixes. (pre autoconf)
- *
- * Revision 1.1  1994/04/06  13:14:03  michael
- * Initial revision
- *
- * Revision 4.2  1990/12/06  18:05:24  larry
- * Updated test code to reflect parameter change.
- * Fixed problem with /a/./.dir being simplified to /a and not /a/.dir due
- * to *(cur+2) == *f test instead of the correct cur+2 == f
- *
- * Revision 4.1  90/10/29  14:42:19  larry
- * base MUN version
- *
- * Revision 3.1.0.4  89/02/16  20:28:36  larry
- * Forgot to set *pathlist to NULL when last changed make_path().
- *
- * Revision 3.1.0.3  89/02/13  20:29:55  larry
- * Fixed up cd so that it knew when a node from CDPATH was used and would
- * print a message only when really necessary.
- *
- * Revision 3.1.0.2  89/02/13  17:51:22  larry
- * Merged with Eric Gisin's version.
- *
- * Revision 3.1.0.1  89/02/13  17:50:58  larry
- * *** empty log message ***
- *
- * Revision 3.1  89/02/13  17:49:28  larry
- * *** empty log message ***
- *
- */
-
-#ifdef S_ISLNK
-static char     *do_phys_path ARGS((XString *xsp, char *xp, const char *path));
-#endif /* S_ISLNK */
+static char     *do_phys_path(XString *, char *, const char *);
 
 /*
  *      Makes a filename into result using the following algorithm.
@@ -72,15 +25,14 @@ static char     *do_phys_path ARGS((XString *xsp, char *xp, const char *path));
  *      - cdpathp is set to the start of the next element in cdpathp (or NULL
  *        if there are no more elements.
  *      The return value indicates whether a non-null element from cdpathp
- *      was appened to result.
+ *      was appended to result.
  */
 int
-make_path(cwd, file, cdpathp, xsp, phys_pathp)
-        const char *cwd;
-        const char *file;
-        char    **cdpathp;      /* & of : separated list */
-        XString *xsp;
-        int     *phys_pathp;
+make_path(const char *cwd, const char *file,
+        char **cdpathp,                /* & of : separated list */
+        XString *xsp,
+        int *phys_pathp)
+
 {
         int     rval = 0;
         int     use_cdpath = 1;
@@ -117,8 +69,8 @@ make_path(cwd, file, cdpathp, xsp, phys_pathp)
                         *cdpathp = *pend ? ++pend : (char *) 0;
                 }
 
-                if ((use_cdpath == 0 || !plen || ISRELPATH(plist))
-                    && (cwd && *cwd))
+                if ((use_cdpath == 0 || !plen || ISRELPATH(plist)) &&
+                        (cwd && *cwd))
                 {
                         len = strlen(cwd);
                         XcheckN(*xsp, xp, len);
@@ -153,8 +105,7 @@ make_path(cwd, file, cdpathp, xsp, phys_pathp)
  * ie, simplify_path("/a/b/c/./../d/..") returns "/a/b"
  */
 void
-simplify_path(path)
-        char    *path;
+simplify_path(char *path)
 {
         char    *cur;
         char    *t;
@@ -225,8 +176,7 @@ simplify_path(path)
 
 
 void
-set_current_wd(path)
-        char *path;
+set_current_wd(char *path)
 {
         int len;
         char *p = path;
@@ -243,10 +193,8 @@ set_current_wd(path)
                 afree(p, ATEMP);
 }
 
-#ifdef S_ISLNK
 char *
-get_phys_path(path)
-        const char *path;
+get_phys_path(const char *path)
 {
         XString xs;
         char *xp;
@@ -266,10 +214,7 @@ get_phys_path(path)
 }
 
 static char *
-do_phys_path(xsp, xp, path)
-        XString *xsp;
-        char *xp;
-        const char *path;
+do_phys_path(XString *xsp, char *xp, const char *path)
 {
         const char *p, *q;
         int len, llen;
@@ -318,11 +263,11 @@ do_phys_path(xsp, xp, path)
         }
         return xp;
 }
-#endif /* S_ISLNK */
 
 #ifdef  TEST
 
-main(argc, argv)
+int
+main(void)
 {
         int     rv;
         char    *cp, cdpath[256], pwd[256], file[256], result[256];

@@ -3,7 +3,7 @@
  */
 
 #include "sh.h"
-#include "ksh_stat.h"
+#include <sys/stat.h>
 #include <ctype.h>
 
 #if defined(AMIGA) && !defined(CLIBHACK)
@@ -13,8 +13,7 @@ int amigaos_getstdfd(int fd);
 #endif
 
 int
-c_cd(wp)
-        char    **wp;
+c_cd(char **wp)
 {
         int optc;
         int physical = Flag(FPHYSICAL);
@@ -111,13 +110,9 @@ c_cd(wp)
         do {
                 cdnode = make_path(current_wd, dir, &cdpath, &xs, &phys_path);
 
-#ifdef S_ISLNK
                 if (physical)
                         rval = chdir(try = Xstring(xs, xp) + phys_path);
-                else
-#endif /* S_ISLNK */
-                {
-
+                else {
                         simplify_path(Xstring(xs, xp));
 
                         rval = chdir(try = Xstring(xs, xp));
@@ -146,19 +141,16 @@ c_cd(wp)
                 /* Ignore failure (happens if readonly or integer) */
                 setstr(oldpwd_s, current_wd, KSH_RETURN_ERROR);
 
-        if (!ISABSPATH(Xstring(xs, xp))) {
+        if (Xstring(xs, xp)[0] != '/') {
                 pwd = (char *) 0;
         } else
-#ifdef S_ISLNK
         if (!physical || !(pwd = get_phys_path(Xstring(xs, xp))))
-#endif /* S_ISLNK */
                 pwd = Xstring(xs, xp);
 
         /* Set PWD */
         if (pwd) {
                 char *ptmp = pwd;
                 set_current_wd(ptmp);
-
                 /* Ignore failure (happens if readonly or integer) */
                 setstr(pwd_s, ptmp, KSH_RETURN_ERROR);
         } else {
@@ -174,8 +166,7 @@ c_cd(wp)
 }
 
 int
-c_pwd(wp)
-        char    **wp;
+c_pwd(char **wp)
 {
         int optc;
         int physical = Flag(FPHYSICAL);
@@ -198,13 +189,9 @@ c_pwd(wp)
                 bi_errorf("too many arguments");
                 return 1;
         }
-#ifdef S_ISLNK
-        p = current_wd[0] ? (physical ? get_phys_path(current_wd) : current_wd)
-                          : (char *) 0;
-#else /* S_ISLNK */
-        p = current_wd[0] ? current_wd : (char *) 0;
-#endif /* S_ISLNK */
-        if (p && eaccess(p, R_OK) < 0)
+        p = current_wd[0] ? (physical ? get_phys_path(current_wd) : current_wd) :
+                (char *) 0;
+        if (p && access(p, R_OK) < 0)
                 p = (char *) 0;
         if (!p) {
                 p = ksh_get_wd((char *) 0, 0);
@@ -219,15 +206,13 @@ c_pwd(wp)
 }
 
 int
-c_print(wp)
-        char **wp;
+c_print(char **wp)
 {
 #define PO_NL           BIT(0)  /* print newline */
 #define PO_EXPAND       BIT(1)  /* expand backslash sequences */
 #define PO_PMINUSMINUS  BIT(2)  /* print a -- argument */
 #define PO_HIST         BIT(3)  /* print to history instead of stdout */
 #define PO_COPROC       BIT(4)  /* printing to coprocess: block SIGPIPE */
-#define PO_FSLASH       BIT(5)  /* swap slash for backslash */
 
 #if defined(AMIGA) && !defined(CLIBHACK)
         int fd = amigaos_getstdfd(amigaout);
@@ -286,14 +271,12 @@ c_print(wp)
                           case 'n':
                                 flags &= ~PO_NL;
                                 break;
-#ifdef KSH
                           case 'p':
                                 if ((fd = coproc_getfd(W_OK, &emsg)) < 0) {
                                         bi_errorf("-p: %s", emsg);
                                         return 1;
                                 }
                                 break;
-#endif /* KSH */
                           case 'r':
                                 flags &= ~PO_EXPAND;
                                 break;
@@ -313,8 +296,8 @@ c_print(wp)
                         }
                 if (!(builtin_opt.info & GI_MINUSMINUS)) {
                         /* treat a lone - like -- */
-                        if (wp[builtin_opt.optind]
-                            && strcmp(wp[builtin_opt.optind], "-") == 0)
+                        if (wp[builtin_opt.optind] &&
+                            strcmp(wp[builtin_opt.optind], "-") == 0)
                                 builtin_opt.optind++;
                 } else if (flags & PO_PMINUSMINUS)
                         builtin_opt.optind--;
@@ -324,7 +307,7 @@ c_print(wp)
         Xinit(xs, xp, 128, ATEMP);
 
         while (*wp != NULL) {
-                register int c;
+                int c;
                 s = *wp;
                 while ((c = *s++) != '\0') {
                         Xcheck(xs, xp);
@@ -348,7 +331,7 @@ c_print(wp)
                                 case '0':
                                         /* Look for an octal number: can have
                                          * three digits (not counting the
-                                         * leading 0).  Truely burnt.
+                                         * leading 0).  Truly burnt.
                                          */
                                         c = 0;
                                         for (i = 0; i < 3; i++) {
@@ -379,8 +362,7 @@ c_print(wp)
                 Xfree(xs, xp);
         } else {
                 int n, len = Xlength(xs, xp);
-#ifdef KSH
-                int UNINITIALIZED(opipe);
+                int opipe = 0;
 
                 /* Ensure we aren't killed by a SIGPIPE while writing to
                  * a coprocess.  at&t ksh doesn't seem to do this (seems
@@ -391,7 +373,6 @@ c_print(wp)
                         flags |= PO_COPROC;
                         opipe = block_pipe();
                 }
-#endif /* KSH */
                 for (s = Xstring(xs, xp); len > 0; ) {
 #if defined(AMIGA) && !defined(CLIBHACK)
                         n = amigaos_write(fd, s, len);
@@ -399,44 +380,35 @@ c_print(wp)
                         n = write(fd, s, len);
 #endif
                         if (n < 0) {
-#ifdef KSH
                                 if (flags & PO_COPROC)
                                         restore_pipe(opipe);
-#endif /* KSH */
                                 if (errno == EINTR) {
                                         /* allow user to ^C out */
                                         intrcheck();
-#ifdef KSH
                                         if (flags & PO_COPROC)
                                                 opipe = block_pipe();
-#endif /* KSH */
                                         continue;
                                 }
-#ifdef KSH
                                 /* This doesn't really make sense - could
                                  * break scripts (print -p generates
                                  * error message).
                                 *if (errno == EPIPE)
                                 *       coproc_write_close(fd);
                                  */
-#endif /* KSH */
                                 return 1;
                         }
                         s += n;
                         len -= n;
                 }
-#ifdef KSH
                 if (flags & PO_COPROC)
                         restore_pipe(opipe);
-#endif /* KSH */
         }
 
         return 0;
 }
 
 int
-c_whence(wp)
-        char **wp;
+c_whence(char **wp)
 {
         struct tbl *tp;
         char *id;
@@ -489,8 +461,8 @@ c_whence(wp)
                 }
                 if (!tp)
                         tp = findcom(id, fcflags);
-                if (vflag || (tp->type != CALIAS && tp->type != CEXEC
-                              && tp->type != CTALIAS))
+                if (vflag || (tp->type != CALIAS && tp->type != CEXEC &&
+                        tp->type != CTALIAS))
                         shprintf("%s", id);
                 switch (tp->type) {
                   case CKEYWD:
@@ -500,8 +472,8 @@ c_whence(wp)
                   case CALIAS:
                         if (vflag)
                                 shprintf(" is an %salias for ",
-                                        (tp->flag & EXPORTV) ? "exported "
-                                                             : null);
+                                        (tp->flag & EXPORTV) ? "exported " :
+                                                null);
                         if (!iam_whence && !vflag)
                                 shprintf("alias %s=", id);
                         print_value_quoted(tp->val.s);
@@ -533,11 +505,9 @@ c_whence(wp)
                                 if (vflag) {
                                         shprintf(" is ");
                                         if (tp->type == CTALIAS)
-                                                shprintf(
-                                                    "a tracked %salias for ",
+                                                shprintf("a tracked %salias for ",
                                                         (tp->flag & EXPORTV) ?
-                                                              "exported "
-                                                              : null);
+                                                        "exported " : null);
                                 }
                                 shprintf("%s", tp->val.s);
                         } else {
@@ -558,8 +528,7 @@ c_whence(wp)
 
 /* Deal with command -vV - command -p dealt with in comexec() */
 int
-c_command(wp)
-        char **wp;
+c_command(char **wp)
 {
         /* Let c_whence do the work.  Note that c_command() must be
          * a distinct function from c_whence() (tested in comexec()).
@@ -569,8 +538,7 @@ c_command(wp)
 
 /* typeset, export, and readonly */
 int
-c_typeset(wp)
-        char **wp;
+c_typeset(char **wp)
 {
         struct block *l = e->loc;
         struct tbl *vp, **p;
@@ -642,7 +610,8 @@ c_typeset(wp)
                   case 'l':
                         flag = LCASEV;
                         break;
-                  case 'p': /* posix export/readonly -p flag.
+                  case 'p':
+                            /* posix export/readonly -p flag.
                              * typset -p is the same as typeset (in pdksh);
                              * here for compatability with ksh93.
                              */
@@ -681,10 +650,10 @@ c_typeset(wp)
         if (basestr && !bi_getn(basestr, &base))
                 return 1;
 
-        if (!(builtin_opt.info & GI_MINUSMINUS) && wp[builtin_opt.optind]
-            && (wp[builtin_opt.optind][0] == '-'
-                || wp[builtin_opt.optind][0] == '+')
-            && wp[builtin_opt.optind][1] == '\0')
+        if (!(builtin_opt.info & GI_MINUSMINUS) && wp[builtin_opt.optind] &&
+            (wp[builtin_opt.optind][0] == '-' ||
+            wp[builtin_opt.optind][0] == '+') &&
+            wp[builtin_opt.optind][1] == '\0')
         {
                 thing = wp[builtin_opt.optind][0];
                 builtin_opt.optind++;
@@ -710,11 +679,10 @@ c_typeset(wp)
                 /* Setting these attributes clears the others, unless they
                  * are also set in this command
                  */
-                if (fset & (LJUST|RJUST|ZEROFIL|UCASEV_AL|LCASEV|INTEGER
-                            |INT_U|INT_L))
-                        fclr |= ~fset &
-                                (LJUST|RJUST|ZEROFIL|UCASEV_AL|LCASEV|INTEGER
-                                 |INT_U|INT_L);
+                if (fset & (LJUST | RJUST | ZEROFIL | UCASEV_AL | LCASEV |
+                        INTEGER | INT_U | INT_L))
+                                fclr |= ~fset & (LJUST | RJUST | ZEROFIL | UCASEV_AL | LCASEV |
+                                        INTEGER | INT_U | INT_L);
         }
 
         /* set variables and attributes */
@@ -728,7 +696,7 @@ c_typeset(wp)
                 for (i = builtin_opt.optind; wp[i]; i++) {
                         if (func) {
                                 f = findfunc(wp[i], hash(wp[i]),
-                                             (fset&UCASEV_AL) ? TRUE : FALSE);
+                                             (fset&UCASEV_AL) ? true : false);
                                 if (!f) {
                                         /* at&t ksh does ++rval: bogus */
                                         rval = 1;
@@ -740,10 +708,8 @@ c_typeset(wp)
                                 } else
                                         fptreef(shl_stdout, 0,
                                                 f->flag & FKSH ?
-                                                    "function %s %T\n"
-                                                    : "%s() %T\n"
-                                                ,
-                                                wp[i], f->val.t);
+                                                    "function %s %T\n" :
+                                                    "%s() %T\n", wp[i], f->val.t);
                         } else if (!typeset(wp[i], fset, fclr, field, base)) {
                                 bi_errorf("%s: not identifier", wp[i]);
                                 return 1;
@@ -761,8 +727,7 @@ c_typeset(wp)
                             continue;
                     if (thing == '-')
                         fptreef(shl_stdout, 0, vp->flag & FKSH ?
-                                                    "function %s %T\n"
-                                                    : "%s() %T\n",
+                                "function %s %T\n" : "%s() %T\n",
                                 vp->name, vp->val.t);
                     else
                         shprintf("%s\n", vp->name);
@@ -865,8 +830,7 @@ c_typeset(wp)
 }
 
 int
-c_alias(wp)
-        char **wp;
+c_alias(char **wp)
 {
         struct table *t = aliases;
         int rv = 0, rflag = 0, tflag, Uflag = 0, pflag = 0;
@@ -890,7 +854,8 @@ c_alias(wp)
                   case 't':
                         t = taliases;
                         break;
-                  case 'U': /* kludge for tracked alias initialization
+                  case 'U':
+                            /* kludge for tracked alias initialization
                              * (don't do a path search, just make an entry)
                              */
                         Uflag = 1;
@@ -916,12 +881,12 @@ c_alias(wp)
         /* "hash -r" means reset all the tracked aliases.. */
         if (rflag) {
                 static const char *const args[] = {
-                            "unalias", "-ta", (const char *) 0
-                        };
+                        "unalias", "-ta", (const char *) 0
+                };
 
                 if (!tflag || *wp) {
-                        shprintf(
-            "alias: -r flag can only be used with -t and without arguments\n");
+                        shprintf("alias: -r flag can only be used with -t"
+                                "and without arguments\n");
                         return 1;
                 }
                 ksh_getopt_reset(&builtin_opt, GF_ERROR);
@@ -981,8 +946,8 @@ c_alias(wp)
                                 afree((void*)ap->val.s, APERM);
                         }
                         /* ignore values for -t (at&t ksh does this) */
-                        newval = tflag ? search(alias, path, X_OK, (int *) 0)
-                                        : val;
+                        newval = tflag ? search(alias, path, X_OK, (int *) 0) :
+                                val;
                         if (newval) {
                                 ap->val.s = str_save(newval, APERM);
                                 ap->flag |= ALLOC|ISSET;
@@ -1002,11 +967,10 @@ c_alias(wp)
 }
 
 int
-c_unalias(wp)
-        char **wp;
+c_unalias(char **wp)
 {
-        register struct table *t = aliases;
-        register struct tbl *ap;
+        struct table *t = aliases;
+        struct tbl *ap;
         int rv = 0, all = 0;
         int optc;
 
@@ -1054,10 +1018,8 @@ c_unalias(wp)
         return rv;
 }
 
-#ifdef KSH
 int
-c_let(wp)
-        char **wp;
+c_let(char **wp)
 {
         int rv = 1;
         long val;
@@ -1066,18 +1028,16 @@ c_let(wp)
                 bi_errorf("no arguments");
         else
                 for (wp++; *wp; wp++)
-                        if (!evaluate(*wp, &val, KSH_RETURN_ERROR)) {
+                        if (!evaluate(*wp, &val, KSH_RETURN_ERROR, true)) {
                                 rv = 2; /* distinguish error from zero result */
                                 break;
                         } else
                                 rv = val == 0;
         return rv;
 }
-#endif /* KSH */
 
 int
-c_jobs(wp)
-        char **wp;
+c_jobs(char **wp)
 {
         int optc;
         int flag = 0;
@@ -1117,15 +1077,11 @@ struct kill_info {
         int num_width;
         int name_width;
 };
-static char *kill_fmt_entry ARGS((void *arg, int i, char *buf, int buflen));
+static char *kill_fmt_entry(void *arg, int i, char *buf, int buflen);
 
 /* format a single kill item */
 static char *
-kill_fmt_entry(arg, i, buf, buflen)
-        void *arg;
-        int i;
-        char *buf;
-        int buflen;
+kill_fmt_entry(void *arg, int i, char *buf, int buflen)
 {
         struct kill_info *ki = (struct kill_info *) arg;
 
@@ -1145,8 +1101,7 @@ kill_fmt_entry(arg, i, buf, buflen)
 
 
 int
-c_kill(wp)
-        char **wp;
+c_kill(char **wp)
 {
         Trap *t = (Trap *) 0;
         char *p;
@@ -1155,7 +1110,7 @@ c_kill(wp)
 
         /* assume old style options if -digits or -UPPERCASE */
         if ((p = wp[1]) && *p == '-' && (digit(p[1]) || isupper(p[1]))) {
-                if (!(t = gettrap(p + 1, TRUE))) {
+                if (!(t = gettrap(p + 1, true))) {
                         bi_errorf("bad signal `%s'", p + 1);
                         return 1;
                 }
@@ -1169,7 +1124,7 @@ c_kill(wp)
                                 lflag = 1;
                                 break;
                           case 's':
-                                if (!(t = gettrap(builtin_opt.optarg, TRUE))) {
+                                if (!(t = gettrap(builtin_opt.optarg, true))) {
                                         bi_errorf("bad signal `%s'",
                                                 builtin_opt.optarg);
                                         return 1;
@@ -1182,9 +1137,8 @@ c_kill(wp)
         }
         if ((lflag && t) || (!wp[i] && !lflag)) {
                 shf_fprintf(shl_out,
-"Usage: kill [ -s signame | -signum | -signame ] {pid|job}...\n\
-       kill -l [exit_status]\n"
-                        );
+                        "Usage: kill [ -s signame | -signum | -signame ] {pid|job}...\n"
+                        "       kill -l [exit_status]\n");
                 bi_errorf(null);
                 return 1;
         }
@@ -1194,16 +1148,16 @@ c_kill(wp)
                         for (; wp[i]; i++) {
                                 if (!bi_getn(wp[i], &n))
                                         return 1;
-                                if (n > 128 && n < 128 + SIGNALS)
+                                if (n > 128 && n < 128 + NSIG)
                                         n -= 128;
-                                if (n > 0 && n < SIGNALS && sigtraps[n].name)
+                                if (n > 0 && n < NSIG && sigtraps[n].name)
                                         shprintf("%s\n", sigtraps[n].name);
                                 else
                                         shprintf("%d\n", n);
                         }
                 } else if (Flag(FPOSIX)) {
                         p = null;
-                        for (i = 1; i < SIGNALS; i++, p = space)
+                        for (i = 1; i < NSIG; i++, p = space)
                                 if (sigtraps[i].name)
                                         shprintf("%s%s", p, sigtraps[i].name);
                         shprintf(newline);
@@ -1212,12 +1166,12 @@ c_kill(wp)
                         int mess_width;
                         struct kill_info ki;
 
-                        for (i = SIGNALS, ki.num_width = 1; i >= 10; i /= 10)
+                        for (i = NSIG, ki.num_width = 1; i >= 10; i /= 10)
                                 ki.num_width++;
                         ki.name_width = mess_width = 0;
-                        for (i = 0; i < SIGNALS; i++) {
-                                w = sigtraps[i].name ? strlen(sigtraps[i].name)
-                                                     : ki.num_width;
+                        for (i = 0; i < NSIG; i++) {
+                                w = sigtraps[i].name ? strlen(sigtraps[i].name) :
+                                        ki.num_width;
                                 if (w > ki.name_width)
                                         ki.name_width = w;
                                 w = strlen(sigtraps[i].mess);
@@ -1225,9 +1179,9 @@ c_kill(wp)
                                         mess_width = w;
                         }
 
-                        print_columns(shl_stdout, SIGNALS - 1,
+                        print_columns(shl_stdout, NSIG - 1,
                                 kill_fmt_entry, (void *) &ki,
-                                ki.num_width + ki.name_width + mess_width + 3);
+                                ki.num_width + ki.name_width + mess_width + 3, 1);
                 }
                 return 0;
         }
@@ -1238,7 +1192,7 @@ c_kill(wp)
                         if (j_kill(p, sig))
                                 rv = 1;
                 } else if (!getn(p, &n)) {
-                        bi_errorf("%s: arguments must be jobs or process ids",
+                        bi_errorf("%s: arguments must be jobs or process IDs",
                                 p);
                         rv = 1;
                 } else {
@@ -1255,8 +1209,7 @@ c_kill(wp)
 }
 
 void
-getopts_reset(val)
-        int val;
+getopts_reset(int val)
 {
         if (val >= 1) {
                 ksh_getopt_reset(&user_opt,
@@ -1266,8 +1219,7 @@ getopts_reset(val)
 }
 
 int
-c_getopts(wp)
-        char **wp;
+c_getopts(char **wp)
 {
         int     argc;
         const char *options;
@@ -1292,7 +1244,7 @@ c_getopts(wp)
                 bi_errorf("missing name argument");
                 return 1;
         }
-        if (!*var || *skip_varname(var, TRUE)) {
+        if (!*var || *skip_varname(var, true)) {
                 bi_errorf("%s: is not an identifier", var);
                 return 1;
         }
@@ -1310,12 +1262,12 @@ c_getopts(wp)
         /* Check that our saved state won't cause a core dump... */
         for (argc = 0; wp[argc]; argc++)
                 ;
-        if (user_opt.optind > argc
-            || (user_opt.p != 0
-                && user_opt.p > strlen(wp[user_opt.optind - 1])))
+        if (user_opt.optind > argc ||
+                (user_opt.p != 0 &&
+                user_opt.p > strlen(wp[user_opt.optind - 1])))
         {
-              bi_errorf("arguments changed since last call");
-              return 1;
+                bi_errorf("arguments changed since last call");
+                return 1;
         }
 
         user_opt.optarg = (char *) 0;
@@ -1378,9 +1330,7 @@ const struct builtin kshbuiltins [] = {
         {"+getopts", c_getopts},
         {"+jobs", c_jobs},
         {"+kill", c_kill},
-#ifdef KSH
         {"let", c_let},
-#endif /* KSH */
         {"print", c_print},
         {"pwd", c_pwd},
         {"*=readonly", c_typeset},

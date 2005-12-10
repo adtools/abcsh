@@ -3,7 +3,7 @@
  */
 
 #include "sh.h"
-#include "ksh_stat.h"   /* umask() */
+#include <sys/stat.h>
 #include "ksh_time.h"
 #include "ksh_times.h"
 
@@ -15,23 +15,21 @@ char amigaos_getc(int fd);
 int amigaos_getstdfd(int fd);
 #endif
 
-static  char *clocktos ARGS((INT32 t));
+static void p_time(struct shf *, int, struct timeval *, int, char *, char *);
 
 
 /* :, false and true */
 int
-c_label(wp)
-        char **wp;
+c_label(char **wp)
 {
         return wp[0][0] == 'f' ? 1 : 0;
 }
 
 int
-c_shift(wp)
-        char **wp;
+c_shift(char **wp)
 {
-        register struct block *l = e->loc;
-        register int n;
+        struct block *l = e->loc;
+        int n;
         long val;
         char *arg;
 
@@ -40,7 +38,7 @@ c_shift(wp)
         arg = wp[builtin_opt.optind];
 
         if (arg) {
-                evaluate(arg, &val, KSH_UNWIND_ERROR);
+                evaluate(arg, &val, KSH_UNWIND_ERROR, true);
                 n = val;
         } else
                 n = 1;
@@ -59,13 +57,12 @@ c_shift(wp)
 }
 
 int
-c_umask(wp)
-        char **wp;
+c_umask(char **wp)
 {
-        register int i;
-        register char *cp;
+        int i;
+        char *cp;
         int symbolic = 0;
-        int old_umask;
+        mode_t old_umask;
         int optc;
 
         while ((optc = ksh_getopt(wp, &builtin_opt, "S")) != EOF)
@@ -99,7 +96,7 @@ c_umask(wp)
                 } else
                         shprintf("%#3.3o\n", old_umask);
         } else {
-                int new_umask;
+                mode_t new_umask;
 
                 if (digit(*cp)) {
                         for (new_umask = 0; *cp >= '0' && *cp <= '7'; cp++)
@@ -121,10 +118,18 @@ c_umask(wp)
                         while (*cp) {
                                 while (*cp && strchr("augo", *cp))
                                         switch (*cp++) {
-                                        case 'a': positions |= 0111; break;
-                                        case 'u': positions |= 0100; break;
-                                        case 'g': positions |= 0010; break;
-                                        case 'o': positions |= 0001; break;
+                                        case 'a':
+                                                positions |= 0111;
+                                                break;
+                                        case 'u':
+                                                positions |= 0100;
+                                                break;
+                                        case 'g':
+                                                positions |= 0010;
+                                                break;
+                                        case 'o':
+                                                positions |= 0001;
+                                                break;
                                         }
                                 if (!positions)
                                         positions = 0111; /* default is a */
@@ -134,20 +139,30 @@ c_umask(wp)
                                 new_val = 0;
                                 while (*cp && strchr("rwxugoXs", *cp))
                                         switch (*cp++) {
-                                        case 'r': new_val |= 04; break;
-                                        case 'w': new_val |= 02; break;
-                                        case 'x': new_val |= 01; break;
-                                        case 'u': new_val |= old_umask >> 6;
-                                                  break;
-                                        case 'g': new_val |= old_umask >> 3;
-                                                  break;
-                                        case 'o': new_val |= old_umask >> 0;
-                                                  break;
-                                        case 'X': if (old_umask & 0111)
+                                        case 'r':
+                                                new_val |= 04;
+                                                break;
+                                        case 'w':
+                                                new_val |= 02;
+                                                break;
+                                        case 'x':
+                                                new_val |= 01;
+                                                break;
+                                        case 'u':
+                                                new_val |= old_umask >> 6;
+                                                break;
+                                        case 'g':
+                                                new_val |= old_umask >> 3;
+                                                break;
+                                        case 'o':
+                                                new_val |= old_umask >> 0;
+                                                break;
+                                        case 'X':
+                                                if (old_umask & 0111)
                                                         new_val |= 01;
-                                                  break;
+                                                break;
                                         case 's': /* ignored */
-                                                  break;
+                                                break;
                                         }
                                 new_val = (new_val & 07) * positions;
                                 switch (op) {
@@ -155,8 +170,8 @@ c_umask(wp)
                                         new_umask &= ~new_val;
                                         break;
                                 case '=':
-                                        new_umask = new_val
-                                            | (new_umask & ~(positions * 07));
+                                        new_umask = new_val |
+                                                (new_umask & ~(positions * 07));
                                         break;
                                 case '+':
                                         new_umask |= new_val;
@@ -179,8 +194,7 @@ c_umask(wp)
 }
 
 int
-c_dot(wp)
-        char **wp;
+c_dot(char **wp)
 {
         char *file, *cp;
         char **argv;
@@ -218,10 +232,9 @@ c_dot(wp)
 }
 
 int
-c_wait(wp)
-        char **wp;
+c_wait(char **wp)
 {
-        int UNINITIALIZED(rv);
+        int rv = 0;
         int sig;
 
         if (ksh_getopt(wp, &builtin_opt, null) == '?')
@@ -241,14 +254,13 @@ c_wait(wp)
 }
 
 int
-c_read(wp)
-        char **wp;
+c_read(char **wp)
 {
-        register int c = 0;
+        int c = 0;
         int expand = 1, history = 0;
         int expanding;
         int ecode = 0;
-        register char *cp;
+        char *cp;
 #if defined(AMIGA) && !defined(CLIBHACK)
         int fd = amigaos_getstdfd(amigain);
 #else
@@ -259,18 +271,16 @@ c_read(wp)
         const char *emsg;
         XString cs, xs;
         struct tbl *vp;
-        char UNINITIALIZED(*xp);
+        char *xp = NULL;
 
         while ((optc = ksh_getopt(wp, &builtin_opt, "prsu,")) != EOF)
                 switch (optc) {
-#ifdef KSH
                   case 'p':
                         if ((fd = coproc_getfd(R_OK, &emsg)) < 0) {
                                 bi_errorf("-p: %s", emsg);
                                 return 1;
                         }
                         break;
-#endif /* KSH */
                   case 'r':
                         expand = 0;
                         break;
@@ -312,7 +322,6 @@ c_read(wp)
                 }
         }
 
-#ifdef KSH
         /* If we are reading from the co-process for the first time,
          * make sure the other side of the pipe is closed first.  This allows
          * the detection of eof.
@@ -323,7 +332,6 @@ c_read(wp)
          * If this call is removed, remove the eof check below, too.
         * coproc_readw_close(fd);
          */
-#endif /* KSH */
 
         if (history)
                 Xinit(xs, xp, 128, ATEMP);
@@ -340,12 +348,11 @@ c_read(wp)
 #else
                                 c = shf_getc(shf);
 #endif
-                                if (c == '\0'
-                                    )
+                                if (c == '\0')
                                         continue;
 #if !defined(AMIGA) || defined(CLIBHACK)
-                                if (c == EOF && shf_error(shf)
-                                    && shf_errno(shf) == EINTR)
+                                if (c == EOF && shf_error(shf) &&
+                                        shf_errno(shf) == EINTR)
                                 {
                                         /* Was the offending signal one that
                                          * would normally kill a process?
@@ -395,9 +402,9 @@ c_read(wp)
                 }
                 /* strip trailing IFS white space from last variable */
                 if (!wp[1])
-                        while (Xlength(cs, cp) && ctype(cp[-1], C_IFS)
-                               && ctype(cp[-1], C_IFSWS))
-                                cp--;
+                        while (Xlength(cs, cp) && ctype(cp[-1], C_IFS) &&
+                                ctype(cp[-1], C_IFSWS))
+                                        cp--;
                 Xput(cs, cp, '\0');
                 vp = global(*wp);
                 /* Must be done before setting export. */
@@ -433,23 +440,20 @@ c_read(wp)
                 histsave(source->line, Xstring(xs, xp), 1);
                 Xfree(xs, xp);
         }
-#ifdef KSH
         /* if this is the co-process fd, close the file descriptor
          * (can get eof if and only if all processes are have died, ie,
          * coproc.njobs is 0 and the pipe is closed).
          */
         if (c == EOF && !ecode)
                 coproc_read_close(fd);
-#endif /* KSH */
 
         return ecode ? ecode : c == EOF;
 }
 
 int
-c_eval(wp)
-        char **wp;
+c_eval(char **wp)
 {
-        register struct source *s,*olds=source;
+        struct source *s,*olds=source;
         int retval, errexitflagtmp;
 
         if (ksh_getopt(wp, &builtin_opt, null) == '?')
@@ -485,19 +489,18 @@ c_eval(wp)
         }
         errexitflagtmp = Flag(FERREXIT);
         Flag(FERREXIT) = 0;
-        retval=shell(s, FALSE);
+        retval=shell(s, false);
         Flag(FERREXIT) = errexitflagtmp;
         source=olds;
         return retval;
 }
 
 int
-c_trap(wp)
-        char **wp;
+c_trap(char **wp)
 {
         int i;
         char *s;
-        register Trap *p;
+        Trap *p;
 
         if (ksh_getopt(wp, &builtin_opt, null) == '?')
                 return 1;
@@ -506,7 +509,7 @@ c_trap(wp)
         if (*wp == NULL) {
                 int anydfl = 0;
 
-                for (p = sigtraps, i = SIGNALS+1; --i >= 0; p++) {
+                for (p = sigtraps, i = NSIG+1; --i >= 0; p++) {
                         if (p->trap == NULL)
                                 anydfl = 1;
                         else {
@@ -521,7 +524,7 @@ c_trap(wp)
                  */
                 if (anydfl) {
                         shprintf("trap -- -");
-                        for (p = sigtraps, i = SIGNALS+1; --i >= 0; p++)
+                        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
                                 if (p->trap == NULL && p->name)
                                         shprintf(" %s", p->name);
                         shprintf(newline);
@@ -535,13 +538,13 @@ c_trap(wp)
          * command 'exit' isn't confused with the pseudo-signal
          * 'EXIT'.
          */
-        s = (gettrap(*wp, FALSE) == NULL) ? *wp++ : NULL; /* get command */
+        s = (gettrap(*wp, false) == NULL) ? *wp++ : NULL; /* get command */
         if (s != NULL && s[0] == '-' && s[1] == '\0')
                 s = NULL;
 
         /* set/clear traps */
         while (*wp != NULL) {
-                p = gettrap(*wp++, TRUE);
+                p = gettrap(*wp++, true);
                 if (p == NULL) {
                         bi_errorf("bad signal %s", wp[-1]);
                         return 1;
@@ -552,8 +555,7 @@ c_trap(wp)
 }
 
 int
-c_exitreturn(wp)
-        char **wp;
+c_exitreturn(char **wp)
 {
         int how = LEXIT;
         int n;
@@ -566,7 +568,7 @@ c_exitreturn(wp)
         if (arg) {
             if (!getn(arg, &n)) {
                     exstat = 1;
-                    warningf(TRUE, "%s: bad number", arg);
+                    warningf(true, "%s: bad number", arg);
             } else
                     exstat = n;
         }
@@ -588,15 +590,14 @@ c_exitreturn(wp)
                 how = LSHELL;
         }
 
-        quitenv();      /* get rid of any i/o redirections */
+        quitenv(NULL);      /* get rid of any i/o redirections */
         unwind(how);
         /*NOTREACHED*/
         return 0;
 }
 
 int
-c_brkcont(wp)
-        char **wp;
+c_brkcont(char **wp)
 {
         int n, quit;
         struct env *ep, *last_ep = (struct env *) 0;
@@ -632,7 +633,7 @@ c_brkcont(wp)
                  * scripts, but don't generate an error (ie, keep going).
                  */
                 if (n == quit) {
-                        warningf(TRUE, "%s: cannot %s", wp[0], wp[0]);
+                        warningf(true, "%s: cannot %s", wp[0], wp[0]);
                         return 0; 
                 }
                 /* POSIX says if n is too big, the last enclosing loop
@@ -640,7 +641,7 @@ c_brkcont(wp)
                  * do anyway 'cause the user messed up.
                  */
                 last_ep->flags &= ~EF_BRKCONT_PASS;
-                warningf(TRUE, "%s: can only %s %d level(s)",
+                warningf(true, "%s: can only %s %d level(s)",
                         wp[0], wp[0], n - quit);
         }
 
@@ -649,12 +650,11 @@ c_brkcont(wp)
 }
 
 int
-c_set(wp)
-        char **wp;
+c_set(char **wp)
 {
         int argi, setargs;
         struct block *l = e->loc;
-        register char **owp = wp;
+        char **owp = wp;
 
         if (wp[1] == NULL) {
                 static const char *const args [] = { "set", "-", NULL };
@@ -685,10 +685,9 @@ c_set(wp)
 }
 
 int
-c_unset(wp)
-        char **wp;
+c_unset(char **wp)
 {
-        register char *id;
+        char *id;
         int optc, unset_var = 1;
         int ret = 0;
 
@@ -722,9 +721,21 @@ c_unset(wp)
         return ret;
 }
 
+static void
+p_time(struct shf *shf, int posix, struct timeval *tv, int width, char *prefix,
+        char *suffix)
+{
+        if (posix)
+                shf_fprintf(shf, "%s%*ld.%02ld%s", prefix ? prefix : "",
+                        width, tv->tv_sec, tv->tv_usec / 10000, suffix);
+        else
+                shf_fprintf(shf, "%s%*ldm%ld.%02lds%s", prefix ? prefix : "",
+                        width, tv->tv_sec / 60, tv->tv_sec % 60,
+                        tv->tv_usec / 10000, suffix);
+}
+
 int
-c_times(wp)
-        char **wp;
+c_times(char **wp)
 {
         struct tms all;
 
@@ -741,9 +752,7 @@ c_times(wp)
  * time pipeline (really a statement, not a built-in command)
  */
 int
-timex(t, f)
-        struct op *t;
-        int f;
+timex(struct op *t, int f)
 {
 #define TF_NOARGS       BIT(0)
 #define TF_NOREAL       BIT(1)          /* don't report real time */
@@ -798,9 +807,7 @@ timex(t, f)
 }
 
 void
-timex_hook(t, app)
-        struct op *t;
-        char ** volatile *app;
+timex_hook(struct op *t, char **volatile *app)
 {
         char **wp = *app;
         int optc;
@@ -833,12 +840,11 @@ timex_hook(t, app)
 }
 
 static char *
-clocktos(t)
-        INT32 t;
+clocktos(int t)
 {
         static char temp[22]; /* enough for 64 bit INT32 */
-        register int i;
-        register char *cp = temp + sizeof(temp);
+        int i;
+        char *cp = temp + sizeof(temp);
 
         /* note: posix says must use max precision, ie, if clk_tck is
          * 1000, must print 3 places after decimal (if non-zero, else 1).
@@ -859,8 +865,7 @@ clocktos(t)
 
 /* exec with no args - args case is taken care of in comexec() */
 int
-c_exec(wp)
-        char ** wp;
+c_exec(char ** wp)
 {
         int i;
 
@@ -875,10 +880,8 @@ c_exec(wp)
                          * happens is unspecified and the bourne shell
                          * keeps them open).
                          */
-#ifdef KSH
                         if (!Flag(FSH) &&i > 2 && e->savefd[i])
-                                fd_clexec(i);
-#endif /* KSH */
+                                fcntl(i, F_SETFD, FD_CLOEXEC);
                 }
                 e->savefd = NULL; 
         }
@@ -887,14 +890,13 @@ c_exec(wp)
 
 /* dummy function, special case in comexec() */
 int
-c_builtin(wp)
-        char ** wp;
+c_builtin(char ** wp)
 {
         return 0;
 }
 
-extern  int c_test ARGS((char **wp));           /* in c_test.c */
-extern  int c_ulimit ARGS((char **wp));         /* in c_ulimit.c */
+extern  int c_test(char **wp);           /* in c_test.c */
+extern  int c_ulimit(char **wp);         /* in c_ulimit.c */
 
 /* A leading = means assignments before command are kept;
  * a leading * means a POSIX special builtin;
