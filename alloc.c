@@ -75,7 +75,7 @@ alloc(size_t size, Area *ap)
         Cell *fp = 0, *fpp = 0;
 
         if (size <= 0)
-                aerror(ap, "allocate bad size");
+                internal_errorf(1, "allocate bad size");
         cells = (unsigned)(size + sizeof(Cell) - 1) / sizeof(Cell);
 
         /* allocate at least this many cells */
@@ -108,7 +108,7 @@ alloc(size_t size, Area *ap)
                 bp = (Block*) malloc(offsetof(Block, cell) +
                                      acells * sizeof(Cell));
                 if (bp == NULL)
-                        aerror(ap, "cannot allocate");
+                        internal_errorf(1, "cannot allocate");
                 if (ap->freelist == &aempty) {
                         ap->freelist = bp->next = bp->prev = bp;
                 } else {
@@ -140,7 +140,7 @@ asplit(Area *ap, Block *bp, Cell *fp, Cell *fpp, int cells)
         int split = (fp-1)->size - cells;
 
         if (split < 0)
-                aerror(ap, "allocated object too small");
+                internal_errorf(1, "allocated object too small");
         if (split <= NOBJECT_FIELDS) {  /* allocate all */
                 fp = fp->next;
         } else {                /* allocate head, free tail */
@@ -168,7 +168,7 @@ aresize(void *ptr, size_t size, Area *ap)
         int oldcells = dp ? (dp-1)->size : 0;
 
         if (size <= 0)
-                aerror(ap, "allocate bad size");
+                internal_errorf(1, "allocate bad size");
         /* New size (in cells) */
         cells = (unsigned)(size - 1) / sizeof(Cell) + 1;
 
@@ -188,7 +188,7 @@ aresize(void *ptr, size_t size, Area *ap)
                 Block *next = bp->next, *prev = bp->prev;
 
                 if (bp->freelist != bp->last)
-                        aerror(ap, "allocation resizing free pointer");
+                        internal_errorf(1, "allocation resizing free pointer");
                 nbp = realloc((void *) bp,
                               offsetof(Block, cell) +
                               (cells + NOBJECT_FIELDS) * sizeof(Cell));
@@ -205,7 +205,7 @@ aresize(void *ptr, size_t size, Area *ap)
                                 if (ap->freelist == bp)
                                         ap->freelist = next;
                         }
-                        aerror(ap, "cannot re-allocate");
+                        internal_errorf(1, "cannot re-allocate");
                 }
                 /* If location changed, keep pointers straight... */
                 if (nbp != bp) {
@@ -300,7 +300,7 @@ afree(void *ptr, Area *ap)
         Cell *dp = (Cell*)ptr;
 
         if (ptr == 0)
-                aerror(ap, "freeing null pointer");
+                internal_errorf(1, "freeing null pointer");
         bp = (dp-2)->block;
 
         /* If this is a large object, just free it up... */
@@ -313,7 +313,7 @@ afree(void *ptr, Area *ap)
         }
 
         if (dp < &bp->cell[NOBJECT_FIELDS] || dp >= bp->last)
-                aerror(ap, "freeing memory outside of block (corrupted?)");
+                internal_errorf(1, "freeing memory outside of block (corrupted?)");
 
         /* find position in free list */
         /* XXX if we had prev/next pointers for objects, this loop could go */
@@ -321,7 +321,7 @@ afree(void *ptr, Area *ap)
                 ;
 
         if (fp == dp)
-                aerror(ap, "freeing free object");
+                internal_errorf(1, "freeing free object");
 
         /* join object with next */
         if (dp + (dp-1)->size == fp-NOBJECT_FIELDS) { /* adjacent */

@@ -720,13 +720,13 @@ Done:
                 int h = hash(ident);
 
                 /* { */
-                if ((cf & KEYWORD) && (p = tsearch(&keywords, ident, h))
+                if ((cf & KEYWORD) && (p = ktsearch(&keywords, ident, h))
                     && (!(cf & ESACONLY) || p->val.i == ESAC || p->val.i == '}'))
                 {
                         afree(yylval.cp, ATEMP);
                         return p->val.i;
                 }
-                if ((cf & ALIAS) && (p = tsearch(aliases, ident, h))
+                if ((cf & ALIAS) && (p = ktsearch(aliases, ident, h))
                     && (p->flag & ISSET))
                 {
 

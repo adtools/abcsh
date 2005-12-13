@@ -128,7 +128,7 @@ struct block {
 #define BF_DOGETOPTS    BIT(0)  /* save/restore getopts state */
 
 /*
- * Used by twalk() and tnext() routines.
+ * Used by ktwalk() and ktnext() routines.
  */
 struct tstate {
         int left;

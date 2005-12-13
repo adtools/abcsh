@@ -148,7 +148,6 @@ void    newenv(int);
 void    quitenv(struct shf *);
 void    cleanup_parents_env(void);
 void    cleanup_proc_env(void);
-void    aerror(Area *, const char *) __attribute__((__noreturn__));
 /* misc.c */
 void    setctypes(const char *, int);
 void    initctypes(void);
@@ -187,13 +186,13 @@ void    initkeywords(void);
 struct op * compile(Source *);
 /* table.c */
 unsigned int    hash(const char *);
-void    tinit(struct table *, Area *, int);
-struct tbl *    tsearch(struct table *, const char *, unsigned int);
-struct tbl *    tenter(struct table *, const char *, unsigned int);
-void    tdelete(struct tbl *);
-void    twalk(struct tstate *, struct table *);
-struct tbl *    tnext(struct tstate *);
-struct tbl **   tsort(struct table *);
+void    ktinit(struct table *, Area *, int);
+struct tbl *    ktsearch(struct table *, const char *, unsigned int);
+struct tbl *    ktenter(struct table *, const char *, unsigned int);
+void    ktdelete(struct tbl *);
+void    ktwalk(struct tstate *, struct table *);
+struct tbl *    ktnext(struct tstate *);
+struct tbl **   ktsort(struct table *);
 /* trap.c */
 void    inittraps(void);
 void    alarm_init(void);

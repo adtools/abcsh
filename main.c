@@ -105,15 +105,15 @@ main(int argc, char *argv[])
         homedirs = malloc(sizeof(struct table));
 
         /* set up variable and command dictionaries */
-        tinit(taliases, APERM, 0);
-        tinit(aliases, APERM, 0);
-        tinit(homedirs, APERM, 0);
+        ktinit(taliases, APERM, 0);
+        ktinit(aliases, APERM, 0);
+        ktinit(homedirs, APERM, 0);
 
         /* define shell keywords */
         initkeywords();
 
         /* define built-in commands */
-        tinit(&builtins, APERM, 64); /* must be 2^n (currently 40 builtins) */
+        ktinit(&builtins, APERM, 64); /* must be 2^n (currently 40 builtins) */
         for (i = 0; shbuiltins[i].name != NULL; i++)
                 builtin(shbuiltins[i].name, shbuiltins[i].func);
         for (i = 0; kshbuiltins[i].name != NULL; i++)
@@ -646,10 +646,3 @@ remove_temps(struct temp *tp)
                 }
 }
 
-void
-aerror(Area *ap, const char *msg)
-{
-        internal_errorf(1, "alloc: %s", msg);
-        errorf(null); /* this is never executed - keeps gcc quiet */
-        /*NOTREACHED*/
-}

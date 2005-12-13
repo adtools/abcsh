@@ -812,7 +812,7 @@ shcomexec(char **wp)
 {
         struct tbl *tp;
 
-        tp = tsearch(&builtins, *wp, hash(*wp));
+        tp = ktsearch(&builtins, *wp, hash(*wp));
         if (tp == NULL)
                 internal_errorf(1, "shcomexec: %s", *wp);
         return call_builtin(tp, wp);
@@ -829,11 +829,11 @@ findfunc(const char *name, unsigned int h, int create)
         struct tbl *tp = (struct tbl *) 0;
 
         for (l = e->loc; l; l = l->next) {
-                tp = tsearch(&l->funs, name, h);
+                tp = ktsearch(&l->funs, name, h);
                 if (tp)
                         break;
                 if (!l->next && create) {
-                        tp = tenter(&l->funs, name, h);
+                        tp = ktenter(&l->funs, name, h);
                         tp->flag = DEFINED;
                         tp->type = CFUNC;
                         tp->val.t = (struct op *) 0;
@@ -875,7 +875,7 @@ define(const char *name, struct op *t)
         }
 
         if (t == NULL) {                /* undefine */
-                tdelete(tp);
+                ktdelete(tp);
                 return was_set ? 0 : 1;
         }
 
@@ -908,7 +908,7 @@ builtin(const char *name, int (*func) (char **))
                         break;
         }
 
-        tp = tenter(&builtins, name, hash(name));
+        tp = ktenter(&builtins, name, hash(name));
         tp->flag = DEFINED | flag;
         tp->type = CSHELL;
         tp->val.f = func;
@@ -934,7 +934,7 @@ findcom(const char *name, int flags)
                 flags &= ~FC_FUNC;
                 goto Search;
         }
-        tbi = (flags & FC_BI) ? tsearch(&builtins, name, h) : NULL;
+        tbi = (flags & FC_BI) ? ktsearch(&builtins, name, h) : NULL;
         /* POSIX says special builtins first, then functions, then
          * POSIX regular builtins, then search path...
          */
@@ -964,7 +964,7 @@ findcom(const char *name, int flags)
         if (!tp && (flags & FC_UNREGBI) && tbi)
                 tp = tbi;
         if (!tp && (flags & FC_PATH) && !(flags & FC_DEFPATH)) {
-                tp = tsearch(taliases, name, h);
+                tp = ktsearch(taliases, name, h);
                 if (tp && (tp->flag & ISSET) && eaccess(tp->val.s, X_OK) != 0) {
                         if (tp->flag & ALLOC) {
                                 tp->flag &= ~ALLOC;
@@ -980,7 +980,7 @@ findcom(const char *name, int flags)
         {
                 if (!tp) {
                         if (insert && !(flags & FC_DEFPATH)) {
-                                tp = tenter(taliases, name, h);
+                                tp = ktenter(taliases, name, h);
                                 tp->type = CTALIAS;
                         } else {
                                 tp = &temp;
@@ -1021,7 +1021,7 @@ flushcom(int all)                /* just relative or all */
         struct tbl *tp;
         struct tstate ts;
 
-        for (twalk(&ts, taliases); (tp = tnext(&ts)) != NULL; )
+        for (ktwalk(&ts, taliases); (tp = ktnext(&ts)) != NULL; )
                 if ((tp->flag&ISSET) && (all || !ISDIRSEP(tp->val.s[0]))) {
                         if (tp->flag&ALLOC) {
                                 tp->flag &= ~(ALLOC|ISSET);
@@ -1373,7 +1373,7 @@ struct select_menu_info {
         char    *const *args;
         int     arg_width;
         int     num_width;
-} info;
+};
 
 static char *select_fmt_entry(void *arg, int i, char *buf, int buflen);
 
@@ -1615,13 +1615,13 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
   struct tbl *t, *tn;
   struct tstate ts;
 
-  twalk(&ts,src);
+  ktwalk(&ts,src);
   tinit(dst, ap, 0);
-  while ((t = tnext(&ts)))
+  while ((t = ktnext(&ts)))
     {
 
 
-      tn = tenter(dst, t->name, hash(t->name));
+      tn = ktenter(dst, t->name, hash(t->name));
       tn->flag = t->flag;
       tn->type = t->type;
       if (t->flag & INTEGER)

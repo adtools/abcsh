@@ -331,7 +331,6 @@ EXTERN  char shell_flags [FNFLAGS];
 EXTERN  char    null [] I__("");        /* null value for variable */
 EXTERN  char    space [] I__(" ");
 EXTERN  char    newline [] I__("\n");
-EXTERN  char    slash [] I__("/");
 
 enum temp_type {
     TT_HEREDOC_EXP,     /* expanded heredoc */

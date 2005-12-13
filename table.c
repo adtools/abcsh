@@ -21,7 +21,7 @@ hash(const char * n)
 }
 
 void
-tinit(struct table *tp, Area *ap, int tsize)
+ktinit(struct table *tp, Area *ap, int tsize)
 {
         tp->areap = ap;
         tp->tbls = NULL;
@@ -64,7 +64,7 @@ texpand(struct table *tp, int nsize)
 }
 
 struct tbl *
-tsearch(struct table *tp, const char *n, unsigned int h)
+ktsearch(struct table *tp, const char *n, unsigned int h)
 {
         struct tbl **pp, *p;
 
@@ -84,7 +84,7 @@ tsearch(struct table *tp, const char *n, unsigned int h)
 }
 
 struct tbl *
-tenter(struct table *tp, const char *n, unsigned int h)
+ktenter(struct table *tp, const char *n, unsigned int h)
 {
         struct tbl **pp, *p;
         int len;
@@ -123,20 +123,20 @@ tenter(struct table *tp, const char *n, unsigned int h)
 }
 
 void
-tdelete(struct tbl *p)
+ktdelete(struct tbl *p)
 {
         p->flag = 0;
 }
 
 void
-twalk(struct tstate *ts, struct table *tp)
+ktwalk(struct tstate *ts, struct table *tp)
 {
         ts->left = tp->size;
         ts->next = tp->tbls;
 }
 
 struct tbl *
-tnext(struct tstate *ts)
+ktnext(struct tstate *ts)
 {
         while (--ts->left >= 0) {
                 struct tbl *p = *ts->next++;
@@ -153,7 +153,7 @@ tnamecmp(void *p1, void *p2)
 }
 
 struct tbl **
-tsort(struct table *tp)
+ktsort(struct table *tp)
 {
         int i;
         struct tbl **p, **sp, **dp;
@@ -188,14 +188,14 @@ tprintinfo(struct table *tp)
 
         shellf("table size %d, nfree %d\n", tp->size, tp->nfree);
         shellf("    Ncmp name\n");
-        twalk(&ts, tp);
-        while ((te = tnext(&ts))) {
+        ktwalk(&ts, tp);
+        while ((te = ktnext(&ts))) {
                 struct tbl **pp, *p;
 
                 h = hash(n = te->name);
                 ncmp = 0;
 
-                /* taken from tsearch() and added counter */
+                /* taken from ktsearch() and added counter */
                 for (pp = &tp->tbls[h & (tp->size-1)]; (p = *pp); pp--) {
                         ncmp++;
                         if (*p->name == *n && strcmp(p->name, n) == 0
