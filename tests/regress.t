@@ -288,7 +288,7 @@ description:
 	The command
 		. /foo/bar
 	should set the exit status to non-zero (sh and at&t ksh88 do).
-	XXX doting a non existant file is a fatal error for a script
+	XXX doting a non existent file is a fatal error for a script
 stdin:
 	. does/not/exist
 expected-exit: e != 0

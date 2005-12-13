@@ -56,7 +56,7 @@ description:
 	Simple test, IFS=<white-space>:
 stdin:
 	showargs() { for i; do echo -n " <$i>"; done; echo; }
-	IFS="IFS:"
+	IFS="$IFS:"
 	set --
 	showargs 1 $*
 	showargs 2 "$*"
@@ -77,7 +77,7 @@ description:
 	At&t ksh fails this, POSIX says the test is correct.
 stdin:
 	showargs() { for i; do echo -n " <$i>"; done; echo; }
-	IFS="IFS:"
+	IFS="$IFS:"
 	set --
 	showargs :"$@"
 expected-stdout:
@@ -90,7 +90,7 @@ description:
 	pdksh fails both of these tests
 stdin:
 	showargs() { for i; do echo -n " <$i>"; done; echo; }
-	IFS="IFS:"
+	IFS="$IFS:"
 	x=
 	set --
 	showargs "$x$@"
@@ -106,7 +106,7 @@ description:
 	Simple test, IFS=<white-space>:
 stdin:
 	showargs() { for i; do echo -n " <$i>"; done; echo; }
-	IFS="IFS:"
+	IFS="$IFS:"
 	set --
 	showargs "$@$@"
 expected-stdout:
@@ -119,7 +119,7 @@ description:
 	Don't know what POSIX thinks of this.  at&t ksh does not do this.
 stdin:
 	showargs() { for i; do echo -n " <$i>"; done; echo; }
-	IFS="IFS:"
+	IFS="$IFS:"
 	set --
 	showargs "${@:-}"
 expected-stdout:
@@ -147,16 +147,18 @@ stdin:
 	showargs 10 ${FOO-`echo -n h:i`th:ere}
 	showargs 11 "${FOO-`echo -n h:i`th:ere}"
 expected-stdout:
-	1: [] [b] [] []
+	1: [] [b] []
 	2: [:b::]
-	 <3> <> <b> <> <>
+	 <3> <> <b> <>
 	 <4> <:b::>
-	5: [a] [b] []
-	 <6> <a> <b> <>
+	5: [a] [b]
+	 <6> <a> <b>
 	7: [a] [] [c]
 	 <8> <a> <> <c>
 	9: [h] [ith] [ere]
 	 <10> <h> <ith> <ere>
 	 <11> <h:ith:ere>
+	12: [A] [B] [] [D]
+	 <13> <A> <B> <> <D>
 ---
 
