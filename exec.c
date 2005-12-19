@@ -1616,7 +1616,7 @@ tbl_copy(struct table *src, struct table *dst, Area *ap)
   struct tstate ts;
 
   ktwalk(&ts,src);
-  tinit(dst, ap, 0);
+  ktinit(dst, ap, 0);
   while ((t = ktnext(&ts)))
     {
 
@@ -1706,9 +1706,9 @@ void copyenv(struct globals *globenv )
     taliases = malloc(sizeof(struct table));
     aliases  = malloc(sizeof(struct table));
     /* init tables */
-        tinit(taliases, APERM, 0);
-        tinit(aliases, APERM, 0);
-        tinit(homedirs, APERM, 0);
+        ktinit(taliases, APERM, 0);
+        ktinit(aliases, APERM, 0);
+        ktinit(homedirs, APERM, 0);
 
     /*set base environment */
     copy->type = E_NONE;

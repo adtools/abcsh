@@ -736,7 +736,7 @@ Done:
                     * so it won't clash with the function name
                     * robert@debian.org, Feb 26th, 2005
                     */
-                	tdelete(p);
+                	ktdelete(p);
                    } else {
                         Source *s;
 
