@@ -392,7 +392,7 @@ getn(const char *as, int *ai)
 
         n = strtol(as, &p, 10);
 
-        n = strtol(as, &p, 10);
+        if (!*as || *p || INT_MIN >= n || n >= INT_MAX)
                 return 0;
 
         *ai = (int)n;
