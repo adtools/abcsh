@@ -4,13 +4,9 @@
 
 #include "sh.h"
 #include <sys/stat.h>
-#include "ksh_dir.h"
 
 void *
-memmove(d, s, n)
-        void *d;
-        const void *s;
-        size_t n;
+memmove(void *d, const void *s, size_t n)
 {
         char *dp = (char *) d, *sp = (char *) s;
 
@@ -42,8 +38,7 @@ ksh_times(void *tms)
 # include <sys/timeb.h>
 
 INT32
-ksh_times(tms)
-        struct tms *tms;
+ksh_times(struct tms *tms)
 {
         static INT32 base_sec;
         INT32 rv;
@@ -66,28 +61,8 @@ ksh_times(tms)
 
 #endif
 
-/* Prevent opendir() from attempting to open non-directories.  Such
- * behavior can cause problems if it attempts to open special devices...
- */
-DIR *
-ksh_opendir(d)
-        const char *d;
-{
-        struct stat statb;
-
-        if (stat(d, &statb) != 0)
-                return (DIR *) 0;
-        if (!S_ISDIR(statb.st_mode)) {
-                errno = ENOTDIR;
-                return (DIR *) 0;
-        }
-        return opendir(d);
-}
-
 int
-dup2(oldd, newd)
-        int oldd;
-        int newd;
+dup2(int oldd, int newd)
 {
         int old_errno;
 
@@ -105,3 +80,4 @@ dup2(oldd, newd)
 
         return fcntl(oldd, F_DUPFD, newd);
 }
+

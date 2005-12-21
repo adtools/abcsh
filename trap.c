@@ -78,7 +78,6 @@ gettrap(const char *name, int igncase)
                 return NULL;
         }
         for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
-        for (p = sigtraps, i = NSIG+1; --i >= 0; p++)
                 if (p->name) {
                         if (igncase) {
                                 if (p->name && (!strcasecmp(p->name, name) ||
@@ -114,10 +113,7 @@ trapsig(int i)
         }
         if (p->shtrap)
                 (*p->shtrap)(i);
-        if (sigtraps[i].cursig == trapsig) /* this for SIGCHLD,SIGALRM */
-                sigaction(i, &Sigact_trap, (struct sigaction *) 0);
         errno = errno_;
-        return;
 }
 
 /* called when we want to allow the user to ^C out of something - won't
@@ -368,7 +364,7 @@ setsig(Trap *p, sig_t f, int flags)
          * all users of shtrap are lifetime users (SIGCHLD, SIGALRM, SIGWINCH).
          */
         if (!(flags & SS_USER))
-                p->shtrap = (handler_t) 0;
+                p->shtrap = NULL;
         if (flags & SS_SHTRAP) {
                 p->shtrap = f;
                 f = trapsig;

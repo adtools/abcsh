@@ -1188,7 +1188,7 @@ globit(XString *xs,             /* dest string */
                 /* xp = *xpp;      copy_non_glob() may have re-alloc'd xs */
                 *xp = '\0';
                 prefix_len = Xlength(*xs, xp);
-                dirp = ksh_opendir(prefix_len ? Xstring(*xs, xp) : ".");
+                dirp = opendir(prefix_len ? Xstring(*xs, xp) : ".");
                 if (dirp == NULL)
                         goto Nodir;
                 while ((d = readdir(dirp)) != NULL) {
