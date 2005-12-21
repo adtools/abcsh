@@ -120,6 +120,9 @@ static int              nzombie;        /* # of zombies owned by this process */
 INT32                   njobs;          /* # of jobs started */
 static int              child_max;      /* CHILD_MAX */
 
+/* held_sigchld is set if sigchld occurs before a job is completely started */
+static volatile sig_atomic_t held_sigchld;
+
 static void             j_set_async(Job *);
 static void             j_startjob(Job *);
 static int              j_waitj(Job *, int, const char *);
@@ -139,8 +142,14 @@ j_init(int mflagset)
 {
         child_max = CHILD_MAX; /* so syscon() isn't always being called */
 
-        /* Make sure SIGCHLD isn't ignored - can do odd things under SYSV */
-        setsig(&sigtraps[SIGCHLD], SIG_DFL, SS_RESTORE_ORIG|SS_FORCE);
+        sigemptyset(&sm_default);
+        sigprocmask(SIG_SETMASK, &sm_default, (sigset_t *) 0);
+
+        sigemptyset(&sm_sigchld);
+        sigaddset(&sm_sigchld, SIGCHLD);
+
+        setsig(&sigtraps[SIGCHLD], j_sigchld,
+            SS_RESTORE_ORIG|SS_FORCE|SS_SHTRAP);
 
           if (Flag(FTALKING))
                 tty_init(true);
@@ -179,6 +188,7 @@ exchild(struct op *t, int flags,
         static Proc     *last_proc;     /* for pipelines */
 
         int             i;
+        sigset_t        omask;
         Proc            *p;
         Job             *j;
         int             rv = 0;
@@ -238,6 +248,7 @@ exchild(struct op *t, int flags,
         if (i < 0) {
                 kill_job(j, SIGKILL);
                 remove_job(j, "fork failed");
+                sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
                 errorf("cannot fork - try again");
         }
         ischild = i == 0;
@@ -304,6 +315,8 @@ exchild(struct op *t, int flags,
                         rv = j_waitj(j, JW_NONE, "jw:last proc");
         }
 
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
+
         return rv;
 }
 #endif
@@ -312,11 +325,16 @@ exchild(struct op *t, int flags,
 void
 startlast(void)
 {
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
+
         if (last_job) { /* no need to report error - waitlast() will do it */
                 /* ensure it isn't removed by check_job() */
                 last_job->flags |= JF_WAITING;
                 j_startjob(last_job);
         }
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
 }
 
 /* wait for last job: only used for `command` jobs */
@@ -328,6 +346,9 @@ waitlast(void)
 {
         int     rv;
         Job     *j;
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
 
         j = last_job;
         if (!j || !(j->flags & JF_STARTED)) {
@@ -337,6 +358,7 @@ waitlast(void)
                 }
                 else
                         internal_errorf(0, "waitlast: not started");
+                sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
 
                 // work arround for no job control
                 // place the result of the last command
@@ -347,6 +369,9 @@ waitlast(void)
         }
 
         rv = j_waitj(j, JW_NONE, "jw:waitlast");
+
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
+
         return rv;
 }
 
@@ -358,6 +383,9 @@ waitfor(const char *cp, int *sigp)
         Job     *j;
         int     ecode;
         int     flags = JW_INTERRUPT|JW_ASYNCNOTIFY;
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
 
         *sigp = 0;
 
@@ -376,9 +404,11 @@ waitfor(const char *cp, int *sigp)
                 /* don't report normal job completion */
                 flags &= ~JW_ASYNCNOTIFY;
                 if (j->ppid != procpid) {
+                        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
                         return -1;
                 }
         } else {
+                sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
                 if (ecode != JL_NOSUCH)
                         bi_errorf("%s: %s", cp, lookup_msgs[ecode]);
                 return -1;
@@ -386,6 +416,8 @@ waitfor(const char *cp, int *sigp)
 
         /* at&t ksh will wait for stopped jobs - we don't */
         rv = j_waitj(j, flags, "jw:waitfor");
+
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
 
         if (rv < 0) /* we were interrupted */
                 *sigp = 128 + -rv;
@@ -400,8 +432,12 @@ j_kill(const char *cp, int sig)
         Job     *j;
         int     rv = 0;
         int     ecode;
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
 
         if ((j = j_lookup(cp, &ecode)) == (Job *) 0) {
+                sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
                 bi_errorf("%s: %s", cp, lookup_msgs[ecode]);
                 return 1;
         }
@@ -417,6 +453,9 @@ j_kill(const char *cp, int sig)
                         rv = 1;
                 }
         }
+
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
+
         return rv;
 }
 
@@ -463,6 +502,9 @@ j_jobs(const char *cp, int slp,
         Job     *j, *tmp;
         int     how;
         int     zflag = 0;
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
 
         if (nflag < 0) { /* kludge: print zombies */
                 nflag = 0;
@@ -472,6 +514,7 @@ j_jobs(const char *cp, int slp,
                 int     ecode;
 
                 if ((j = j_lookup(cp, &ecode)) == (Job *) 0) {
+                        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
                         bi_errorf("%s: %s", cp, lookup_msgs[ecode]);
                         return 1;
                 }
@@ -495,6 +538,7 @@ j_jobs(const char *cp, int slp,
                 if (j->flags & JF_REMOVE)
                         remove_job(j, "jobs");
         }
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
         return 0;
 }
 
@@ -503,6 +547,9 @@ void
 j_notify(void)
 {
         Job     *j, *tmp;
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
         for (j = job_list; j; j = j->next) {
                 /* Remove job after doing reports so there aren't
                  * multiple +/- jobs.
@@ -516,14 +563,21 @@ j_notify(void)
                         remove_job(j, "notify");
         }
         shf_flush(shl_out);
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
 }
 
 /* Return pid of last process in last asynchronous job */
 pid_t
 j_async(void)
 {
+        sigset_t omask;
+
+        sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
+
         if (async_job)
                 async_job->flags |= JF_KNOWN;
+
+        sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
 
         return async_pid;
 }
@@ -577,6 +631,12 @@ j_startjob(Job *j)
         for (p = j->proc_list; p->next; p = p->next)
                 ;
         j->last_proc = p;
+
+        if (held_sigchld) {
+                held_sigchld = 0;
+                /* Don't call j_sigchld() as it may remove job... */
+                kill(procpid, SIGCHLD);
+        }
 }
 
 /*
@@ -683,6 +743,18 @@ j_sigchld(int sig)
         WAIT_T          status;
         struct tms      t0, t1;
 
+        /* Don't wait for any processes if a job is partially started.
+         * This is so we don't do away with the process group leader
+         * before all the processes in a pipe line are started (so the
+         * setpgid() won't fail)
+         */
+       for (j = job_list; j; j = j->next)
+                if (j->ppid == procpid && !(j->flags & JF_STARTED)) {
+                        held_sigchld = 1;
+                        return;
+                }
+
+
         ksh_times(&t0);
         do {
                 pid = wait(&status);
@@ -721,8 +793,6 @@ found:
         while (0);
 
         errno = errno_;
-
-        return;
 }
 
 /*

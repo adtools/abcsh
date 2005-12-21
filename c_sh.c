@@ -38,7 +38,7 @@ c_shift(char **wp)
         arg = wp[builtin_opt.optind];
 
         if (arg) {
-                evaluate(arg, &val, KSH_UNWIND_ERROR, true);
+                evaluate(arg, &val, KSH_UNWIND_ERROR, false);
                 n = val;
         } else
                 n = 1;

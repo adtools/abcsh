@@ -574,10 +574,8 @@ LONG execute_child(STRPTR args, int len)
 }
 
 int
-exchild(t, flags, close_fd)
-        struct op       *t;
-        int             flags;
-        int             close_fd;       /* used if XPCLOSE or XCCLOSE */
+exchild(struct op *t, int flags,
+        int close_fd)	/* used if XPCLOSE or XCCLOSE */
 {
 #ifdef CLIBHACK
 /*current input output*/

@@ -543,9 +543,7 @@ quitenv(struct shf *shf)
         int fd;
 
         if (ep->oenv && ep->oenv->loc != ep->loc)
-        {
                 popblock();
-        }
         if (ep->savefd != NULL) {
                 for (fd = 0; fd < NUFILE; fd++)
                         /* if ep->savefd[fd] < 0, means fd was closed */
@@ -554,7 +552,6 @@ quitenv(struct shf *shf)
                 if (ep->savefd[2]) /* Clear any write errors */
                         shf_reopen(2, SHF_WR, shl_out);
         }
-        reclaim();
 
         /* Bottom of the stack.
          * Either main shell is exiting or cleanup_parents_env() was called.
@@ -582,12 +579,14 @@ quitenv(struct shf *shf)
                         chmem_allfree();
 #endif /* MEM_DEBUG */
                 }
-                else if (ep->type == E_SUBSHELL)
-                {
-                    return;
-                }
+                if (shf)
+                        shf_close(shf);
+                reclaim();
                 exit(exstat);
         }
+        if (shf)
+                shf_close(shf);
+        reclaim();
 
         e = e->oenv;
         afree(ep, ATEMP);
