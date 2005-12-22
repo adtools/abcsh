@@ -132,6 +132,19 @@ main(int argc, char *argv[])
                 setstr(vp, def_path, KSH_RETURN_ERROR);
         }
 
+        /* Set PATH_SEPARATOR and DIR_SEPARATOR. */
+        {
+                struct tbl *vp = global("PATH_SEPARATOR");
+                /* setstr can't fail here */
+                setstr(vp, ":", KSH_RETURN_ERROR);
+        }
+
+	{
+                struct tbl *vp = global("DIR_SEPARATOR");
+                /* setstr can't fail here */
+                setstr(vp, "/", KSH_RETURN_ERROR);
+        }
+
         /* Turn on brace expansion by default.  At&t ksh's that have
          * alternation always have it on.  BUT, posix doesn't have
          * brace expansion, so set this before setting up FPOSIX
