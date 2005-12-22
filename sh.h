@@ -112,7 +112,7 @@ extern int dup2(int, int);
 
 #ifndef EXECSHELL
 /* shell to exec scripts (see also $SHELL initialization in main.c) */
-#  define EXECSHELL     "/bin/sh"
+#  define EXECSHELL     "/SDK/Local/C/sh"
 #  define EXECSHELL_STR "EXECSHELL"
 #endif
 
