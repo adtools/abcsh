@@ -121,7 +121,7 @@ main(int argc, char *argv[])
 
         init_histvec();
 
-        def_path = "/gcc/bin:/sdk/c:/sdk/local/c:/c";
+        def_path = "/gcc/bin:/SDK/C:/SDK/Local/C:/C:.";
 
         /* Set PATH to def_path (will set the path global variable).
          * (import of environment below will probably change this setting).
@@ -143,6 +143,20 @@ main(int argc, char *argv[])
                 struct tbl *vp = global("DIR_SEPARATOR");
                 /* setstr can't fail here */
                 setstr(vp, "/", KSH_RETURN_ERROR);
+        }
+
+        /* Set SHELL. */
+        {
+                struct tbl *vp = global("SHELL");
+                /* setstr can't fail here */
+                setstr(vp, "/SDK/Local/C/sh", KSH_RETURN_ERROR);
+        }
+
+        /* Set PREFIX. */
+        {
+                struct tbl *vp = global("PREFIX");
+                /* setstr can't fail here */
+                setstr(vp, "/SDK/Local", KSH_RETURN_ERROR);
         }
 
         /* Turn on brace expansion by default.  At&t ksh's that have
