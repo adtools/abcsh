@@ -196,9 +196,9 @@ typedef INT32 Tflag;
 EXTERN  const char *kshname;    /* $0 */
 EXTERN  pid_t   kshpid;         /* $$, shell pid */
 EXTERN  pid_t   procpid;        /* pid of executing process */
-EXTERN  int     ksheuid;        /* effective uid of shell */
+EXTERN  uid_t   ksheuid;        /* effective uid of shell */
 EXTERN  int     kshegid;        /* effective gid of shell */
-EXTERN  uid_t     kshuid;        /* real uid of shell */
+EXTERN  uid_t   kshuid;        /* real uid of shell */
 EXTERN  int     kshgid;        /* real gid of shell */
 EXTERN  int     exstat;         /* exit status */
 EXTERN  int     subst_exstat;   /* exit status of last $(..)/`..` */
@@ -394,13 +394,10 @@ typedef struct trap {
 #define SIGEXIT_        0       /* for trap EXIT */
 #define SIGERR_         NSIG /* for trap ERR */
 
-EXTERN  int volatile trap;      /* traps pending? */
-EXTERN  int volatile intrsig;   /* pending trap interrupts executing command */
-EXTERN  int volatile fatal_trap;/* received a fatal signal */
-#ifndef FROM_TRAP_C
-/* Kludge to avoid bogus re-declaration of sigtraps[] error on AIX 3.2.5 */
+EXTERN  volatile sig_atomic_t trap;        /* traps pending? */
+EXTERN  volatile sig_atomic_t intrsig;     /* pending trap interrupts command */
+EXTERN  volatile sig_atomic_t fatal_trap;/* received a fatal signal */
 extern  Trap    sigtraps[NSIG+1];
-#endif /* !FROM_TRAP_C */
 
 /*
  * TMOUT support
