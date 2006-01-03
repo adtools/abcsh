@@ -159,6 +159,34 @@ main(int argc, char *argv[])
                 setstr(vp, "/SDK/Local", KSH_RETURN_ERROR);
         }
 
+        /* Set HOME. */
+        {
+                struct tbl *vp = global("HOME");
+                /* setstr can't fail here */
+                setstr(vp, "/SDK/Local/home", KSH_RETURN_ERROR);
+        }
+
+        /* Set TMPDIR. */
+        {
+                struct tbl *vp = global("TMPDIR");
+                /* setstr can't fail here */
+                setstr(vp, "/T", KSH_RETURN_ERROR);
+        }
+
+        /* Set LOGNAME. */
+        {
+                struct tbl *vp = global("LOGNAME");
+                /* setstr can't fail here */
+                setstr(vp, "AmigaOS4_User", KSH_RETURN_ERROR);
+        }
+
+        /* Set USER - deprecated synonym of LOGNAME. */
+        {
+                struct tbl *vp = global("USER");
+                /* setstr can't fail here */
+                setstr(vp, "AmigaOS4_User", KSH_RETURN_ERROR);
+        }
+
         /* Turn on brace expansion by default.  At&t ksh's that have
          * alternation always have it on.  BUT, posix doesn't have
          * brace expansion, so set this before setting up FPOSIX
