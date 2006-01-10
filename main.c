@@ -121,7 +121,7 @@ main(int argc, char *argv[])
 
         init_histvec();
 
-        def_path = "/gcc/bin:/SDK/C:/SDK/Local/C:/C:.";
+        def_path = "/gcc/bin:/SDK/C:/SDK/Local/C:/SDK/Local/clib2/bin:/SDK/Local/newlib/bin:/C:.";
 
         /* Set PATH to def_path (will set the path global variable).
          * (import of environment below will probably change this setting).
@@ -163,7 +163,7 @@ main(int argc, char *argv[])
         {
                 struct tbl *vp = global("HOME");
                 /* setstr can't fail here */
-                setstr(vp, "/SDK/Local/home", KSH_RETURN_ERROR);
+                setstr(vp, "/home", KSH_RETURN_ERROR);
         }
 
         /* Set TMPDIR. */
