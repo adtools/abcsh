@@ -28,7 +28,8 @@ static const char initsubs[] = "${PS2=> } ${PS3=#? } ${PS4=+ }";
 
 static const char *const initcoms [] = {
         "typeset", "-r", "KSH_VERSION", NULL,
-        "typeset", "-x", "SHELL", "PATH", "HOME", NULL,
+        "typeset", "-x", "SHELL", "PATH", "HOME", "TMPDIR", "LOGNAME",
+        "USER", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", NULL,
         "typeset", "-i", "PPID", NULL,
         "typeset", "-i", "OPTIND=1", NULL,
         "alias",
@@ -185,6 +186,15 @@ main(int argc, char *argv[])
                 struct tbl *vp = global("USER");
                 /* setstr can't fail here */
                 setstr(vp, "AmigaOS4_User", KSH_RETURN_ERROR);
+        }
+
+        /* Set LD to ld, so it can be found in the default path
+         * gcc tells where ld is placed, but uses Amiga Path style,
+         * that is not understandable by sed and sh. */
+        {
+                struct tbl *vp = global("LD");
+                /* setstr can't fail here */
+                setstr(vp, "ld", KSH_RETURN_ERROR);
         }
 
         /* Turn on brace expansion by default.  At&t ksh's that have
