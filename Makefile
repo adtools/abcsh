@@ -42,6 +42,6 @@ clibhackclean:
 	rm -f amigaos.o c_sh.o c_ksh.o exec.o eval.o
 
 noclibhack: clibhackclean
-	$(MAKE) -f Makefile.os4 CLIBHACK=-UCLIBHACK
+	$(MAKE) -f Makefile CLIBHACK=-UCLIBHACK
 
 -include $(SRCS:.c=.d)
