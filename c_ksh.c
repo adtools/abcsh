@@ -138,13 +138,11 @@ c_cd(char **wp)
                 /* Ignore failure (happens if readonly or integer) */
                 setstr(oldpwd_s, current_wd, KSH_RETURN_ERROR);
 
-#ifndef __amigaos4__
-        if (Xstring(xs, xp)[0] != '/') {
+        if (convert_path_multi(Xstring(xs, xp))[0] != '/') {
                 pwd = (char *) 0;
         } else
-#endif
         if (!physical || !(pwd = get_phys_path(Xstring(xs, xp))))
-                pwd = Xstring(xs, xp);
+                pwd = convert_path_multi(Xstring(xs, xp));
 
         /* Set PWD */
         if (pwd) {
@@ -154,7 +152,7 @@ c_cd(char **wp)
                 setstr(pwd_s, ptmp, KSH_RETURN_ERROR);
         } else {
                 set_current_wd(null);
-                pwd = Xstring(xs, xp);
+                pwd = convert_path_multi(Xstring(xs, xp));
                 /* XXX unset $PWD? */
         }
         if (printpath || cdnode)
