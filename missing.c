@@ -2,8 +2,8 @@
  * Routines which may be missing on some machines
  */
 
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 
 void *
 memmove(void *d, const void *s, size_t n)

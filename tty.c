@@ -1,5 +1,5 @@
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 #define EXTERN
 #include "tty.h"
 #undef EXTERN

@@ -4,8 +4,8 @@
  * only implements in-memory history.
  */
 
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 
 /* No history to be compiled in: dummy routines to avoid lots more ifdefs */
 void

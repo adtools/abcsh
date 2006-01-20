@@ -2,10 +2,10 @@
  * execute command tree
  */
 
-#include "sh.h"
-#include "c_test.h"
 #include <ctype.h>
 #include <sys/stat.h>
+#include "sh.h"
+#include "c_test.h"
 
 #include <proto/dos.h>
 

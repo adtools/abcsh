@@ -2,10 +2,10 @@
  * Expansion - quoting, separation, substitution, globbing
  */
 
-#include "sh.h"
 #include <pwd.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include "sh.h"
 
 #if  defined(AMIGA) && !defined(CLIBHACK)
 char amigaos_getc(int fd);

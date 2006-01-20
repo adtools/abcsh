@@ -3,8 +3,8 @@
  */
 
 #include <ctype.h>
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 
 static int initio_done;
 

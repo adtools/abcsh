@@ -5,4 +5,4 @@
 #include "sh.h"
 
 const char ksh_version [] =
-        "abc shell 0.0.37";
+        "abc shell 0.0.38";

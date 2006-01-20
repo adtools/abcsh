@@ -13,8 +13,8 @@
  *
  */
 
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 #include "ksh_wait.h"
 #include "ksh_times.h"
 #include "tty.h"

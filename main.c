@@ -4,10 +4,10 @@
 
 #define EXTERN                          /* define EXTERNs in sh.h */
 
-#include "sh.h"
 #include <sys/stat.h>
-#include "ksh_time.h"
 #include <pwd.h>
+#include "sh.h"
+#include "ksh_time.h"
 
 extern char **environ;
 

@@ -740,6 +740,7 @@ exchild(struct op *t, int flags,
 
 /* The following are wrappers for selected fcntl.h functions */
 /* They allow usage of absolute amigaos paths as well unix style */
+/* have added the rest of the functions that makes use of paths */
 
 #ifdef open
 #undef open
@@ -750,6 +751,22 @@ exchild(struct op *t, int flags,
 #ifdef lstat
 #undef lstat
 #endif
+#ifdef chdir
+#undef chdir
+#endif
+#ifdef opendir
+#undef opendir
+#endif
+#ifdef access
+#undef access
+#endif
+#ifdef readlink
+#undef readlink
+#endif
+#ifdef unlink
+#undef unlink
+#endif
+
 
 int __open(const char * path, int open_flag)
 {
@@ -805,4 +822,113 @@ int __lstat(const char * path, struct stat *buffer)
 
         return lstat(path, buffer);
 
+}
+
+int __chdir(const char * path)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+        return chdir(path);
+
+}
+
+int __opendir(const char * path)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+        return opendir(path);
+
+}
+
+int __access(const char * path, int mode)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+        return access(path, mode);
+
+}
+
+/* not changing getcwd */
+
+int __readlink(const char * path, char * buffer, int buffer_size)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+        return readlink(path, buffer, buffer_size);
+
+}
+
+int __unlink(const char * path)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+        return unlink(path);
+
+}
+
+char *convert_path_multi(const char *path)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+    return strdup(path);
 }

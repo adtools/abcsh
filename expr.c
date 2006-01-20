@@ -5,9 +5,8 @@
  * todo: better error handling: if in builtin, should be builtin error, etc.
  */
 
-#include "sh.h"
 #include <ctype.h>
-
+#include "sh.h"
 
 /* The order of these enums is constrained by the order of opinfo[] */
 enum token {

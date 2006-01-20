@@ -7,8 +7,8 @@
  * modified by J.T. Conklin to add POSIX compatibility.
  */
 
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 #include "c_test.h"
 
 #include <dos/dosextens.h>

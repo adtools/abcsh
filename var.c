@@ -1,8 +1,8 @@
-#include "sh.h"
 #include "ksh_time.h"
 #include "ksh_limval.h"
 #include <sys/stat.h>
 #include <ctype.h>
+#include "sh.h"
 
 #include <proto/exec.h>
 

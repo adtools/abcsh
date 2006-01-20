@@ -25,6 +25,7 @@ void *memmove(void *, const void *, size_t);
 #include <errno.h>
 
 #include <fcntl.h>
+
 #ifndef O_ACCMODE
 # define O_ACCMODE      (O_RDONLY|O_WRONLY|O_RDWR)
 #endif /* !O_ACCMODE */
@@ -75,6 +76,41 @@ void *memmove(void *, const void *, size_t);
 typedef void (*handler_t)(int);  /* signal handler */
 
 #include "sigact.h"                     /* use sjg's fake sigaction() */
+
+#ifdef AMIGA
+# ifdef open
+#  undef open
+#  define open __open
+# endif
+# ifdef stat
+#  undef stat
+#  define stat __stat
+# endif
+# ifdef lstat
+#  undef lstat
+#  define lstat __lstat
+# endif
+# ifdef chdir
+#  undef chdir
+#  define chdir __chdir
+# endif
+# ifdef opendir
+#  undef opendir
+#  define opendir __opendir
+# endif
+# ifdef access
+#  undef access
+#  define access __access
+# endif
+# ifdef readlink
+#  undef readlink
+#  define readlink __readlink
+# endif
+# ifdef unlink
+#  undef unlink
+#  define unlink __unlink
+# endif
+#endif
 
 #ifndef offsetof
 # define offsetof(type,id) ((size_t)&((type*)NULL)->id)

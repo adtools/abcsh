@@ -2,9 +2,9 @@
  * Miscellaneous functions
  */
 
-#include "sh.h"
 #include <ctype.h>      /* for FILECHCONV */
 #include <stdio.h>      /* clib2 - for MAXPATHLEN */
+#include "sh.h"
 
 short ctypes [UCHAR_MAX+1];     /* type bits for unsigned char */
 

@@ -2,9 +2,9 @@
  * built-in Korn commands: c_*
  */
 
-#include "sh.h"
 #include <sys/stat.h>
 #include <ctype.h>
+#include "sh.h"
 
 #if defined(AMIGA) && !defined(CLIBHACK)
 extern int amigaout;
@@ -41,10 +41,8 @@ c_cd(char **wp)
                 }
         wp += builtin_opt.optind;
 
-
         pwd_s = global("PWD");
         oldpwd_s = global("OLDPWD");
-
 
         if (!wp[0]) {
                 /* No arguments - go home */
@@ -114,7 +112,6 @@ c_cd(char **wp)
                         rval = chdir(try = Xstring(xs, xp) + phys_path);
                 else {
                         simplify_path(Xstring(xs, xp));
-
                         rval = chdir(try = Xstring(xs, xp));
                 }
         } while (rval < 0 && cdpath != (char *) 0);
@@ -141,9 +138,11 @@ c_cd(char **wp)
                 /* Ignore failure (happens if readonly or integer) */
                 setstr(oldpwd_s, current_wd, KSH_RETURN_ERROR);
 
+#ifndef __amigaos4__
         if (Xstring(xs, xp)[0] != '/') {
                 pwd = (char *) 0;
         } else
+#endif
         if (!physical || !(pwd = get_phys_path(Xstring(xs, xp))))
                 pwd = Xstring(xs, xp);
 

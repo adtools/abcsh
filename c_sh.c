@@ -2,8 +2,8 @@
  * built-in Bourne commands
  */
 
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 #include "ksh_time.h"
 #include "ksh_times.h"
 

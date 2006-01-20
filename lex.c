@@ -2,10 +2,9 @@
  * lexical analysis and source input
  */
 
-#include "sh.h"
 #include <libgen.h>
 #include <ctype.h>
-
+#include "sh.h"
 
 /* Structure to keep track of the lexing state and the various pieces of info
  * needed for each particular state.

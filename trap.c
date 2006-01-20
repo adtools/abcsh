@@ -114,6 +114,9 @@ trapsig(int i)
         if (p->shtrap)
                 (*p->shtrap)(i);
         errno = errno_;
+        if (sigtraps[i].cursig == trapsig) /* this for SIGCHLD,SIGALRM */
+                sigaction(i, &Sigact_trap, (struct sigaction *) 0);
+        return;
 }
 
 /* called when we want to allow the user to ^C out of something - won't

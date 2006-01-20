@@ -1,5 +1,5 @@
-#include "sh.h"
 #include <sys/stat.h>
+#include "sh.h"
 
 /*
  *      Contains a routine to search a : separated list of
@@ -110,7 +110,8 @@ simplify_path(char *path)
         char    *cur;
         char    *t;
         int     isrooted;
-        char    *very_start = path;
+
+        char    *very_start = convert_path_multi(path);
         char    *start;
 
 
@@ -163,13 +164,13 @@ simplify_path(char *path)
 
                 }
 
+
                 if (cur != very_start)
                         *cur++ = DIRSEP;
 
                 /* find/copy next component of pathname */
                 while (*t && !ISDIRSEP(*t))
                         *cur++ = *t++;
-
         }
 
 }
