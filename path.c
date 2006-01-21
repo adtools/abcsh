@@ -111,7 +111,7 @@ simplify_path(char *path)
         char    *t;
         int     isrooted;
 
-        char    *very_start = convert_path_multi(path);
+        char    *very_start = path;
         char    *start;
 
 

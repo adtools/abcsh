@@ -16,7 +16,6 @@ int
 c_cd(char **wp)
 {
         int optc;
-        int physical = Flag(FPHYSICAL);
         int cdnode;                     /* was a node from cdpath added in? */
         int printpath = 0;              /* print where we cd'd? */
         int rval;
@@ -31,10 +30,7 @@ c_cd(char **wp)
         while ((optc = ksh_getopt(wp, &builtin_opt, "LP")) != EOF)
                 switch (optc) {
                 case 'L':
-                        physical = 0;
-                        break;
                 case 'P':
-                        physical = 1;
                         break;
                 case '?':
                         return 1;
@@ -108,9 +104,7 @@ c_cd(char **wp)
         do {
                 cdnode = make_path(current_wd, dir, &cdpath, &xs, &phys_path);
 
-                if (physical)
-                        rval = chdir(try = Xstring(xs, xp) + phys_path);
-                else {
+                {
                         simplify_path(Xstring(xs, xp));
                         rval = chdir(try = Xstring(xs, xp));
                 }
@@ -138,10 +132,9 @@ c_cd(char **wp)
                 /* Ignore failure (happens if readonly or integer) */
                 setstr(oldpwd_s, current_wd, KSH_RETURN_ERROR);
 
-        if (convert_path_multi(Xstring(xs, xp))[0] != '/') {
+        if (!ISABSPATH(Xstring(xs, xp))) {
                 pwd = (char *) 0;
         } else
-        if (!physical || !(pwd = get_phys_path(Xstring(xs, xp))))
                 pwd = convert_path_multi(Xstring(xs, xp));
 
         /* Set PWD */
@@ -166,16 +159,12 @@ int
 c_pwd(char **wp)
 {
         int optc;
-        int physical = Flag(FPHYSICAL);
         char *p;
 
         while ((optc = ksh_getopt(wp, &builtin_opt, "LP")) != EOF)
                 switch (optc) {
                 case 'L':
-                        physical = 0;
-                        break;
                 case 'P':
-                        physical = 1;
                         break;
                 case '?':
                         return 1;
@@ -186,8 +175,7 @@ c_pwd(char **wp)
                 bi_errorf("too many arguments");
                 return 1;
         }
-        p = current_wd[0] ? (physical ? get_phys_path(current_wd) : current_wd) :
-                (char *) 0;
+        p = current_wd[0] ? current_wd : (char *) 0;
         if (p && access(p, R_OK) < 0)
                 p = (char *) 0;
         if (!p) {
