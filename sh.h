@@ -166,7 +166,7 @@ extern int dup2(int, int);
 # define PATHSEP        ':'
 # define DIRSEP         '/'
 # define DIRSEPSTR      "/"
-# define ISDIRSEP(c)    ((c) == '/' || (c) == ':')
+# define ISDIRSEP(c)    ((c) == '/')
 extern int amigaos_isabspath(const char *path);
 extern int amigaos_isrootedpath(const char *path);
 extern int amigaos_isrelpath(const char *path);

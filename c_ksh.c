@@ -91,7 +91,6 @@ c_cd(char **wp)
                 return 1;
         }
 
-
         Xinit(xs, xp, PATH, ATEMP);
         /* xp will have a bogus value after make_path() - set it to 0
          * so that if it's used, it will cause a dump
@@ -103,14 +102,11 @@ c_cd(char **wp)
 
         do {
                 cdnode = make_path(current_wd, dir, &cdpath, &xs, &phys_path);
-
                 {
                         simplify_path(Xstring(xs, xp));
                         rval = chdir(try = Xstring(xs, xp));
                 }
         } while (rval < 0 && cdpath != (char *) 0);
-
-
 
         if (rval < 0) {
                 if (cdnode)
@@ -150,7 +146,6 @@ c_cd(char **wp)
         }
         if (printpath || cdnode)
                 shprintf("%s\n", pwd);
-
 
         return 0;
 }
