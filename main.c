@@ -239,7 +239,7 @@ main(int argc, char *argv[])
         {
                 struct stat s_pwd, s_dot;
                 struct tbl *pwd_v = global("PWD");
-                char *pwd = convert_path_multi(str_val(pwd_v));
+                char *pwd = str_val(pwd_v);
                 char *pwdx = pwd;
 
                 /* Try to use existing $PWD if it is valid */
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
                         pwdx = (char *) 0;
                 set_current_wd(pwdx);
                 if (current_wd[0])
-                        simplify_path(convert_path_multi(current_wd));
+                        simplify_path(current_wd);
                 /* Only set pwd if we know where we are or if it had a
                  * bogus value
                  */
