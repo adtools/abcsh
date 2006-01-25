@@ -336,7 +336,7 @@ main(int argc, char *argv[])
         l = e->loc;
         l->argv = &argv[argi - 1];
         l->argc = argc - argi;
-        l->argv[0] = (char *) convert_path_a2u(kshname);
+        l->argv[0] = (char *) convert_path_multi(kshname);
         getopts_reset(1);
 
         errexit = Flag(FERREXIT);
