@@ -575,7 +575,7 @@ LONG execute_child(STRPTR args, int len)
 
 int
 exchild(struct op *t, int flags,
-        int close_fd)	/* used if XPCLOSE or XCCLOSE */
+        int close_fd)   /* used if XPCLOSE or XCCLOSE */
 {
 #ifdef CLIBHACK
 /*current input output*/
@@ -791,6 +791,8 @@ int __stat(const char * path, struct stat *buffer)
         struct name_translation_info nti;
         bool have_colon = false;
         char *p = (char *)path;
+        int res;
+        APTR old_proc_window;
 
         while(p<path + strlen(path))
         {
@@ -800,9 +802,10 @@ int __stat(const char * path, struct stat *buffer)
         {
             __translate_amiga_to_unix_path_name(&path,&nti);
         }
-
-        return stat(path, buffer);
-
+        old_proc_window = SetProcWindow((APTR)-1);
+        res = stat(path, buffer);
+        SetProcWindow(old_proc_window);
+        return res;
 }
 
 int __lstat(const char * path, struct stat *buffer)
@@ -865,17 +868,20 @@ int __access(const char * path, int mode)
         struct name_translation_info nti;
         bool have_colon = false;
         char *p = (char *)path;
+        int res;
+        APTR old_proc_window;
 
-        while(p<path + strlen(path))
-        {
+        while(p<path + strlen(path)) {
             if(*p++ == ':') have_colon=true;
         }
         if(have_colon)
         {
             __translate_amiga_to_unix_path_name(&path,&nti);
         }
-        return access(path, mode);
-
+        old_proc_window = SetProcWindow((APTR)-1);
+        res = access(path, mode);
+        SetProcWindow(old_proc_window);
+        return res;
 }
 
 /* not changing getcwd */

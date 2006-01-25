@@ -558,6 +558,8 @@ struct globals
 };
 
 #define open(a,b, ...)  __open((a),(b))
+#define access(a,b) __access((a),(b))
+
 
 /* Used by v_evaluate() and setstr() to control action when error occurs */
 #define KSH_UNWIND_ERROR 0 /* unwind the stack (longjmp) */

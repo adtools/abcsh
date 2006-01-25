@@ -87,17 +87,17 @@ static const struct t_op b_ops [] = {
         {"",    TO_NONOP }
 };
 
-static int	test_stat(const char *, struct stat *);
-static int	test_eaccess(const char *, int);
-static int	test_oexpr(Test_env *, int);
-static int	test_aexpr(Test_env *, int);
-static int	test_nexpr(Test_env *, int);
-static int	test_primary(Test_env *, int);
-static int	ptest_isa(Test_env *, Test_meta);
+static int      test_stat(const char *, struct stat *);
+static int      test_eaccess(const char *, int);
+static int      test_oexpr(Test_env *, int);
+static int      test_aexpr(Test_env *, int);
+static int      test_nexpr(Test_env *, int);
+static int      test_primary(Test_env *, int);
+static int      ptest_isa(Test_env *, Test_meta);
 static const char *ptest_getopnd(Test_env *, Test_op, int);
-static int	ptest_eval(Test_env *, Test_op, const char *,
+static int      ptest_eval(Test_env *, Test_op, const char *,
                         const char *, int);
-static void	ptest_error(Test_env *, int, const char *);
+static void     ptest_error(Test_env *, int, const char *);
 
 int
 c_test(char **wp)
@@ -209,9 +209,6 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
 {
         int res;
         int not;
-#ifdef __amigaos4__
-        APTR proc_window_oldval;        
-#endif
         struct stat b1, b2;
 
         if (!do_eval)
@@ -247,30 +244,9 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
                 /* at&t ksh does not appear to do the /dev/fd/ thing for
                  * this (unless the os itself handles it)
                  */
-#ifdef __amigaos4__
-		/* we borrow the use of the res int, as it isn't otherwise 
-                 * used in this individual case to store the result while 
-                 * we enable/disable requesters, if it's used in other 
-                 * places in the code we should probably make a 
-                 * silent_stat() wrapper for stat() or similar 
-                 * 2005-01-25 - Nicolas Mendoza
-                 */
-                proc_window_oldval = SetProcWindow((APTR)-1L); 
-                res = (stat(opnd1, &b1) == 0);
-                SetProcWindow(proc_window_oldval); 
-                return res;
-#else
-                return stat(opnd1, &b1) == 0;
-#endif
+                return test_stat(opnd1, &b1) == 0;
           case TO_FILREG: /* -r */
-#ifdef __amigaos4__
-                proc_window_oldval = SetProcWindow((APTR)-1L); 
-                res = (test_stat(opnd1, &b1) == 0 && S_ISREG(b1.st_mode));
-                SetProcWindow(proc_window_oldval); 
-                return res;
-#else
                 return test_stat(opnd1, &b1) == 0 && S_ISREG(b1.st_mode);
-#endif
           case TO_FILID: /* -d */
                 return test_stat(opnd1, &b1) == 0 && S_ISDIR(b1.st_mode);
           case TO_FILCDEV: /* -c */
@@ -281,7 +257,7 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
                 return test_stat(opnd1, &b1) == 0 && S_ISFIFO(b1.st_mode);
           case TO_FILSYM: /* -h -L */
                 return lstat(opnd1, &b1) == 0 && S_ISLNK(b1.st_mode);
-	  case TO_FILSOCK: /* -S */
+          case TO_FILSOCK: /* -S */
 #ifdef S_ISSOCK
                 return test_stat(opnd1, &b1) == 0 && S_ISSOCK(b1.st_mode);
 #else
@@ -297,7 +273,7 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
                 return test_stat(opnd1, &b1) == 0 &&
                         (b1.st_mode & S_ISVTX) == S_ISVTX;
           case TO_FILGZ: /* -s */
-		return test_stat(opnd1, &b1) == 0 && b1.st_size > 0L;
+                return test_stat(opnd1, &b1) == 0 && b1.st_size > 0L;
           case TO_FILTT: /* -t */
                 if (opnd1 && !bi_getn(opnd1, &res)) {
                         te->flags |= TEF_ERROR;
@@ -387,12 +363,16 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
 
 /* Nasty kludge to handle Korn's bizarre /dev/fd hack */
 
+int __stat(const char *path, struct stat *statb);
+
 static int
 test_stat(const char *path, struct stat *statb)
 {
-
-        return stat(path, statb);
-
+#if AMIGA
+      return __stat(path, statb);
+#else
+    resturn stat(path, statb);
+#endif
 }
 
 /* Routine to handle Korn's /dev/fd hack, and to deal with X_OK on
@@ -411,7 +391,11 @@ test_eaccess(const char *path, int mode)
         if (res == 0 && ksheuid == 0 && (mode & X_OK)) {
                 struct stat statb;
 
+#if AMIGA
+                if (__stat(path, &statb) < 0)
+#else
                 if (stat(path, &statb) < 0)
+#endif
                         res = -1;
                 else if (S_ISDIR(statb.st_mode))
                         res = 0;
