@@ -255,15 +255,22 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
                  * silent_stat() wrapper for stat() or similar 
                  * 2005-01-25 - Nicolas Mendoza
                  */
-                 proc_window_oldval = SetProcWindow((APTR)-1L); 
-                 res = (stat(opnd1, &b1) == 0);
-                 SetProcWindow(proc_window_oldval); 
-                 return res;
+                proc_window_oldval = SetProcWindow((APTR)-1L); 
+                res = (stat(opnd1, &b1) == 0);
+                SetProcWindow(proc_window_oldval); 
+                return res;
 #else
-                 return stat(opnd1, &b1) == 0;
+                return stat(opnd1, &b1) == 0;
 #endif
           case TO_FILREG: /* -r */
+#ifdef __amigaos4__
+                proc_window_oldval = SetProcWindow((APTR)-1L); 
+                res = (test_stat(opnd1, &b1) == 0 && S_ISREG(b1.st_mode));
+                SetProcWindow(proc_window_oldval); 
+                return res;
+#else
                 return test_stat(opnd1, &b1) == 0 && S_ISREG(b1.st_mode);
+#endif
           case TO_FILID: /* -d */
                 return test_stat(opnd1, &b1) == 0 && S_ISDIR(b1.st_mode);
           case TO_FILCDEV: /* -c */
