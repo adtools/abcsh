@@ -4,7 +4,8 @@
 
 .PHONY: all clean mostlyclean clibhackclean noclibhack
 
-CC = gcc
+CC = ppc-amigaos-gcc
+STRIP = ppc-amigaos-strip
 
 CFLAGS = -mcrt=clib2 -O2 -DNDEBUG
 LDFLAGS = -mcrt=clib2
@@ -27,7 +28,7 @@ all: sh
 
 sh: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-	strip -R.comment $@
+	$(STRIP) -R.comment $@
 
 %.o : %.c
 	$(CC) -MM -MP $(INCDIRS) $< >$*.d
