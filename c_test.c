@@ -209,11 +209,13 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
 {
         int res;
         int not;
+#ifdef __amigaos4__
+        APTR proc_window_oldval;        
+#endif
         struct stat b1, b2;
 
         if (!do_eval)
                 return 0;
-
         switch ((int) op) {
         /*
          * Unary Operators
@@ -245,7 +247,21 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
                 /* at&t ksh does not appear to do the /dev/fd/ thing for
                  * this (unless the os itself handles it)
                  */
-                return stat(opnd1, &b1) == 0;
+#ifdef __amigaos4__
+		/* we borrow the use of the res int, as it isn't otherwise 
+                 * used in this individual case to store the result while 
+                 * we enable/disable requesters, if it's used in other 
+                 * places in the code we should probably make a 
+                 * silent_stat() wrapper for stat() or similar 
+                 * 2005-01-25 - Nicolas Mendoza
+                 */
+                 proc_window_oldval = SetProcWindow((APTR)-1L); 
+                 res = (stat(opnd1, &b1) == 0);
+                 SetProcWindow(proc_window_oldval); 
+                 return res;
+#else
+                 return stat(opnd1, &b1) == 0;
+#endif
           case TO_FILREG: /* -r */
                 return test_stat(opnd1, &b1) == 0 && S_ISREG(b1.st_mode);
           case TO_FILID: /* -d */
