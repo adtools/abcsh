@@ -1,14 +1,13 @@
 #
-# Makefile for Amiga Bourne Compatible Shell.
+# Makefile.debug for Amiga Bourne Compatible Shell.
 #
 
 .PHONY: all clean mostlyclean clibhackclean noclibhack
 
 CC = ppc-amigaos-gcc
-STRIP = ppc-amigaos-strip
 
-CFLAGS = -mcrt=clib2 -O2 -DNDEBUG
-LDFLAGS = -mcrt=clib2
+CFLAGS = -mcrt=clib2 -ggdb
+LDFLAGS = -mcrt=clib2 -ggdb
 
 #use "make CLIBHACK=-UCLIBHACK" to use IDOS io code
 CLIBHACK = -DCLIBHACK
@@ -28,7 +27,6 @@ all: sh
 
 sh: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
-	$(STRIP) -R.comment $@
 
 %.o : %.c
 	$(CC) -MM -MP $(INCDIRS) $< >$*.d
