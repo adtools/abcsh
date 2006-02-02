@@ -4,6 +4,8 @@
 
 /* $Id$ */
 
+#define ABC_VERSION "abc-shell 0.0.38"
+
 /* Start of common headers */
 
 #ifdef __amigaos4__

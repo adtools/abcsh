@@ -4,5 +4,4 @@
 
 #include "sh.h"
 
-const char ksh_version [] =
-        "abc shell 0.0.38";
+const char ksh_version [] = ABC_VERSION;

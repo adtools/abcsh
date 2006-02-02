@@ -57,7 +57,9 @@ static const char *const initcoms [] = {
 int
 main(int argc, char *argv[])
 {
-        int i;
+        char *amiversion = "$VER: " ABC_VERSION;
+
+	int i;
         int argi;
         Source *s;
         struct block *l;
