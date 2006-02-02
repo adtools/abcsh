@@ -28,7 +28,7 @@ static const char initsubs[] = "${PS2=> } ${PS3=#? } ${PS4=+ }";
 
 static const char *const initcoms [] = {
         "typeset", "-r", "KSH_VERSION", NULL,
-        "typeset", "-x", "SHELL", "PATH", "HOME", "TMPDIR", "LOGNAME",
+        "typeset", "-x", "SHELL", "PATH", "HOME", "TMPDIR", "tmp", "LOGNAME",
         "USER", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", NULL,
         "typeset", "-i", "PPID", NULL,
         "typeset", "-i", "OPTIND=1", NULL,
@@ -172,6 +172,13 @@ main(int argc, char *argv[])
         /* Set TMPDIR. */
         {
                 struct tbl *vp = global("TMPDIR");
+                /* setstr can't fail here */
+                setstr(vp, "/T", KSH_RETURN_ERROR);
+        }
+
+        /* Set tmp. */
+        {
+                struct tbl *vp = global("tmp");
                 /* setstr can't fail here */
                 setstr(vp, "/T", KSH_RETURN_ERROR);
         }
