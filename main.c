@@ -57,7 +57,9 @@ static const char *const initcoms [] = {
 int
 main(int argc, char *argv[])
 {
-        char *amiversion = "$VER: " ABC_VERSION;
+	char *amiversion = "$VER: " ABC_VERSION;
+
+	assign_posix();
 
 	int i;
         int argi;
@@ -124,7 +126,7 @@ main(int argc, char *argv[])
 
         init_histvec();
 
-        def_path = "/gcc/bin:/SDK/C:/SDK/Local/C:/SDK/Local/clib2/bin:/SDK/Local/newlib/bin:/C:.";
+        def_path = "/gcc/bin:/bin:/SDK/Local/C:/SDK/Local/clib2/bin:/SDK/Local/newlib/bin:/C";
 
         /* Set PATH to def_path (will set the path global variable).
          * (import of environment below will probably change this setting).
@@ -152,14 +154,7 @@ main(int argc, char *argv[])
         {
                 struct tbl *vp = global("SHELL");
                 /* setstr can't fail here */
-                setstr(vp, "/SDK/Local/C/sh", KSH_RETURN_ERROR);
-        }
-
-        /* Set PREFIX. */
-        {
-                struct tbl *vp = global("PREFIX");
-                /* setstr can't fail here */
-                setstr(vp, "/SDK/Local", KSH_RETURN_ERROR);
+                setstr(vp, "/bin/sh", KSH_RETURN_ERROR);
         }
 
         /* Set HOME. */
@@ -187,23 +182,14 @@ main(int argc, char *argv[])
         {
                 struct tbl *vp = global("LOGNAME");
                 /* setstr can't fail here */
-                setstr(vp, "AmigaOS4_User", KSH_RETURN_ERROR);
+                setstr(vp, "root", KSH_RETURN_ERROR);
         }
 
         /* Set USER - deprecated synonym of LOGNAME. */
         {
                 struct tbl *vp = global("USER");
                 /* setstr can't fail here */
-                setstr(vp, "AmigaOS4_User", KSH_RETURN_ERROR);
-        }
-
-        /* Set LD to ld, so it can be found in the default path
-         * gcc tells where ld is placed, but uses Amiga Path style,
-         * that is not understandable by sed and sh. */
-        {
-                struct tbl *vp = global("LD");
-                /* setstr can't fail here */
-                setstr(vp, "ld", KSH_RETURN_ERROR);
+                setstr(vp, "root", KSH_RETURN_ERROR);
         }
 
         /* Turn on brace expansion by default.  At&t ksh's that have
@@ -213,7 +199,6 @@ main(int argc, char *argv[])
          */
 
         Flag(FBRACEEXPAND) = 1;
-
 
         /* set posix flag just before environment so that it will have
          * exactly the same effect as the POSIXLY_CORRECT environment

@@ -248,3 +248,5 @@ void    set_array(const char *, int, char **);
 char *convert_path_u2a(const char *);
 char *convert_path_a2u(const char *);
 char *convert_path_multi(const char *);
+bool *assign_posix(void);
+char *wb_init(void);
