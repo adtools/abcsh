@@ -5,7 +5,6 @@
 /* $Id$ */
 
 #define ABC_VERSION "abc-shell 0.0.38"
-// #define __stdio_window_specification "CON:20/20/600/150/ABC_VERSION/AUTO/CLOSE"
 
 /* Start of common headers */
 

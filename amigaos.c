@@ -745,11 +745,6 @@ bool *assign_posix(void)
         AssignPath("bin", "SDK:C");
 }
 
-char *wb_init(void)
-{
-        Open("CON:20/20/600/150/abc-shell/AUTO/CLOSE", MODE_NEWFILE);
-}
-
 /* The following are wrappers for selected fcntl.h functions */
 /* They allow usage of absolute amigaos paths as well unix style */
 /* have added the rest of the functions that makes use of paths */
