@@ -57,11 +57,11 @@ static const char *const initcoms [] = {
 int
 main(int argc, char *argv[])
 {
-	char *amiversion = "$VER: " ABC_VERSION;
+        char *amiversion = "$VER: " ABC_VERSION;
 
-	assign_posix();
+        assign_posix();
 
-	int i;
+        int i;
         int argi;
         Source *s;
         struct block *l;
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
         /* make sure argv[] is sane */
         if (!*argv) {
                 static const char *empty_argv[] = {
-                        "abc-shell", (char *) 0
+                        "sh", (char *) 0
                 };
 
                 argv = (char **) empty_argv;
