@@ -11,7 +11,7 @@ static int      tnamecmp(void *, void *);
 
 
 unsigned int
-hash(const char * n)
+hash(const char *n)
 {
         unsigned int h = 0;
 
