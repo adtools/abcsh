@@ -34,7 +34,7 @@ void
 newblock(void)
 {
         struct block *l;
-        static char *const empty[] = {null};
+        static char *const empty[2] = {null};
 
         l = (struct block *) alloc(sizeof(struct block), ATEMP);
         l->flags = 0;
