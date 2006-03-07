@@ -923,7 +923,6 @@ const struct builtin shbuiltins [] = {
         {"+read", c_read},
         {"test", c_test},
         {"+true", c_label},
-        {"ulimit", c_ulimit},
         {"+umask", c_umask},
         {"*=unset", c_unset},
         {NULL, NULL}
