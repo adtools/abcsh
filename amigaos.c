@@ -16,8 +16,6 @@
 #include <proto/exec.h>
 #include <proto/utility.h>
 
-char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOSE";
-
 #define FUNC //printf("<%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 
@@ -28,7 +26,7 @@ char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOS
 int __minimum_os_lib_version = 51;
 char * __minimum_os_lib_error = "Requires AmigaOS 4.0";
 BOOL __open_locale = FALSE;
-
+char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOSE";
 
 /*used to stdin/out fds*/
 #ifndef CLIBHACK
@@ -221,6 +219,24 @@ char *convert_path_a2u(const char *filename)
     return strdup(filename);
 
 }
+
+char *convert_path_multi(const char *path)
+{
+        struct name_translation_info nti;
+        bool have_colon = false;
+        char *p = (char *)path;
+
+        while(p<path + strlen(path))
+        {
+            if(*p++ == ':') have_colon=true;
+        }
+        if(have_colon)
+        {
+            __translate_amiga_to_unix_path_name(&path,&nti);
+        }
+    return strdup(path);
+}
+
 char *convert_path_u2a(const char *filename)
 {
         struct name_translation_info nti;
@@ -311,6 +327,7 @@ struct command_data
     struct Task *parent;
 };
 
+//int execve(char *filename, char *const argv[], char *const envp[])
 int execve(const char *filename, char *const argv[], char *const envp[])
 {
         FILE *fh;
@@ -376,9 +393,10 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             }
         }
 
-
         /* Allocate the command line */
-        filename_conv = convert_path_u2a(filename);
+        if (filename)
+//                filename_conv = filename;
+                filename_conv = convert_path_u2a(filename);
 
 
         if(filename_conv)
@@ -389,6 +407,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         {
             if (interpreter)
             {
+//                interpreter_conv = interpreter;
                 interpreter_conv = convert_path_u2a(interpreter);
 #if !defined(__USE_RUNCOMMAND__)
 #warning (using system!)
@@ -745,203 +764,3 @@ bool *assign_posix(void)
         AssignPath("bin", "SDK:C");
 }
 
-/* The following are wrappers for selected fcntl.h functions */
-/* They allow usage of absolute amigaos paths as well unix style */
-/* have added the rest of the functions that makes use of paths */
-
-#ifdef open
-#undef open
-#endif
-#ifdef stat
-#undef stat
-#endif
-#ifdef lstat
-#undef lstat
-#endif
-#ifdef chdir
-#undef chdir
-#endif
-#ifdef opendir
-#undef opendir
-#endif
-#ifdef access
-#undef access
-#endif
-#ifdef readlink
-#undef readlink
-#endif
-#ifdef unlink
-#undef unlink
-#endif
-
-
-int __open(const char * path, int open_flag)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        return open(path, open_flag);
-
-}
-
-int __stat(const char * path, struct stat *buffer)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-        int res;
-        APTR old_proc_window;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':')have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        old_proc_window = SetProcWindow((APTR)-1);
-        res = stat(path, buffer);
-        SetProcWindow(old_proc_window);
-        return res;
-}
-
-int __lstat(const char * path, struct stat *buffer)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-
-        return lstat(path, buffer);
-
-}
-
-int __chdir(const char * path)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        return chdir(path);
-
-}
-
-int __opendir(const char * path)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        return opendir(path);
-
-}
-
-int __access(const char * path, int mode)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-        int res;
-        APTR old_proc_window;
-
-        while(p<path + strlen(path)) {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        old_proc_window = SetProcWindow((APTR)-1);
-        res = access(path, mode);
-        SetProcWindow(old_proc_window);
-        return res;
-}
-
-/* not changing getcwd */
-
-int __readlink(const char * path, char * buffer, int buffer_size)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        return readlink(path, buffer, buffer_size);
-
-}
-
-int __unlink(const char * path)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-        return unlink(path);
-
-}
-
-char *convert_path_multi(const char *path)
-{
-        struct name_translation_info nti;
-        bool have_colon = false;
-        char *p = (char *)path;
-
-        while(p<path + strlen(path))
-        {
-            if(*p++ == ':') have_colon=true;
-        }
-        if(have_colon)
-        {
-            __translate_amiga_to_unix_path_name(&path,&nti);
-        }
-    return strdup(path);
-}

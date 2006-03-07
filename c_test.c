@@ -363,15 +363,18 @@ test_eval(Test_env *te, Test_op op, const char *opnd1, const char *opnd2,
 
 /* Nasty kludge to handle Korn's bizarre /dev/fd hack */
 
-int __stat(const char *path, struct stat *statb);
-
 static int
 test_stat(const char *path, struct stat *statb)
 {
 #if AMIGA
-      return __stat(path, statb);
+        int res;
+	APTR old_proc_window;
+        old_proc_window = SetProcWindow((APTR)-1);
+        res = stat(path, statb);
+        SetProcWindow(old_proc_window);
+	return res;
 #else
-    resturn stat(path, statb);
+    return stat(path, statb);
 #endif
 }
 
@@ -384,6 +387,10 @@ test_eaccess(const char *path, int mode)
         int res;
 
         res = access(path, mode);
+#if AMIGA
+                APTR old_proc_window;
+                old_proc_window = SetProcWindow((APTR)-1);
+#endif
         /*
          * On most (all?) unixes, access() says everything is executable for
          * root - avoid this on files by using stat().
@@ -391,11 +398,7 @@ test_eaccess(const char *path, int mode)
         if (res == 0 && ksheuid == 0 && (mode & X_OK)) {
                 struct stat statb;
 
-#if AMIGA
-                if (__stat(path, &statb) < 0)
-#else
                 if (stat(path, &statb) < 0)
-#endif
                         res = -1;
                 else if (S_ISDIR(statb.st_mode))
                         res = 0;
@@ -403,7 +406,9 @@ test_eaccess(const char *path, int mode)
                         res = (statb.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)) ?
                                 0 : -1;
         }
-
+#if AMIGA
+                SetProcWindow(old_proc_window);
+#endif
         return res;
 }
 

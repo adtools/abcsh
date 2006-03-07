@@ -79,41 +79,6 @@ typedef void (*handler_t)(int);  /* signal handler */
 
 #include "sigact.h"                     /* use sjg's fake sigaction() */
 
-#ifdef AMIGA
-# ifdef open
-#  undef open
-#  define open __open
-# endif
-# ifdef stat
-#  undef stat
-#  define stat __stat
-# endif
-# ifdef lstat
-#  undef lstat
-#  define lstat __lstat
-# endif
-# ifdef chdir
-#  undef chdir
-#  define chdir __chdir
-# endif
-# ifdef opendir
-#  undef opendir
-#  define opendir __opendir
-# endif
-# ifdef access
-#  undef access
-#  define access __access
-# endif
-# ifdef readlink
-#  undef readlink
-#  define readlink __readlink
-# endif
-# ifdef unlink
-#  undef unlink
-#  define unlink __unlink
-# endif
-#endif
-
 #ifndef offsetof
 # define offsetof(type,id) ((size_t)&((type*)NULL)->id)
 #endif
@@ -150,7 +115,7 @@ extern int dup2(int, int);
 
 #ifndef EXECSHELL
 /* shell to exec scripts (see also $SHELL initialization in main.c) */
-#  define EXECSHELL     "/bin/sh"
+#  define EXECSHELL     "/SDK/C/sh"
 #  define EXECSHELL_STR "EXECSHELL"
 #endif
 
@@ -558,10 +523,6 @@ struct globals
     int fd[NUFILE];
     char *ctypes[UCHAR_MAX + 1];
 };
-
-#define open(a,b, ...)  __open((a),(b))
-#define access(a,b) __access((a),(b))
-
 
 /* Used by v_evaluate() and setstr() to control action when error occurs */
 #define KSH_UNWIND_ERROR 0 /* unwind the stack (longjmp) */

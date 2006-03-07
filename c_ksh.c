@@ -50,7 +50,8 @@ c_cd(char **wp)
                 /* One argument: - or dir */
                 dir = wp[0];
                 if (strcmp(dir, "-") == 0) {
-                        dir = convert_path_multi(str_val(oldpwd_s));
+                        dir = str_val(oldpwd_s);
+//                        dir = convert_path_multi(str_val(oldpwd_s));
                         if (dir == null) {
                                 bi_errorf("no OLDPWD");
                                 return 1;
@@ -131,6 +132,7 @@ c_cd(char **wp)
         if (!ISABSPATH(Xstring(xs, xp))) {
                 pwd = (char *) 0;
         } else
+//                pwd = Xstring(xs, xp);
                 pwd = convert_path_multi(Xstring(xs, xp));
 
         /* Set PWD */
@@ -141,7 +143,8 @@ c_cd(char **wp)
                 setstr(pwd_s, ptmp, KSH_RETURN_ERROR);
         } else {
                 set_current_wd(null);
-                pwd = convert_path_multi(Xstring(xs, xp));
+                pwd = Xstring(xs, xp);
+//                pwd = convert_path_multi(Xstring(xs, xp));
                 /* XXX unset $PWD? */
         }
         if (printpath || cdnode)

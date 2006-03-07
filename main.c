@@ -154,7 +154,7 @@ main(int argc, char *argv[])
         {
                 struct tbl *vp = global("SHELL");
                 /* setstr can't fail here */
-                setstr(vp, "/bin/sh", KSH_RETURN_ERROR);
+                setstr(vp, "/SDK/C/sh", KSH_RETURN_ERROR);
         }
 
         /* Set HOME. */
@@ -330,7 +330,8 @@ main(int argc, char *argv[])
         l = e->loc;
         l->argv = &argv[argi - 1];
         l->argc = argc - argi;
-        l->argv[0] = (char *) convert_path_multi(kshname);
+        l->argv[0] = (char *) kshname;
+//	l->argv[0] = (char *) convert_path_multi(kshname);
         getopts_reset(1);
 
         errexit = Flag(FERREXIT);
