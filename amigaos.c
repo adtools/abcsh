@@ -60,6 +60,7 @@ int amigaos_getstdfd(int fd)
         return (fd == -1 ? Open("CONSOLE:",MODE_OLDFILE) : fd);
 }
 #endif /*CLIBHACK*/
+
 int amigaos_isabspath(const char *path)
 {FUNC;
         if (*path == '/')
@@ -128,19 +129,21 @@ int pipe(int filedes[2])
 
 #ifdef USE_TEMPFILES
 #if defined(__amigaos4__)
-        sprintf(pipe_name, "/T/%x.%08x", pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
+        snprintf(pipe_name, sizeof(pipe_name), "/T/%x.%08x",
+                 pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
 #else
-        sprintf(pipe_name, "/T/%x.%08x", pipenum++,GetUniqueID());
+        snprintf(pipe_name, sizeof(pipe_name), "/T/%x.%08x",
+                 pipenum++,GetUniqueID());
 #endif
 #else
 #if defined(__amigaos4__)
-        sprintf(pipe_name, "/PIPE/%x%08x/4096/0", pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
+        snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%08x/32768/0",
+                 pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
 #else
-        sprintf(pipe_name, "/PIPE/%x%08x/4096/0", pipenum++,GetUniqueID());
+        snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%08x/4096/0",
+                 pipenum++,GetUniqueID());
 #endif
 #endif
-
-/*      printf("pipe: %s \n", pipe_name);*/
 
 #ifdef CLIBHACK
         filedes[1] = open(pipe_name, O_WRONLY|O_CREAT);
@@ -148,8 +151,8 @@ int pipe(int filedes[2])
 #else
         filedes[1] = Open(pipe_name, MODE_NEWFILE);
         filedes[0] = Open(pipe_name, MODE_OLDFILE);
-
 #endif/*CLIBHACK*/
+
     if (filedes[0] == -1 || filedes[1] == -1)
         {
 #ifdef CLIBHACK
@@ -164,43 +167,24 @@ int pipe(int filedes[2])
                     Close(filedes[1]);
 #endif/*CLIBHACK*/
 
-
                 FUNCX;
                 return -1;
         }
-/*      printf("filedes %d %d\n", filedes[0], filedes[1]);fflush(stdout);*/
 
         FUNCX;
         return 0;
 }
-
-/*Jack: this one is wrong:
- * int openstdinout()
-{
-        char pipe_name[1024];
-        FUNC;
-        int mystdin, mystdout;
-
-        mystdin = Open("CONSOLE:", MODE_OLDFILE);
-        mystdout = Open("CONSOLE:", MODE_OLDFILE);
-
-        ksh_dup2(mystdin, 0, false);
-        ksh_dup2(mystdout, 1, false);
-        FUNCX;
-        return 0;
-}
-*/
 
 int fork(void)
 {
-        fprintf(stderr,"Can not bloody fork\n");
+        fprintf(stderr,"fork() not implemented\n");
         errno = ENOMEM;
         return -1;
 }
 
 int wait(int *status)
 {
-        fprintf(stderr,"No wait\n");
+        fprintf(stderr,"wait() not implemented\n");
         errno = ECHILD;
         return -1;
 }
@@ -234,7 +218,8 @@ char *convert_path_multi(const char *path)
         {
             __translate_amiga_to_unix_path_name(&path,&nti);
         }
-    return strdup(path);
+
+        return strdup(path);
 }
 
 char *convert_path_u2a(const char *filename)
@@ -260,11 +245,16 @@ char *convert_path_u2a(const char *filename)
         return strdup(filename);
 }
 
-static void createvars(char * const* envp)
+
+static void
+createvars(char * const* envp)
 {
+    if ( envp == NULL ) {
+        return;
+    }
+
     /* Set a loal var to indicate to any subsequent sh that it is not */
     /* The top level shell and so should only inherit local amigaos vars */
-
     SetVar("ABCSH_IMPORT_LOCAL","true",5,GVF_LOCAL_ONLY);
 
     while(*envp != NULL)
@@ -273,11 +263,11 @@ static void createvars(char * const* envp)
         char *var;
         char *val;
 
-
-        if(len = strlen(*envp)){
-            if(var = (char *)malloc(len+1))
+        if(len = strlen(*envp)) {
+            size_t size = len + 1;
+            if(var = malloc(size))
             {
-                strcpy(var,*envp);
+                memcpy(var, *envp, size);
 
                 val = strchr(var,'=');
                 if(val)
@@ -289,6 +279,7 @@ static void createvars(char * const* envp)
                     }
                 }
                 free(var);
+                var = NULL;
             }
         }
         envp++;
@@ -297,7 +288,6 @@ static void createvars(char * const* envp)
 
 static bool contains_whitespace(char *string)
 {
-
     if(strchr(string,' ')) return true;
     if(strchr(string,'\t')) return true;
     if(strchr(string,'\n')) return true;
@@ -327,12 +317,12 @@ struct command_data
     struct Task *parent;
 };
 
-//int execve(char *filename, char *const argv[], char *const envp[])
+
 int execve(const char *filename, char *const argv[], char *const envp[])
 {
         FILE *fh;
         char buffer[1000];
-        int size = 0;
+        size_t size = 0;
         char **cur;
         char *interpreter = 0;
         char * interpreter_args = 0;
@@ -348,13 +338,13 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         FUNC;
 
         /* Calculate the size of filename and all args, including spaces and quotes */
-        size = 0;//strlen(filename) + 1;
+        size = 0;
         for (cur = (char **)argv+1; *cur; cur++)
         {
             size += strlen(*cur) + 1 + (contains_whitespace(*cur)?(2 + no_of_escapes(*cur)):0);
         }
-        /* Check if it's a script file */
 
+        /* Check if it's a script file */
         fh = fopen(filename, "r");
         if (fh)
         {
@@ -362,10 +352,17 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 {
                         char *p;
                         char *q;
-                        fgets(buffer, 999, fh);
+                        fgets(buffer, sizeof(buffer)-1, fh);
                         p = buffer;
                         while (*p == ' ' || *p == '\t') p++;
-                        if(buffer[strlen(buffer) -1] == '\n') buffer[strlen(buffer) -1] = '\0';
+
+                        int buffer_len = strlen(buffer);
+                        if ( buffer_len > 0 ) {
+                                if(buffer[buffer_len-1] == '\n') {
+                                        buffer[buffer_len-1] = '\0';
+                                }
+                        }
+
                         if(q = strchr(p,' '))
                         {
                             *q++ = '\0';
@@ -395,19 +392,17 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
         /* Allocate the command line */
         if (filename)
-//                filename_conv = filename;
                 filename_conv = convert_path_u2a(filename);
-
 
         if(filename_conv)
             size += strlen(filename_conv);
-        size += 1;
-        full = malloc(size+10);
+
+        size += 1 + 10;  /* +10 for safety */
+        full = malloc(size);
         if (full)
         {
             if (interpreter)
             {
-//                interpreter_conv = interpreter;
                 interpreter_conv = convert_path_u2a(interpreter);
 #if !defined(__USE_RUNCOMMAND__)
 #warning (using system!)
@@ -416,25 +411,34 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 sprintf(full, "%s %s ",interpreter_args, filename_conv);
 #endif
                 free(interpreter);
+                interpreter = NULL;
                 free(interpreter_args);
+                interpreter_args = NULL;
 
-                if(filename_conv)
+                if(filename_conv) {
                     free(filename_conv);
-               fname = strdup(interpreter_conv);
+                    filename_conv = NULL;
+                }
 
-                if(interpreter_conv)
+                fname = strdup(interpreter_conv);
+
+                if(interpreter_conv) {
                     free(interpreter_conv);
+                    interpreter_conv = NULL;
+                }
             }
             else
             {
 #ifndef __USE_RUNCOMMAND__
-                sprintf(full, "%s ", filename_conv);
+                snprintf(full, size, "%s ", filename_conv);
 #else
-                sprintf(full,"");
+                snprintf(full, size, "");
 #endif
                 fname = strdup(filename_conv);
-                if(filename_conv)
+                if(filename_conv) {
                     free(filename_conv);
+                    filename_conv = NULL;
+                }
             }
 
             for (cur = (char**)argv+1; *cur != 0; cur++)
@@ -459,24 +463,25 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         *q++ = '"';
                         *q++ = ' ';
                         *q='\0';
-                        strcat(full,buff);
+                        strncat(full, buff, size);
                         free(buff);
+                        buff = NULL;
                     }
                     else
                     {
-                        strcat(full,"\"");
-                        strcat(full,*cur);
-                        strcat(full,"\" ");
+                        strncat(full, "\"", size);
+                        strncat(full, *cur, size);
+                        strncat(full, "\" ", size);
                     }
                 }
                 else
                 {
-                    strcat(full, *cur);
-                    strcat(full, " ");
+                    strncat(full, *cur, size);
+                    strncat(full, " ", size);
                 }
 
             }
-            strcat(full,"\n");
+            strncat(full, "\n", size);
 
             createvars(envp);
 
@@ -489,15 +494,12 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                 SYS_Error,((struct Process *)thisTask)->pr_CES,
               TAG_DONE);
 #else
-
             if (fname){
 
                 BPTR seglist = LoadSeg(fname);
                 if(seglist)
                 {
-
-
-                    /* check if we have an executable! */
+                    /* check if we have an executable */
                     struct PseudoSegList *ps = NULL;
                     if(!GetSegListInfoTags( seglist, GSLI_Native, &ps, TAG_DONE))
                     {
@@ -510,7 +512,8 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                     if( ps != NULL )
                     {
                         SetProgramName(fname);
-                        lastresult=RunCommand(seglist,8*1024,full,strlen(full));
+                        lastresult=RunCommand(seglist,((struct Process*)thisTask)->pr_StackSize,
+                                              full,strlen(full));
                         errno=0;
                     }
                     else
@@ -518,27 +521,34 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                         errno=ENOEXEC;
                     }
                     UnLoadSeg(seglist);
-
+                    seglist = 0;
                 }
                 else
                 {
                     errno=ENOEXEC;
                 }
                free(fname);
+               fname = NULL;
             }
 
 #endif /* USE_RUNCOMMAND */
 
             free(full);
+            full = NULL;
             FUNCX;
             if(errno == ENOEXEC) return -1;
             return 0;
         }
 
-        if(interpreter)
+        if(interpreter) {
             free(interpreter);
-        if(filename_conv)
+            interpreter = NULL;
+        }
+
+        if(filename_conv) {
             free(filename_conv);
+            filename_conv = NULL;
+        }
 
         errno = ENOMEM;
 
@@ -641,12 +651,10 @@ exchild(struct op *t, int flags,
         taskdata.flags  = flags & (XEXEC | XERROK);
         taskdata.parent = thisTask;
 #ifdef CLIBHACK
-    for(i = 0; i < 3; i++)
+        for(i = 0; i < 3; i++)
         {
-            BPTR lock;
             __get_default_file(i, &amigafd[i]);
             if(close_fd == i) amigafd_close[i] = true;
-
         }
 #else
     if (t->type == 21)
@@ -672,9 +680,12 @@ exchild(struct op *t, int flags,
         }
 #endif /*CLIBHACK*/
 
-        if(t->str)
+        if(t->str) {
             name = strdup(t->str);
-        else name=strdup("new sh process");
+        }
+        else {
+            name = strdup("new sh process");
+        }
 
         proc = CreateNewProcTags(
             NP_Entry,                execute_child,
@@ -693,22 +704,25 @@ exchild(struct op *t, int flags,
 #endif/*CLIBHACK*/
             NP_Cli,                  true,
             NP_Name,                 name,
+            NP_CommandName,          name,
 #ifdef __amigaos4__
             NP_UserData,             (int)&taskdata,
             NP_NotifyOnDeathSigTask, thisTask,
 #endif
             TAG_DONE);
 
+        if ( proc != NULL ) {
 #ifndef __amigaos4__
 #warning this code has been included!
-        proc->pr_Task.tc_UserData = &taskdata;
-        Wait(SIGBREAKF_CTRL_F);
+                proc->pr_Task.tc_UserData = &taskdata;
+                Wait(SIGBREAKF_CTRL_F);
 #else
-        Wait(SIGF_CHILD);
+                Wait(SIGF_CHILD);
 #endif
+        }
 
-        if(name)
-            free(name);
+        free(name);
+        name = NULL;
 #ifdef CLIBHACK
 //        for(i=0; i < 3; i++)
 //            if(amigafd_close[i]  && (flags & (XPCLOSE)))
@@ -721,10 +735,8 @@ exchild(struct op *t, int flags,
 
                 if(flags & XPIPEI)
                 {
-
                       __get_default_file(i,&f);
-                      NameFromFH(f,pname,255);
-
+                      NameFromFH(f,pname,sizeof(pname)-1);
                 }
 
                 close(i);
@@ -740,7 +752,7 @@ exchild(struct op *t, int flags,
                     char buffer[256];
                     int n,t;
                     t = 0;
-                    while((n = read(i,buffer,255)) > 0) t +=n;
+                    while((n = read(i,buffer,sizeof(buffer)-1)) > 0) t +=n;
                 }
 
                 close(i);
@@ -763,4 +775,3 @@ bool *assign_posix(void)
 {
         AssignPath("bin", "SDK:C");
 }
-
