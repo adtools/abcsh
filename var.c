@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include "sh.h"
 
-#include <proto/exec.h>
 
 /*
  * Variables
@@ -34,7 +33,7 @@ void
 newblock(void)
 {
         struct block *l;
-        static char *const empty[2] = {null};
+        static char *const empty[] = {null};
 
         l = (struct block *) alloc(sizeof(struct block), ATEMP);
         l->flags = 0;
@@ -132,7 +131,7 @@ array_index_calc(const char *n, bool *arrayp, int *valp)
                 n = str_nsave(n, p - n, ATEMP);
                 evaluate(sub, &rval, KSH_UNWIND_ERROR, true);
                 if (rval < 0 || rval > ARRAYMAX)
-                        errorf("%s: subscript out of range", n, rval);
+                        errorf("%s: subscript %ld out of range", n, rval);
                 *valp = rval;
                 afree(sub, ATEMP);
         }
