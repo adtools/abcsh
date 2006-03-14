@@ -10,7 +10,7 @@
 char **environ = NULL;
 
 
-#ifdef __amigaos4__
+#if defined(__amigaos4__)
 
 #define MAX_ENV_SIZE 1024  /* maximum number of environ entries */
 
@@ -38,11 +38,15 @@ copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
                         return 0;
                 }
 
-                ++env_size;
-
                 char **env = (char **)hook->h_Data;
                 uint32 size = strlen(message->sv_Name) + 1 + message->sv_VarLen + 1 + 1;
                 char *buffer=(char *)malloc(size);
+                if ( buffer == NULL )
+                {
+                        return 0;
+                }
+
+                ++env_size;
 
                 snprintf(buffer,size-1,"%s=%s", message->sv_Name, message->sv_Var);
 
@@ -50,14 +54,13 @@ copy_env(struct Hook *hook, APTR userdata, struct ScanVarsMsg *message)
                 env++;
                 hook->h_Data = env;
         }
+
         return 0;
 }
 
 void
 ___makeenviron()
 {
-        struct Hook hook;
-
         char varbuf[8];
         uint32 flags=0;
         size_t environ_size=MAX_ENV_SIZE * sizeof(char*);
@@ -79,6 +82,7 @@ ___makeenviron()
 
         memset(environ, 0, environ_size);
 
+        struct Hook hook;
         memset(&hook, 0, sizeof(struct Hook));
         hook.h_Entry = copy_env;
         hook.h_Data = environ;
@@ -89,12 +93,17 @@ ___makeenviron()
 void
 ___freeenviron()
 {
-        char **i;
-        for(i=environ;*i!=NULL;i++)
+        if ( environ != NULL )
         {
-                free(*i);
-        }
+                char **i;
+                for ( i = environ; *i != NULL; i++ )
+                {
+                        free(*i);
+                        *i = NULL;
+                }
 
-        free(environ);
+                free(environ);
+                environ = NULL;
+        }
 }
 #endif
