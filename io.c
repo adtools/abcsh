@@ -237,26 +237,20 @@ int
 savefd(int fd, int noclose)
 {
         int nfd;
-//      printf("savefd(%d, %d)\n", fd, noclose);
 
         if (fd < FDBASE) {
-//              printf("dupbase(%d, %d)\n", fd, FDBASE);
                 nfd = ksh_dupbase(fd, FDBASE);
-//              printf("nfd = %d\n", nfd);
                 if (nfd < 0) {
                         if (errno == EBADF)
                                 return -1;
                         else
                                 errorf("too many files open in shell");
-//              printf("Closing\n");fflush(stdout);             
                 }
                 if (!noclose)
                         close(fd);
         } else
                 nfd = fd;
-//      printf("fd_clexec(%d)\n");fflush(stdout);       
         fcntl(nfd, F_SETFD, FD_CLOEXEC);
-//      printf("Done\n");
         return nfd;
 }
 
