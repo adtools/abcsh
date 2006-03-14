@@ -7,9 +7,6 @@
 #include "sh.h"
 #include "c_test.h"
 
-#include <proto/exec.h>
-#include <proto/dos.h>
-
 
 /* Does ps4 get parameter substitutions done? */
 #define PS4_SUBSTITUTE(s)      substitute((s), 0)
@@ -26,9 +23,11 @@ static const char *dbteste_getopnd(Test_env *, Test_op, int);
 static int      dbteste_eval(Test_env *, Test_op, const char *, const char *,
                         int do_eval);
 static void     dbteste_error(Test_env *, int, const char *);
+static void     blk_copy(struct block *src);
+static void     tbl_copy(struct table *src, struct table *dst, Area *ap);
 
 #if (0)
-void printflags(struct tbl *t);
+static void printflags(struct tbl *t);
 #endif
 
 #if defined(AMIGA) && !defined(CLIBHACK)
@@ -42,7 +41,6 @@ int
 execute(struct op * volatile t,
         volatile int flags)     /* if XEXEC don't fork */
 {
-//DebugPrintF("execute()..\n");
         int i;
         volatile int rv = 0;
         volatile int rv_prop = 0; /* rv being propogated or newly generated? */
@@ -125,33 +123,14 @@ execute(struct op * volatile t,
 
         switch (t->type) {
           case TCOM:
-//DebugPrintF("TCOM: current_wd=%s\n", current_wd);
                 rv = comexec(t, tp, ap, flags);
                 break;
 
           case TPAREN:
           {
-//DebugPrintF("TPAREN: current_wd=%s\n", current_wd);
               //      rv = execute(t->left, flags|XFORK);
-              /* save old enevironment */
               struct globals globenv;
-              Trap sigtrap_backup[NSIG+1];
-              int i;
-
-              memcpy(sigtrap_backup, sigtraps, sizeof(Trap)*(NSIG+1));
-              for (i = 0; i < NSIG+1; i++)
-              {
-                sigtraps[i].trap = 0;
-                sigtraps[i].set = 0;
-                sigtraps[i].flags = 0;
-                sigtraps[i].cursig = 0;
-                sigtraps[i].shtrap = 0;
-              }
-
-
-//DebugPrintF(" before copyenv: current_wd=%s\n", current_wd);
               copyenv(&globenv);
-//DebugPrintF(" after copyenv: current_wd=%s\n", current_wd);
               e->type = E_SUBSHELL;
               if(!(ksh_sigsetjmp(e->jbuf,0)))
               {
@@ -163,16 +142,13 @@ execute(struct op * volatile t,
               }
 
                cleartraps();
-               memcpy(sigtraps, sigtrap_backup, sizeof(Trap)*(NSIG+1));
-              restoreenv(&globenv);
-//DebugPrintF(" restoreenv: current_wd=%s\n", current_wd);
+               restoreenv(&globenv);
           }
                 rv_prop = 1;
                 break;
 
           case TPIPE:
                 {
-//DebugPrintF("TPIPE: current_wd=%s\n", current_wd);
                 bool chain = false;
                 flags |= XFORK;
                 flags &= ~XEXEC;
@@ -212,7 +188,7 @@ execute(struct op * volatile t,
                             char buffer[256];
                             int n,t;
                             t = 0;
-                            while((n = read(0,buffer,255)) > 0) t +=n;
+                            while((n = read(0,buffer,sizeof(buffer)-1)) > 0) t +=n;
 
                         }
                         (void) ksh_dup2(pv[0], 0, false); /* stdin of next */
@@ -225,7 +201,7 @@ execute(struct op * volatile t,
                             if(chain)
                             {
                                 __get_default_file(0,&f);
-                                NameFromFH(f,pname,255);
+                                NameFromFH(f,pname,sizeof(pname)-1);
 
                             }
                             (void) ksh_dup2(pv[0], 0, false); /* stdin of next */
@@ -256,7 +232,6 @@ execute(struct op * volatile t,
                 }
 
           case TLIST:
-//DebugPrintF("TLIST: current_wd=%s\n", current_wd);
                 while (t->type == TLIST) {
                         execute(t->left, flags & XERROK);
                         t = t->right;
@@ -266,7 +241,6 @@ execute(struct op * volatile t,
 
           case TCOPROC:
           {
-//DebugPrintF("TCOPROC: current_wd=%s\n", current_wd);
                 sigset_t      omask;
 
                 /* Block sigchild as we are using things changed in the
@@ -325,7 +299,6 @@ execute(struct op * volatile t,
           }
 
           case TASYNC:
-//DebugPrintF("TASYNC: current_wd=%s\n", current_wd);
                 /* XXX non-optimal, I think - "(foo &)", forks for (),
                  * forks again for async...  parent should optimize
                  * this to "foo &"...
@@ -335,7 +308,6 @@ execute(struct op * volatile t,
 
           case TOR:
           case TAND:
-//DebugPrintF("TOR/TAND: current_wd=%s\n", current_wd);
                 rv = execute(t->left, XERROK);
                 if ((t->right != NULL) && ((rv == 0) == (t->type == TAND)))
                         rv = execute(t->right, flags & XERROK);
@@ -346,7 +318,6 @@ execute(struct op * volatile t,
 
           case TBANG:
                 rv = !execute(t->right, XERROK);
-//DebugPrintF("TBANG: current_wd=%s\n", current_wd);
                 break;
 
           case TDBRACKET:
@@ -361,7 +332,6 @@ execute(struct op * volatile t,
                 te.error = dbteste_error;
 
                 rv = test_parse(&te);
-//DebugPrintF("TDBRACKET: current_wd=%s\n", current_wd);
                 break;
             }
 
@@ -406,7 +376,6 @@ execute(struct op * volatile t,
                         }
                 }
             }
-//DebugPrintF("TFOR/TSELECT: current_wd=%s\n", current_wd);
                 break;
 
           case TWHILE:
@@ -430,7 +399,6 @@ execute(struct op * volatile t,
                 while ((execute(t->left, XERROK) == 0) == (t->type == TWHILE))
                         rv = execute(t->right, flags & XERROK);
                 rv_prop = 1;
-//DebugPrintF("TWHILE/TUNTIL: current_wd=%s\n", current_wd);
                 break;
 
           case TIF:
@@ -441,7 +409,6 @@ execute(struct op * volatile t,
                         execute(t->right->left, flags & XERROK) :
                         execute(t->right->right, flags & XERROK);
                 rv_prop = 1;
-//DebugPrintF("TIF/TELIF: current_wd=%s\n", current_wd);
                 break;
 
           case TCASE:
@@ -451,7 +418,6 @@ execute(struct op * volatile t,
                         if ((s = evalstr(*ap, DOTILDE|DOPAT)) &&
                                 gmatch(cp, s, false))
                                 goto Found;
-//DebugPrintF("TCASE: current_wd=%s\n", current_wd);
                 break;
           Found:
                 rv = execute(t->left, flags & XERROK);
@@ -461,12 +427,10 @@ execute(struct op * volatile t,
           case TBRACE:
                 rv = execute(t->left, flags & XERROK);
                 rv_prop = 1;
-//DebugPrintF("TBRACE: current_wd=%s\n", current_wd);
                 break;
 
           case TFUNCT:
                 rv = define(t->str, t);
-//DebugPrintF("TFUNCT: current_wd=%s\n", current_wd);
                 break;
 
           case TTIME:
@@ -475,7 +439,6 @@ execute(struct op * volatile t,
                  */
                 rv = timex(t, flags & ~XEXEC);
                 rv_prop = 1;
-//DebugPrintF("TTIME: current_wd=%s\n", current_wd);
                 break;
 
           case TEXEC:           /* an eval'd TCOM */
@@ -497,7 +460,6 @@ execute(struct op * volatile t,
                     else
                         errorf("%s: %s", s, strerror(errno));
                 }
-//DebugPrintF("TEXEC: current_wd=%s\n", current_wd);
         }
     Break:
         exstat = rv;
@@ -520,12 +482,10 @@ execute(struct op * volatile t,
 static int
 comexec(struct op *t, struct tbl *volatile tp, char **ap, volatile int flags)
 {
-//DebugPrintF("comexec()\n");
         int i;
         volatile int rv = 0;
         char *cp;
         char **lastp;
-        static struct op texec; /* Must be static (XXX but why?) */
         int type_flags;
         int keepasn_ok;
         int fcflags = FC_BI|FC_FUNC|FC_PATH;
@@ -792,6 +752,8 @@ comexec(struct op *t, struct tbl *volatile tp, char **ap, volatile int flags)
                 }
 
                 /* to fork we set up a TEXEC node and call execute */
+                struct op texec;
+                memset(&texec, 0, sizeof(struct op));
                 texec.type = TEXEC;
                 texec.left = t; /* for tprint */
                 texec.str = tp->val.s;
@@ -1564,283 +1526,231 @@ dbteste_error(Test_env *te, int offset, const char *msg)
         internal_errorf(0, "dbteste_error: %s (offset %d)", msg, offset);
 }
 
-void tbl_copy(struct table *src, struct table *dst, Area *ap);
 
 /* have to copy stuff lacking fork ()  */
-
 void
 blk_copy(struct block *src)
 {
-//DebugPrintF("blk_copy(%08lx)\n", src);
-  struct block *l;
-  char **tw, **rw;
-  static char *const empty[2] = {null};
+    /* this is the deepest nested block, also called `globals' */
+    if (src->next)
+        blk_copy(src->next);
 
-  /* this is the deepest nested block, also called `globals' */
-  if (src->next)
-    blk_copy(src->next);
+    newblock();
+    struct block *l = e->loc;
+    l->argc = src->argc;
 
-  newblock();
-  l = e->loc;
-  l->argc = src->argc;
-//DebugPrintF("l=%08lx\n", l);
-//DebugPrintF("l.argc=%ld\n", l->argc);
-
-  if (l->argc)
-    {
-      /* copy the argument vector */
-//DebugPrintF(" copy the argument vector\n");
-      for (tw = src->argv; *tw++ != NULL; ) ;
-      rw = l->argv = (char **)alloc((int)(tw - src->argv) * sizeof(*tw),
-                                     &l->area);
-      for (tw = src->argv; *tw != NULL; )
-      {
-         *rw++ = wdcopy(*tw++, &l->area);
-      }
-      *rw = NULL;
-
+    if (l->argc) {
+        /* copy the argument vector */
+        char **tw, **rw;
+        for (tw = src->argv; *tw++ != NULL; ) ;
+        rw = l->argv = alloc((int)(tw - src->argv) * sizeof(*tw), &l->area);
+        for (tw = src->argv; *tw != NULL; )
+        {
+            *rw++ = wdcopy(*tw++, &l->area);
+        }
+        *rw = NULL;
     }
-  else
-  {
-     l->argv = (char **)empty;
-     l->argv[0] = src->argv[0]; /* preserve $0, just doing l->arv=src->argv
-                                                                   preserves everything which is not what
-                                                                   we want */
+    else {
+        static char *const empty[] = {null};
+        l->argv = (char **)empty;
+        l->argv[0] = src->argv[0]; /* preserve only $0 */
+    }
 
-//DebugPrintF("%s %ld: %ld %s\n",__FILE__,__LINE__,l->argc,l->argv[0]);
-  }
+    tbl_copy(&src->vars, &l->vars, &l->area);
+    tbl_copy(&src->funs, &l->funs, &l->area);
 
-//DebugPrintF(" 2.current_wd=%s\n", current_wd);
-  tbl_copy(&src->vars, &l->vars, &l->area);
-//DebugPrintF(" 3.current_wd=%s\n", current_wd);
-  tbl_copy(&src->funs, &l->funs, &l->area);
-
-  /* they're not used anyway (ie. always 0), but something like this
-     will have to be done when they ARE used. Perhaps it will be ATEMP
-     instead of APERM? */
-  l->error = src->error ? str_save(src->error, APERM) : 0;
-  l->exit  = src->exit ? str_save(src->exit, APERM) : 0;
-/*
- * KPrintF("%s %ld: %s\n",__FILE__,__LINE__,l->argv[0]);
- */
-//DebugPrintF("blk_copy end\n");
+    /* they're not used anyway (ie. always 0), but something like this
+       will have to be done when they ARE used. Perhaps it will be ATEMP
+       instead of APERM? */
+    l->error = src->error ? str_save(src->error, APERM) : 0;
+    l->exit  = src->exit ? str_save(src->exit, APERM) : 0;
 }
 
-/* need to copy tables, since no fork () */
 
-/* assume initialized source and destination tables */
 void
 tbl_copy(struct table *src, struct table *dst, Area *ap)
 {
-//DebugPrintF("tbl_copy(%08lx, %08lx, %08lx)\n", src, dst, ap);
-  struct tbl *t, *tn;
-  struct tstate ts;
+    struct tbl *t;
+    struct tstate ts;
 
-  ktwalk(&ts,src);
-  ktinit(dst, ap, 0);
-  while ((t = ktnext(&ts)))
-    {
-      tn = ktenter(dst, t->name, hash(t->name));
-      tn->flag = t->flag;
-      tn->type = t->type;
-      if (t->flag & INTEGER)
-      {
-        tn->val.i = t->val.i;
-      }
-      else if (t->flag & EXPORTV)
-      {
-//DebugPrintF(" EXPORTV=%s\n", t->val.s);
-        tn->val.s = str_save(t->val.s + t->type, ap);
-      }
-      else if (t->type == CFUNC)
-      {
-        tn->val.t = t->val.t ? tcopy(t->val.t, ap) : 0;
-      }
-      else
-      {
-//if ( t->flag & ALLOC )  {
-//DebugPrintF(" z1.current_wd=%s\n", current_wd);
-//}
-        tn->val.s = (t->flag & ALLOC) ?
-                      str_save(t->val.s, ap) : 0;
-//if ( t->flag & ALLOC )  {
-//DebugPrintF(" z2.current_wd=%s\n", current_wd);
-//}
-      }
+    ktwalk(&ts,src);
+    ktinit(dst, ap, 0);
+    while ((t = ktnext(&ts))) {
+        struct tbl *tn = ktenter(dst, t->name, hash(t->name));
+        tn->flag = t->flag;
+        tn->type = t->type;
+        if (t->flag & INTEGER)
+            tn->val.i = t->val.i;
+        else if (t->flag & EXPORTV)
+            tn->val.s = str_save(t->val.s, ap);
+        else if (t->type == CFUNC)
+            tn->val.t = t->val.t ? tcopy(t->val.t, ap) : 0;
+        else
+            tn->val.s = (t->flag & ALLOC) ? str_save(t->val.s, ap) : 0;
 
-      /* new entries in struct tbl */
-      tn->index = t->index;
-      tn->areap = ap;
+        tn->index = t->index;
+        tn->areap = ap;
 
-      tn->u2.field = t->u2.field;
-      if (t->flag & ARRAY)
-      {
-        struct tbl *tmp, **list = &tn->u.array;
-        *list = NULL;
-        for (tmp = t->u.array; tmp; tmp = tmp->u.array)
-        {
-          int size = sizeof(struct tbl) + strlen(tmp->name) + 1;
-          struct tbl *new;
+        tn->u2.field = t->u2.field;
+        if (t->flag & ARRAY) {
+            struct tbl *tmp, **list = &tn->u.array;
+            *list = NULL;
+            for (tmp = t->u.array; tmp; tmp = tmp->u.array) {
+                int size = sizeof(struct tbl) + strlen(tmp->name) + 1;
+                struct tbl *new;
 
-          *list = new = (struct tbl *)alloc(size, ap);
-          memcpy(new, tmp, size);
-          new->areap = ap;
-          if (tmp->flag & ALLOC)
-            new->val.s = str_save(tmp->val.s, ap);
-          list = &new->u.array;
+                *list = new = (struct tbl *)alloc(size, ap);
+                memcpy(new, tmp, size);
+                new->areap = ap;
+                if (tmp->flag & ALLOC)
+                    new->val.s = str_save(tmp->val.s, ap);
+
+                list = &new->u.array;
+            }
         }
-      }
-      tn->u.array = t->u.array;
-      if ((tn->flag & SPECIAL) && !strcmp(tn->name, "PATH"))
-      {
-        path = str_save(tn->val.s, ap);
-      }
+
+        tn->u.array = t->u.array;
+        if ((tn->flag & SPECIAL) && !strcmp(tn->name, "PATH"))
+            path = str_save(tn->val.s + tn->type, ap);
     }
 }
 
 
-
-
-void copyenv(struct globals *globenv )
+void
+copyenv(struct globals *globenv )
 {
-//DebugPrintF("copyenv(%08lx)\n", globenv);
-//DebugPrintF(" before current_wd=%s\n", current_wd);
-    /* make a copy of the curent environment tree */
-    struct env *copy;
-    struct block *b;
-    short *old;
-    int i;
-    char *p;
+    /* first set everything to a known state */
+    memset(globenv, 0, sizeof(struct globals));
 
     /* save pointers to current environment */
-
+    globenv->aperm = aperm;
     globenv->e = e;
     globenv->homedirs = homedirs;
     globenv->aliases = aliases;
     globenv->taliases = taliases;
-    globenv->aperm = aperm;
-   // globenv->sigtraps = sigtraps;
-
-    /* save our old path, will be copied in code in tbl_copy */
-    globenv->path = path;
-
-    /* save our current working directory */
-
-    globenv->current_wd = strdup(current_wd);
+    globenv->path = path;  /* will be copied in tbl_copy */
+    globenv->current_wd = current_wd;
+    globenv->current_wd_size = current_wd_size;
 
     /* set up new "permanent storage" */
-
     aperm = malloc(sizeof(Area));
+    if ( aperm == NULL ) {
+        internal_errorf(1, "out of memory");
+    }
+    else {
+        ainit(aperm);
+    }
 
-    ainit(aperm);
-
-    copy = (struct env *)malloc(sizeof(struct env));
     homedirs = malloc(sizeof(struct table));
     taliases = malloc(sizeof(struct table));
     aliases  = malloc(sizeof(struct table));
-    /* init tables */
-        ktinit(taliases, APERM, 0);
-        ktinit(aliases, APERM, 0);
-        ktinit(homedirs, APERM, 0);
+    if ( homedirs == NULL || taliases == NULL || aliases == NULL ) {
+        internal_errorf(1, "out of memory");
+    }
 
-    /*set base environment */
+    ktinit(taliases, APERM, 0);
+    ktinit(aliases, APERM, 0);
+    ktinit(homedirs, APERM, 0);
+
+    /* setup base environment */
+    struct env *copy = malloc(sizeof(struct env));
+    if ( copy == NULL ) {
+        internal_errorf(1, "out of memory");
+    }
+
+    memset(copy, 0, sizeof(struct env));
     copy->type = E_NONE;
-    copy->temps = NULL;
     ainit(&copy->area);
 
-    copy->savefd = NULL; /* ??? */
-    copy->oenv = NULL;  /* oenv ??*/
-    copy->loc = NULL;
+    tbl_copy(globenv->homedirs, homedirs, APERM);
+    tbl_copy(globenv->taliases, taliases, APERM);
+    tbl_copy(globenv->aliases,  aliases, APERM);
 
-/* copy these */
+    struct block *b = e->loc;
+    short *old = e->savefd;
 
-  tbl_copy(globenv->homedirs, homedirs, APERM);
-  tbl_copy(globenv->taliases, taliases, APERM);
-  tbl_copy(globenv->aliases,  aliases, APERM);
+    /* now transfer environment, and use the copy */
+    e = copy;
+    blk_copy(b);
 
-  b = e->loc;
-  old = e->savefd;
+    if (old) {
+        size_t size = sizeofN(short, NUFILE);
+        e->savefd = (short*) alloc(size, ATEMP);
+        memcpy(e->savefd, old, size);
+    }
 
-  /* now transfer environment, and use the copy */
+    /* setup the current_wd in our new APERM */
+    current_wd = NULL;
+    current_wd_size = 0;
+    set_current_wd(globenv->current_wd);
 
-  e = copy;
-//DebugPrintF(" 1.current_wd=%s\n", current_wd);
-  blk_copy(b);
-//DebugPrintF(" 2.current_wd=%s\n", current_wd);
+    /* duplicate and save file handles */
+    int i;
+    for( i=0; i<NUFILE;i++) {
+        globenv->fd[i] = savefd(i,true);
+    }
 
-  if (old)
-  {
-    e->savefd = (short*) alloc(sizeofN(short, NUFILE), ATEMP);
-    bcopy(old, e->savefd, sizeofN(short, NUFILE));
-  }
+    /* copy the current state of the ctypes array */
+    memcpy(globenv->ctypes, ctypes, UCHAR_MAX+1);
 
-  /* Duplicate and save file handles */
+    /* copy the sigtraps and clear them for use by subshell */
+    memcpy(globenv->sigtraps, sigtraps, sizeof(sigtraps));
+    for (i = 0; i < (NSIG+1); i++) {
+        sigtraps[i].trap = 0;
+        sigtraps[i].set = 0;
+        sigtraps[i].flags = 0;
+        sigtraps[i].cursig = 0;
+        sigtraps[i].shtrap = 0;
+    }
 
-  for( i=0; i<NUFILE;i++)
-  {
-      globenv->fd[i] = savefd(i,true);
-     // if(globenv->fd[i]>=0) dup2(i,globenv->fd[i]);
-  }
-
-  /* Copy the current state of the ctypes array */
-
-  memcpy(globenv->ctypes,ctypes,UCHAR_MAX+1);
-
-  /* note other stuff nay need doing! */
+    /* note other stuff nay need doing! */
 }
 
-/* restore the old env defined in globenv */
 
-void restoreenv(struct globals *globenv)
+void
+restoreenv(struct globals *globenv)
 {
+    /* free copy environment and it's ATEMP */
+    struct block *l = e->loc;
+    for(;l;l=l->next) {
+        afreeall(&l->area);
+    }
 
-    int i;
+    afreeall(&e->area);
+    free(e);
+
     /* simply free the aperm area */
-
     afreeall(aperm);
     free(aperm);
     free(homedirs);
     free(taliases);
     free(aliases);
 
-    /* free copy environment and it's ATEMP */
-    {
-        struct block *l = e->loc;
-        for(;l;l=l->next)
-        {
-            afreeall(&l->area);
-        }
-        afreeall(&e->area);
-        free(e);
-    }
     /* restore old tables and environment */
-
- //   sigtraps = globenv->sigtraps;
-    homedirs = globenv->homedirs;
-    taliases = globenv->taliases;
-    aliases = globenv->aliases;
     aperm = globenv->aperm;
-    path = globenv->path;
     e = globenv->e;
+    homedirs = globenv->homedirs;
+    aliases = globenv->aliases;
+    taliases = globenv->taliases;
+    path = globenv->path;
 
-  for( i=0; i<NUFILE;i++)
-  {
-      if(globenv->fd[i]>=0) restfd(i,globenv->fd[i]);
-  }
+    /* restore working dir */
+    current_wd = globenv->current_wd;
+    current_wd_size = globenv->current_wd_size;
+    (void) chdir(current_wd);
 
-  /* restore ctypes array */
-  memcpy(ctypes,globenv->ctypes,UCHAR_MAX + 1);
+    /* restore duplicated file handles */
+    int i;
+    for( i=0; i<NUFILE;i++) {
+        if(globenv->fd[i] >= 0)
+            restfd(i,globenv->fd[i]);
+    }
 
-  /* restore working dir */
+    /* restore ctypes array */
+    memcpy(ctypes,globenv->ctypes,UCHAR_MAX + 1);
 
-  if (globenv->current_wd)
-  {
-    set_current_wd(globenv->current_wd);
-    chdir(current_wd);
-    free(globenv->current_wd);
-    globenv->current_wd = NULL;
-  }
-
+    /* copy the sigtraps and clear them for use by subshell */
+    memcpy(sigtraps, globenv->sigtraps, sizeof(sigtraps));
 }
 
 #if(0)
