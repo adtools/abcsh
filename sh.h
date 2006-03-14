@@ -512,16 +512,17 @@ extern int lastresult; /* Last return code set by an extrenal command or subproc
 
 struct globals
 {
+    Area *aperm;
     struct env *e;
     struct table *homedirs;
     struct table *taliases;
     struct table *aliases;
-    Trap **sigtraps;
     void *path;
-    Area *aperm;
     char *current_wd;
+    int current_wd_size;
     int fd[NUFILE];
     char *ctypes[UCHAR_MAX + 1];
+    Trap sigtraps[NSIG+1];
 };
 
 /* Used by v_evaluate() and setstr() to control action when error occurs */
