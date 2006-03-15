@@ -3,7 +3,7 @@
  */
 
 #include <ctype.h>      /* for FILECHCONV */
-#include <stdio.h>      /* clib2 - for MAXPATHLEN */
+#include <limits.h>
 #include "sh.h"
 
 short ctypes [UCHAR_MAX+1];     /* type bits for unsigned char */
@@ -1086,7 +1086,7 @@ reset_nonblock(int fd)
         return 1;
 }
 
-/* Like getcwd(), except bsize is ignored if buf is 0 (MAXPATHLEN is used) */
+/* Like getcwd(), except bsize is ignored if buf is 0 (PATH_MAX is used) */
 char *
 ksh_get_wd(char *buf, int bsize)
 {
@@ -1097,8 +1097,8 @@ ksh_get_wd(char *buf, int bsize)
          * inject possibly allocated space into the ATEMP area. */
         /* Assume getcwd() available */
         if (!buf) {
-                bsize = MAXPATHLEN;
-                b = alloc(MAXPATHLEN + 1, ATEMP);
+                bsize = PATH_MAX;
+                b = alloc(PATH_MAX + 1, ATEMP);
         } else
                 b = buf;
 
