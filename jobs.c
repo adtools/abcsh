@@ -677,8 +677,6 @@ j_waitj(Job *j,
         j->flags &= ~(JF_WAITING|JF_W_ASYNCNOTIFY);
 
         if (j->flags & JF_FG) {
-                int  status;
-
                 j->flags &= ~JF_FG;
                 if (tty_fd >= 0) {
                         /* Only restore tty settings if job was originally

@@ -65,7 +65,7 @@ main(int argc, char *argv[])
         int argi;
         Source *s;
         struct block *l;
-        int restricted, errexit;
+        int errexit;
         char **wp;
         struct env env;
         pid_t ppid;

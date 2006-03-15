@@ -15,8 +15,8 @@ char amigaos_getc(int fd);
 int amigaos_getstdfd(int fd);
 #endif
 
+static char * clocktos(int);
 static void p_time(struct shf *, int, struct timeval *, int, char *, char *);
-
 
 /* :, false and true */
 int

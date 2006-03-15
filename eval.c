@@ -920,7 +920,6 @@ comsub(Expand *xp, char *cp)
         Source *s, *sold;
         struct op *t;
         struct shf *shf;
-        char c;
         struct globals globenv;
 
         s = pushs(SSTRING, ATEMP);

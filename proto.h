@@ -45,7 +45,6 @@ int     c_ulimit(char **);
 int     c_times(char **);
 int     timex(struct op *, int);
 void    timex_hook(struct op *, char ** volatile *);
-static char * clocktos(int);
 int     c_exec(char **);
 int     c_builtin(char **);
 /* c_test.c */
@@ -249,3 +248,12 @@ char *convert_path_u2a(const char *);
 char *convert_path_a2u(const char *);
 char *convert_path_multi(const char *);
 bool *assign_posix(void);
+
+unsigned int alarm(unsigned int);
+int getppid(void);
+int fork(void);
+int wait(int *);
+int execve(const char *, char *const argv[], char *const envp[]);
+int pause(void);
+int amigaos_dupbbase(int, int);
+int pipe(int filedes[]);

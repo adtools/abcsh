@@ -286,7 +286,6 @@ parse_args(char **argv,
         }
 
         if (what == OF_CMDLINE) {
-                char *p;
                 opts = cmd_opts;
         } else
                 opts = set_opts;

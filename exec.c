@@ -785,7 +785,7 @@ scriptexec(struct op *tp, char **ap)
         *tp->args-- = tp->str;
         *tp->args = shell;
 
-        if(execve(tp->args[0], tp->args, ap, 0) < 0)
+        if(execve(tp->args[0], tp->args, ap) < 0)
         {
             /* report both the program that was run and the bogus shell */
             errorf("%s: %s: %s", tp->str, shell, strerror(errno));
