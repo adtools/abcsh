@@ -31,12 +31,9 @@ tty_init(int init_ttystate)
 #else
         if ((tfd = open("/dev/tty", O_RDWR, 0)) < 0) {
 #endif
-                if (tfd < 0) {
-                        tty_devtty = 0;
-                        warningf(false,
-                            "No controlling tty (open /dev/tty: %s)",
-                            strerror(errno));
-                }
+                tty_devtty = 0;
+                warningf(false, "No controlling tty (open /dev/tty: %s)",
+                strerror(errno));
         }
 
         if (tfd < 0) {

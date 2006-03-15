@@ -16,7 +16,7 @@ CLIBHACK = -DCLIBHACK
 DEFS = -DAMIGA -DPOSIXLY_CORRECT -DAUTOINIT -D__sys_stdtypes_h -D__STDC_VERSION__=199901L $(CLIBHACK)
 LIBS = -lm -lnet -lunix
 
-SRCS = alloc.c amigaos.c c_ksh.c c_sh.c c_test.c environ.c eval.c exec.c \
+SRCS = amigaos.c alloc.c c_ksh.c c_sh.c c_test.c environ.c eval.c exec.c \
 	expr.c history.c io.c jobs.c lex.c main.c misc.c missing.c path.c \
 	shf.c sigact.c syn.c table.c trap.c tree.c tty.c var.c version.c
 OBJS = $(SRCS:.c=.o)

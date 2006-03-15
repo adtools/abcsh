@@ -418,6 +418,9 @@ getint(struct tbl *vp, long int *nump, bool arith)
                 if (*s == 'x' || *s == 'X') {
                         s++;
                         base = 16;
+                } else if (vp->flag & ZEROFIL) {
+                                while (*s == '0')
+                                        s++;
                 } else
                         base = 8;
                 have_base++;

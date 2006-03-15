@@ -245,7 +245,6 @@ char *convert_path_u2a(const char *filename)
         return strdup(filename);
 }
 
-
 static void
 createvars(char * const* envp)
 {
@@ -392,7 +391,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 
         /* Allocate the command line */
         if (filename)
-                filename_conv = convert_path_u2a(filename);
+            filename_conv = convert_path_u2a(filename);
 
         if(filename_conv)
             size += strlen(filename_conv);
@@ -483,7 +482,8 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             }
             strncat(full, "\n", size);
 
-            createvars(envp);
+            if (envp)
+                createvars(envp);
 
 #ifndef __USE_RUNCOMMAND__
             lastresult = SystemTags(full,
@@ -774,4 +774,5 @@ exchild(struct op *t, int flags,
 bool *assign_posix(void)
 {
         AssignPath("bin", "SDK:C");
+        AssignPath("usr", "SDK:");
 }

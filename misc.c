@@ -291,7 +291,7 @@ parse_args(char **argv,
         } else
                 opts = set_opts;
         ksh_getopt_reset(&go, GF_ERROR|GF_PLUSOPT);
-        while ((optc = ksh_getopt(argv, &go, opts)) != EOF) {
+        while ((optc = ksh_getopt(argv, &go, opts)) != -1) {
                 set = (go.info & GI_PLUS) ? 0 : 1;
                 switch (optc) {
                   case 'A':
@@ -849,7 +849,7 @@ ksh_getopt(char **argv, Getopt *go, const char *options)
                         go->optind++;
                         go->p = 0;
                         go->info |= GI_MINUSMINUS;
-                        return EOF;
+                        return -1;
                 }
                 if (arg == (char *) 0 ||
                         ((flag != '-' ) && /* neither a - nor a + (if + allowed) */
@@ -857,7 +857,7 @@ ksh_getopt(char **argv, Getopt *go, const char *options)
                         (c = arg[1]) == '\0')
                 {
                         go->p = 0;
-                        return EOF;
+                        return -1;
                 }
                 go->optind++;
                 go->info &= ~(GI_MINUS|GI_PLUS);
