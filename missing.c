@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include "sh.h"
 
+#ifndef __amigaos4__
 void *
 memmove(void *d, const void *s, size_t n)
 {
@@ -25,6 +26,7 @@ memmove(void *d, const void *s, size_t n)
         }
         return d;
 }
+#endif
 
 #ifdef AMIGA
 INT32
@@ -61,6 +63,7 @@ ksh_times(struct tms *tms)
 
 #endif
 
+#ifndef __amigaos4__
 int
 dup2(int oldd, int newd)
 {
@@ -80,4 +83,4 @@ dup2(int oldd, int newd)
 
         return fcntl(oldd, F_DUPFD, newd);
 }
-
+#endif
