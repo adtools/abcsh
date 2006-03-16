@@ -123,16 +123,22 @@ static int              child_max;      /* CHILD_MAX */
 /* held_sigchld is set if sigchld occurs before a job is completely started */
 static volatile sig_atomic_t held_sigchld;
 
+#ifndef AMIGA
 static void             j_set_async(Job *);
+#endif
 static void             j_startjob(Job *);
 static int              j_waitj(Job *, int, const char *);
 static void             j_sigchld(int);
 static void             j_print(Job *, int, struct shf *);
 static Job              *j_lookup(const char *, int *);
+#ifndef AMIGA
 static Job              *new_job(void);
 static Proc             *new_proc(void);
+#endif
 static void             check_job(Job *);
+#ifndef AMIGA
 static void             put_job(Job *, int);
+#endif
 static void             remove_job(Job *, const char *);
 static int              kill_job(Job *, int);
 
@@ -582,6 +588,7 @@ j_async(void)
         return async_pid;
 }
 
+#ifndef AMIGA
 /* Make j the last async process
  *
  * If jobs are compiled in then this routine expects sigchld to be blocked.
@@ -617,6 +624,7 @@ j_set_async(Job *j)
                 remove_job(oldest, "zombie");
         }
 }
+#endif
 
 /* Start a job: set STARTED, check for held signals and set j->last_proc
  *
@@ -1073,6 +1081,7 @@ j_lookup(const char *cp, int *ecodep)
 static Job      *free_jobs;
 static Proc     *free_procs;
 
+#ifndef AMIGA
 /* allocate a new job and fill in the job number.
  *
  * If jobs are compiled in then this routine expects sigchld to be blocked.
@@ -1118,6 +1127,7 @@ new_proc(void)
 
         return p;
 }
+#endif
 
 /* Take job out of job_list and put old structures into free list.
  * Keeps nzombies, last_job and async_job up to date.
@@ -1159,6 +1169,7 @@ remove_job(Job *j, const char *where)
                 async_job = (Job *) 0;
 }
 
+#ifndef AMIGA
 /* put j in a particular location (taking it out job_list if it is there
  * already)
  *
@@ -1194,6 +1205,7 @@ put_job(Job *j, int where)
                 break;
         }
 }
+#endif
 
 /* nuke a job (called when unable to start full job).
  *
