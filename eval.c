@@ -979,7 +979,7 @@ comsub(Expand *xp, char *cp)
 /*count new pipe instance*/
                 amigaos_comsub++;
 #else
-                ofd1 = savefd(1, 0);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
+                ofd1 = savefd(1);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
                 ksh_dup2(pv[1], 1, false);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);
                 copyenv(&globenv);

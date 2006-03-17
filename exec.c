@@ -157,9 +157,8 @@ execute(struct op * volatile t,
                savefd[0] = amigain;
                savefd[1] = amigaout;
 #else
-                e->savefd[0] = savefd(0, 0);
-                (void) ksh_dup2(e->savefd[0], 0, false); /* stdin of first */
-                e->savefd[1] = savefd(1, 0);
+                e->savefd[0] = savefd(0);
+                e->savefd[1] = savefd(1);
 #endif
 
                 while (t->type == TPIPE) {
@@ -263,8 +262,8 @@ execute(struct op * volatile t,
                 coproc_cleanup(true);
 
                 /* do this before opening pipes, in case these fail */
-                e->savefd[0] = savefd(0, 0);
-                e->savefd[1] = savefd(1, 0);
+                e->savefd[0] = savefd(0);
+                e->savefd[1] = savefd(1);
 
                 openpipe(pv);
                 if (pv[0] != 0) {
@@ -1221,7 +1220,7 @@ iosetup(struct ioword *iop, struct tbl *tp)
                  * to be seen if iop->unit is 2; also means we can't lose
                  * the fd (eg, both dup2 below and dup2 in restfd() failing).
                  */
-                e->savefd[iop->unit] = savefd(iop->unit, 1);
+                e->savefd[iop->unit] = savefd(iop->unit);
         }
 
         if (do_close)
@@ -1687,7 +1686,7 @@ copyenv(struct globals *globenv )
     /* duplicate and save file handles */
     int i;
     for( i=0; i<NUFILE;i++) {
-        globenv->fd[i] = savefd(i,true);
+        globenv->fd[i] = savefd(i);
     }
 
     /* copy the current state of the ctypes array */

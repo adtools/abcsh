@@ -104,7 +104,7 @@ void    kshdebug_dump_(const char *, const void *, int);
 int     can_seek(int);
 void    initio(void);
 int     ksh_dup2(int, int, int);
-int     savefd(int, int);
+int     savefd(int);
 void    restfd(int, int);
 void    openpipe(int *);
 void    closepipe(int *);
