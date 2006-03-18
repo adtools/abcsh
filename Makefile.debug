@@ -6,7 +6,7 @@
 
 CC = ppc-amigaos-gcc
 
-CFLAGS = -mcrt=clib2 -ggdb
+CFLAGS = -mcrt=clib2 -Wall -ggdb
 LDFLAGS = -mcrt=clib2 -ggdb
 
 #use "make CLIBHACK=-UCLIBHACK" to use IDOS io code
