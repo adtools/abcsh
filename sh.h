@@ -100,9 +100,7 @@ typedef void (*handler_t)(int);  /* signal handler */
 #define ksh_siglongjmp(env,v)   longjmp((env), (v))
 #define ksh_jmp_buf             jmp_buf
 
-#ifndef __amigaos4__
 extern int dup2(int, int);
-#endif
 
 #define INT32   int
 
