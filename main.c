@@ -54,10 +54,11 @@ static const char *const initcoms [] = {
 
 #define version_param  (initcoms[2])
 
+static char *amiversion __attribute__((used)) = "$VER: " ABC_VERSION;
+
 int
 main(int argc, char *argv[])
 {
-        char *amiversion = "$VER: " ABC_VERSION;
 
         assign_posix();
 
