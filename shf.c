@@ -338,7 +338,7 @@ shf_flush(struct shf *shf)
 	if (shf->flags & SHF_READING) {
 		shf->flags &= ~(SHF_EOF | SHF_READING);
 		if (shf->rnleft > 0) {
-			lseek(shf->fd, (off_t) -shf->rnleft, 1);
+			lseek(shf->fd, (off_t) -shf->rnleft, SEEK_CUR);
 			shf->rnleft = 0;
 			shf->rp = shf->buf;
 		}

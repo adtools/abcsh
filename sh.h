@@ -4,7 +4,7 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "abc-shell 0.0.40"
+#define ABC_VERSION "abc-shell 0.1.00"
 
 /* Start of common headers */
 
@@ -48,18 +48,6 @@ void *memmove(void *, const void *, size_t);
 # define W_OK 2
 # define R_OK 4
 #endif /* !F_OK */
-
-#ifndef SEEK_SET
-# ifdef L_SET
-#  define SEEK_SET L_SET
-#  define SEEK_CUR L_INCR
-#  define SEEK_END L_XTND
-# else /* L_SET */
-#  define SEEK_SET 0
-#  define SEEK_CUR 1
-#  define SEEK_END 2
-# endif /* L_SET */
-#endif /* !SEEK_SET */
 
 #include <limits.h>
 #include <signal.h>

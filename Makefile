@@ -2,7 +2,7 @@
 # Makefile for Amiga Bourne Compatible Shell.
 #
 
-.PHONY: all clean mostlyclean clibhackclean noclibhack
+.PHONY: all clean mostlyclean clibhackclean noclibhack debug
 
 CC = ppc-amigaos-gcc
 STRIP = ppc-amigaos-strip
@@ -43,5 +43,8 @@ clibhackclean:
 
 noclibhack: clibhackclean
 	$(MAKE) -f Makefile CLIBHACK=-UCLIBHACK
+
+debug: clean
+	$(MAKE) -f Makefile.debug
 
 -include $(SRCS:.c=.d)

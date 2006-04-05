@@ -16,7 +16,9 @@ int amigaos_getstdfd(int fd);
 #endif
 
 static char * clocktos(int);
+#if 0 /* not used at the moment */
 static void p_time(struct shf *, int, struct timeval *, int, char *, char *);
+#endif /* not used at the moment */
 
 /* :, false and true */
 int
@@ -721,6 +723,7 @@ c_unset(char **wp)
         return ret;
 }
 
+#if 0 /* not used at the moment */
 static void
 p_time(struct shf *shf, int posix, struct timeval *tv, int width, char *prefix,
         char *suffix)
@@ -733,6 +736,7 @@ p_time(struct shf *shf, int posix, struct timeval *tv, int width, char *prefix,
                         width, tv->tv_sec / 60, tv->tv_sec % 60,
                         tv->tv_usec / 10000, suffix);
 }
+#endif /* not used at the moment */
 
 int
 c_times(char **wp)

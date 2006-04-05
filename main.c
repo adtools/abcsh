@@ -59,9 +59,6 @@ static char *amiversion __attribute__((used)) = "$VER: " ABC_VERSION;
 int
 main(int argc, char *argv[])
 {
-
-        assign_posix();
-
         int i;
         int argi;
         Source *s;

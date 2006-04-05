@@ -130,7 +130,7 @@ int pipe(int filedes[2])
 #ifdef USE_TEMPFILES
 #if defined(__amigaos4__)
         snprintf(pipe_name, sizeof(pipe_name), "/T/%x.%08x",
-                 pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
+                 pipenum++,((struct Process*)FindTask(NULL))->pr_ProcessID);
 #else
         snprintf(pipe_name, sizeof(pipe_name), "/T/%x.%08x",
                  pipenum++,GetUniqueID());
@@ -138,7 +138,7 @@ int pipe(int filedes[2])
 #else
 #if defined(__amigaos4__)
         snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%08x/32768/0",
-                 pipenum++,((struct Process*)FindTask(0))->pr_ProcessID);
+                 pipenum++,((struct Process*)FindTask(NULL))->pr_ProcessID);
 #else
         snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%08x/4096/0",
                  pipenum++,GetUniqueID());
@@ -256,15 +256,16 @@ createvars(char * const* envp)
     /* The top level shell and so should only inherit local amigaos vars */
     SetVar("ABCSH_IMPORT_LOCAL","true",5,GVF_LOCAL_ONLY);
 
-    while(*envp != NULL)
+    while (*envp != NULL)
     {
         int len;
         char *var;
         char *val;
 
-        if(len = strlen(*envp)) {
+        if ((len = strlen(*envp)))
+        {
             size_t size = len + 1;
-            if(var = malloc(size))
+            if ((var = malloc(size)))
             {
                 memcpy(var, *envp, size);
 
@@ -328,10 +329,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         char *full = 0;
         char *filename_conv = 0;
         char *interpreter_conv = 0;
-        char *tmp = 0;
         char *fname;
-        int tmpint;
-        uint32 error;
         struct Task *thisTask = FindTask(0);
 
         FUNC;
@@ -362,7 +360,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                                 }
                         }
 
-                        if(q = strchr(p,' '))
+                        if ((q = strchr(p,' ')))
                         {
                             *q++ = '\0';
                             if(*q != '\0')
@@ -370,7 +368,8 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                             interpreter_args = strdup(q);
                             }
                         }
-                        else interpreter_args=strdup("");
+                        else
+                            interpreter_args=strdup("");
 
                         interpreter = strdup(p);
                         size += strlen(interpreter) + 1;
@@ -431,7 +430,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
 #ifndef __USE_RUNCOMMAND__
                 snprintf(full, size, "%s ", filename_conv);
 #else
-                snprintf(full, size, "");
+                snprintf(full, size, "%.*s", 0, "");
 #endif
                 fname = strdup(filename_conv);
                 if(filename_conv) {
@@ -614,7 +613,6 @@ exchild(struct op *t, int flags,
 /*close conditions*/
         long amigafd[3];
         int amigafd_close[3] = {0, 0, 0};
-        bool procmayclose = false;
 #else
         /*current input output*/
         long amigafd[2];
@@ -769,10 +767,4 @@ exchild(struct op *t, int flags,
 
         FUNCX;
         return lastresult;
-}
-
-bool *assign_posix(void)
-{
-        AssignPath("bin", "SDK:C");
-        AssignPath("usr", "SDK:");
 }
