@@ -94,7 +94,7 @@ ptree(struct op *t, int indent, struct shf *shf)
           }
           case TSELECT:
                 fptreef(shf, indent, "select %s ", t->str);
-                /* fall through */
+                /* FALLTHROUGH */
           case TFOR:
                 if (t->type == TFOR)
                         fptreef(shf, indent, "for %s ", t->str);

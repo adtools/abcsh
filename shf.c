@@ -1132,7 +1132,7 @@ shf_vfprintf(struct shf *shf, const char *fmt, va_list args)
 
 		case 's':
 			if (!(s = va_arg(args, char *)))
-				s = "(null %s)";
+				s = strdup("(null %s)");
 			len = strlen(s);
 			break;
 

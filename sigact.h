@@ -39,7 +39,11 @@
 #ifndef SIGKILL
 # include <signal.h>
 #endif
-  
+
+#ifdef __amigaos4__
+# include <signal.h>
+#endif
+
 #ifndef SIG_ERR
 # define SIG_ERR  ((handler_t) -1)
 #endif
@@ -64,10 +68,10 @@
 #define SIG_UNBLOCK     2
 #define SIG_SETMASK     4
 
-#if !defined(__sys_stdtypes_h)
+#if !defined(__sys_stdtypes_h) && !defined(CLIB2)
 typedef unsigned int sigset_t;
 #endif
-  
+
 /*
  * POSIX sa_handler should return void, but since we are
  * implementing in terms of something else, it may
@@ -80,14 +84,15 @@ struct sigaction
   int           sa_flags;
 };
 
-
 int     sigaction(int, struct sigaction *, struct sigaction *);
 int     sigaddset(sigset_t *, int);
 int     sigemptyset(sigset_t *);
+#ifndef CLIB2
 #ifdef AMIGA            /* AmigaOS4 changes by Thomas Frieden */
 int     sigprocmask(int, const sigset_t *, sigset_t *);
 #else
 int     sigprocmask(int, sigset_t *, sigset_t *);
+#endif
 #endif
 int     sigsuspend(sigset_t *);
         

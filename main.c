@@ -29,7 +29,7 @@ static const char initsubs[] = "${PS2=> } ${PS3=#? } ${PS4=+ }";
 static const char *const initcoms [] = {
         "typeset", "-r", "KSH_VERSION", NULL,
         "typeset", "-x", "SHELL", "PATH", "HOME", "TMPDIR", "tmp", "LOGNAME",
-        "USER", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", NULL,
+        "USER", "HISTFILE", "MAKE", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", NULL,
         "typeset", "-i", "PPID", NULL,
         "typeset", "-i", "OPTIND=1", NULL,
         "alias",
@@ -38,6 +38,9 @@ static const char *const initcoms [] = {
           "type=whence -v",
           "autoload=typeset -fu",
           "functions=typeset -f",
+#ifdef HISTORY
+          "history=fc -l",
+#endif /* HISTORY */
           "integer=typeset -i",
           "local=typeset",
           "r=fc -e -",
@@ -54,7 +57,7 @@ static const char *const initcoms [] = {
 
 #define version_param  (initcoms[2])
 
-static char *amiversion __attribute__((used)) = "$VER: " ABC_VERSION;
+const char *amiversion __attribute__((used)) = "$VER: " ABC_VERSION;
 
 int
 main(int argc, char *argv[])
@@ -124,7 +127,7 @@ main(int argc, char *argv[])
 
         init_histvec();
 
-        def_path = "/gcc/bin:/SDK/C:/SDK/Local/C:/SDK/Local/clib2/bin:/SDK/Local/newlib/bin:/C:.";
+        def_path = "/gcc/bin:/SDK/C:/SDK/Local/C:/SDK/Local/newlib/bin:/SDK/Local/clib2/bin:/C:.";
 
         /* Set PATH to def_path (will set the path global variable).
          * (import of environment below will probably change this setting).
@@ -188,6 +191,20 @@ main(int argc, char *argv[])
                 struct tbl *vp = global("USER");
                 /* setstr can't fail here */
                 setstr(vp, "root", KSH_RETURN_ERROR);
+        }
+
+        /* Set HISTFILE - history file. */
+        {
+                struct tbl *vp = global("HISTFILE");
+                /* setstr can't fail here */
+                setstr(vp, "/SDK/Data/abc-shell/history", KSH_RETURN_ERROR);
+        }
+
+        /* Set MAKE. */
+        {
+                struct tbl *vp = global("MAKE");
+                /* setstr can't fail here */
+                setstr(vp, "/SDK/C/gmake", KSH_RETURN_ERROR);
         }
 
         /* Turn on brace expansion by default.  At&t ksh's that have
@@ -345,7 +362,7 @@ main(int argc, char *argv[])
 
                 /* If env isn't set, include default environment */
                 if (env_file == null)
-                        env_file = "/S/abc-shell.kshrc";
+                        env_file = strdup("/SDK/Data/abc-shell/variables");
 
                 env_file = substitute(env_file, DOTILDE);
                 if (*env_file != '\0')
@@ -399,15 +416,15 @@ include(const char *name, int argc, char **argv, int intr_ok)
                   case LINTR:
                         if (intr_ok && (exstat - 128) != SIGTERM)
                                 return 1;
-                        /* fall through... */
+                        /* FALLTHROUGH */
                   case LEXIT:
                   case LLEAVE:
                   case LSHELL:
                         unwind(i);
-                        /*NOREACHED*/
+                        /* NOTREACHED */
                   default:
                         internal_errorf(1, "include: %d", i);
-                        /*NOREACHED*/
+                        /* NOTREACHED */
                 }
         }
         if (argv) {
@@ -476,19 +493,19 @@ shell(Source *volatile s, volatile int toplevel)
                                 s->start = s->str = null;
                                 break;
                         }
-                        /* fall through... */
+                        /* FALLTHROUGH */
                   case LEXIT:
                   case LLEAVE:
                   case LRETURN:
                         source = old_source;
                         quitenv(NULL);
                         unwind(i);      /* keep on going */
-                        /*NOREACHED*/
+                        /* NOTREACHED */
                   default:
                         source = old_source;
                         quitenv(NULL);
                         internal_errorf(1, "shell: %d", i);
-                        /*NOREACHED*/
+                        /* NOTREACHED */
                 }
         }
 
@@ -571,7 +588,7 @@ unwind(int i)
                   case E_NONE:
                         if (i == LINTR)
                                 e->flags |= EF_FAKE_SIGDIE;
-                        /* Fall through... */
+                        /* FALLTHROUGH */
                   default:
                         quitenv(NULL);
                 }
@@ -702,4 +719,3 @@ remove_temps(struct temp *tp)
                         unlink(tp->name);
                 }
 }
-

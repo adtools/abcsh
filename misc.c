@@ -3,7 +3,7 @@
  */
 
 #include <ctype.h>      /* for FILECHCONV */
-#include <limits.h>
+#include <stdio.h>
 #include "sh.h"
 
 short ctypes [UCHAR_MAX+1];     /* type bits for unsigned char */
@@ -124,7 +124,7 @@ const struct option options[] = {
         { "markdirs",   'X',            OF_ANY },
         { (char *) 0,   'm',                 0 }, /* so FMONITOR not ifdef'd */
         { "noclobber",  'C',            OF_ANY },
-        { "noexec",     'n',            OF_ANY },
+//        { "noexec",     'n',            OF_ANY },
         { "noglob",     'f',            OF_ANY },
         { "nounset",    'u',            OF_ANY },
         { "physical",     0,            OF_ANY }, /* non-standard */
@@ -1096,8 +1096,8 @@ ksh_get_wd(char *buf, int bsize)
          * inject possibly allocated space into the ATEMP area. */
         /* Assume getcwd() available */
         if (!buf) {
-                bsize = PATH_MAX;
-                b = alloc(PATH_MAX + 1, ATEMP);
+                bsize = MAXPATHLEN;
+                b = alloc(MAXPATHLEN + 1, ATEMP);
         } else
                 b = buf;
 

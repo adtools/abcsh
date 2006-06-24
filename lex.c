@@ -60,6 +60,7 @@ static const char *ungetsc(int);
 static void     gethere(void);
 static Lex_state *push_state_(State_info *, Lex_state *);
 static Lex_state *pop_state_(State_info *, Lex_state *);
+static char     *special_prompt_expand(char *);
 
 static int backslash_skip;
 static int ignore_backslash_newline;
@@ -188,7 +189,7 @@ yylex(int cf)
                                 *wp++ = c;
                                 break;
                         }
-                        /* fall through.. */
+                        /* FALLTHROUGH */
                   Sbase1:       /* includes *(...|...) pattern (*+?@!) */
                         if (c == '*' || c == '@' || c == '+' || c == '?' ||
                                 c == '!')
@@ -202,7 +203,7 @@ yylex(int cf)
                                 }
                                 ungetsc(c2);
                         }
-                        /* fall through.. */
+                        /* FALLTHROUGH */
                   Sbase2:       /* doesn't include *(...|...) pattern (*+?@!) */
                         switch (c) {
                           case '\\':
@@ -503,7 +504,7 @@ yylex(int cf)
                                                 *wp++ = c;
                                                 break;
                                         }
-                                        /* fall through.. */
+                                        /* FALLTHROUGH */
                                   default:
                                         if (c) { /* trailing \ is lost */
                                                 *wp++ = '\\';
@@ -735,7 +736,7 @@ Done:
                     * so it won't clash with the function name
                     * robert@debian.org, Feb 26th, 2005
                     */
-                	ktdelete(p);
+                        ktdelete(p);
                    } else {
                         Source *s;
 
@@ -860,6 +861,7 @@ pushs(int type, Area *areap)
         s->str = null;
         s->start = NULL;
         s->line = 0;
+        s->cmd_offset = 0;
         s->errline = 0;
         s->file = NULL;
         s->flags = 0;
@@ -1040,10 +1042,32 @@ getsc_line(Source *s)
                         shf_fdclose(s->u.shf);
                 s->str = NULL;
         } else if (interactive) {
+#ifdef HISTORY
+                char *p = Xstring(s->xs, xp);
+                if (cur_prompt == PS1)
+                        while (*p && ctype(*p, C_IFS) && ctype(*p, C_IFSWS))
+                                p++;
+                if (*p) {
+                        s->line++;
+                        histsave(s->line, s->str, 1);
+                }
+#endif /* HISTORY */
         }
         if (interactive)
                 set_prompt(PS2, (Source *) 0);
 }
+
+static char *
+special_prompt_expand(char *str)
+{
+        char *p = str;
+
+        while ((p = strstr(p, "\\$")) != NULL) {
+                *(p+1) = 'p';
+        }
+        return str;
+}
+
 
 void
 set_prompt(int to, Source *s)
@@ -1055,7 +1079,7 @@ set_prompt(int to, Source *s)
         switch (to) {
         case PS1: /* command */
                 ps1 = str_save(str_val(global("PS1")), ATEMP);
-                saved_atemp = ATEMP;	/* ps1 is freed by substitute() */
+                saved_atemp = ATEMP;        /* ps1 is freed by substitute() */
                 newenv(E_ERRH);
                 if (ksh_sigsetjmp(e->jbuf, 0)) {
                         prompt = safe_prompt;
@@ -1065,9 +1089,11 @@ set_prompt(int to, Source *s)
                          * unwinding its stack through this code as it
                          * exits.
                          */
-                } else
-                        prompt = str_save(substitute(ps1, 0),
-                                saved_atemp);
+                } else {
+                        /* expand \$ before other substitutions are done */
+                        char *tmp = special_prompt_expand(ps1);
+                        prompt = str_save(substitute(tmp, 0), saved_atemp);
+                }
                 quitenv(NULL);
                 break;
 
@@ -1156,7 +1182,11 @@ dopprompt(const char *sp, int ntruncate, const char **spp, int doprint)
                                         j_njobs());
                                 break;
                         case 'l':        /* '\' 'l' basename of tty */
+#ifndef __amigaos4__
                                 p = ttyname(0);
+#else
+                                p = strdup("CONSOLE:");
+#endif
                                 if (p)
                                         p = basename(p);
                                 if (p)
@@ -1167,6 +1197,10 @@ dopprompt(const char *sp, int ntruncate, const char **spp, int doprint)
                                 strbuf[1] = '\0';
                                 totlen = 0;        /* reset for prompt re-print */
                                 sp = cp + 1;
+                                break;
+                        case 'p':        /* '\' '$' $ or # */
+                                strbuf[0] = ksheuid ? '$' : '#';
+                                strbuf[1] = '\0';
                                 break;
                         case 'r':        /* '\' 'r' return */
                                 strbuf[0] = '\r';
@@ -1231,17 +1265,13 @@ dopprompt(const char *sp, int ntruncate, const char **spp, int doprint)
                                 p = str_val(global("PWD"));
                                 strlcpy(strbuf, basename(p), sizeof strbuf);
                                 break;
-                        case '!':	/* '\' '!' history line number XXX busted */
+                        case '!':        /* '\' '!' history line number */
                                 snprintf(strbuf, sizeof strbuf, "%d",
                                         source->line + 1);
                                 break;
-                        case '#':        /* '\' '#' command line number XXX busted */
+                        case '#':        /* '\' '#' command line number */
                                 snprintf(strbuf, sizeof strbuf, "%d",
-                                        source->line + 1);
-                                break;
-                        case '$':        /* '\' '$' $ or # XXX busted */
-                                strbuf[0] = ksheuid ? '$' : '#';
-                                strbuf[1] = '\0';
+                                        source->line - source->cmd_offset + 1);
                                 break;
                         case '0':        /* '\' '#' '#' ' #' octal numeric handling */
                         case '1':
@@ -1371,7 +1401,7 @@ get_brace_var(XString *wsp, char *wp)
                                 state = PS_SAW_HASH;
                                 break;
                         }
-                        /* fall through.. */
+                        /* FALLTHROUGH */
                   case PS_SAW_HASH:
                         if (letter(c))
                                 state = PS_IDENT;

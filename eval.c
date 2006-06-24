@@ -357,7 +357,7 @@ expand(char *cp,                /* input word */
                                           case '?':
                                                 f &= ~DOBLANK;
                                                 f |= DOTEMP_;
-                                                /* fall through */
+                                                /* FALLTHROUGH */
                                           default:
                                                 /* Enable tilde expansion */
                                                 tilde_ok = 1;
@@ -920,7 +920,9 @@ comsub(Expand *xp, char *cp)
         Source *s, *sold;
         struct op *t;
         struct shf *shf;
+#ifndef NEWLIB
         struct globals globenv;
+#endif
 
         s = pushs(SSTRING, ATEMP);
         s->start = s->str = cp;
@@ -1447,4 +1449,3 @@ alt_expand(XPtrV *wp, char *start, char *exp_start, char *end, int fdo)
         }
         return;
 }
-

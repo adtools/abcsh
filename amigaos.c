@@ -4,7 +4,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef NEWLIB
 #include <dos.h>
+#endif
 
 #include "sh.h"
 
@@ -19,14 +21,17 @@
 #define FUNC //printf("<%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 #define FUNCX //printf("</%s>\n", __PRETTY_FUNCTION__);fflush(stdout);
 
-#define __USE_RUNCOMMAND__
+#ifndef NEWLIB
+# define __USE_RUNCOMMAND__
+#endif
 
-
+#ifndef NEWLIB
 /* clib2 specific controls */
-int __minimum_os_lib_version = 51;
-char * __minimum_os_lib_error = "Requires AmigaOS 4.0";
 BOOL __open_locale = FALSE;
-char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOSE";
+//char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOSE";
+#else
+int lastresult;
+#endif
 
 /*used to stdin/out fds*/
 #ifndef CLIBHACK
@@ -35,8 +40,6 @@ int amigain = -1, amigaout = -1;
 
 char amigaos_getc(int fd)
 {
-        char c;
-
         return FGetC(fd);
 }
 
@@ -137,7 +140,7 @@ int pipe(int filedes[2])
 #endif
 #else
 #if defined(__amigaos4__)
-        snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%08x/32768/0",
+        snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%lu/32768/0",
                  pipenum++,((struct Process*)FindTask(NULL))->pr_ProcessID);
 #else
         snprintf(pipe_name, sizeof(pipe_name), "/PIPE/%x%08x/4096/0",
@@ -189,8 +192,67 @@ int wait(int *status)
         return -1;
 }
 
+#ifdef NEWLIB
+void __translate_path(const char *in, char *out)
+{
+	int absolute = (in[0] == '/');
+	int dot = 0;
+	int slashign = 0;
+
+	if (absolute) in++;
+
+	while (*in)
+	{
+		if (slashign && in[0] == '/')
+		{
+			slashign = 0;
+		}
+		else if (absolute && in[0] == '/')
+		{
+			/* Absolute path, replace first / with : */
+			*out++ = ':';
+			absolute = 0;
+		}
+		else if (dot)
+		{
+			dot = 0;
+			/* Previous char was a dot */
+			if (in[0] == '.')
+			{
+				/* Current is also a dot, make it a parent in out */
+				*out++ = '/';
+			}
+			else if (in[0] == '/')
+			{
+				/* Current dir, ignore the following slash */
+				slashign = 1;
+			}
+			else
+			{
+				/* A "solitary" dot, output it */
+				*out++ = '.';
+			}
+		}
+		else
+		{
+			if (in[0] == '.')
+			{
+				dot = 1;
+			}
+			else
+				*out ++ = *in;
+		}
+
+		in++;
+	}
+
+	*out = '\0';
+}
+#endif
+
 char *convert_path_a2u(const char *filename)
 {
+#ifndef NEWLIB
     struct name_translation_info nti;
 
     if(!filename)
@@ -199,13 +261,14 @@ char *convert_path_a2u(const char *filename)
     }
 
     __translate_amiga_to_unix_path_name(&filename,&nti);
-
+#endif
     return strdup(filename);
 
 }
 
 char *convert_path_multi(const char *path)
 {
+#ifndef NEWLIB
         struct name_translation_info nti;
         bool have_colon = false;
         char *p = (char *)path;
@@ -218,13 +281,17 @@ char *convert_path_multi(const char *path)
         {
             __translate_amiga_to_unix_path_name(&path,&nti);
         }
-
+#endif
         return strdup(path);
 }
 
 char *convert_path_u2a(const char *filename)
 {
+#ifndef NEWLIB
         struct name_translation_info nti;
+#else
+        char buffer[MAXPATHLEN];
+#endif
         FUNC;
 
         if (!filename)
@@ -240,17 +307,19 @@ char *convert_path_u2a(const char *filename)
 
         }
 
+#ifndef NEWLIB
         __translate_unix_to_amiga_path_name(&filename,&nti);
-
+#else
+        __translate_path(filename,buffer);
+#endif
         return strdup(filename);
 }
 
 static void
 createvars(char * const* envp)
 {
-    if ( envp == NULL ) {
+    if (envp == NULL)
         return;
-    }
 
     /* Set a loal var to indicate to any subsequent sh that it is not */
     /* The top level shell and so should only inherit local amigaos vars */
@@ -369,7 +438,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
                             }
                         }
                         else
-                            interpreter_args=strdup("");
+                            interpreter_args = strdup("");
 
                         interpreter = strdup(p);
                         size += strlen(interpreter) + 1;
@@ -403,7 +472,6 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             {
                 interpreter_conv = convert_path_u2a(interpreter);
 #if !defined(__USE_RUNCOMMAND__)
-#warning (using system!)
                 sprintf(full, "%s %s %s ", interpreter_conv, interpreter_args,filename_conv);
 #else
                 sprintf(full, "%s %s ",interpreter_args, filename_conv);
@@ -535,8 +603,12 @@ int execve(const char *filename, char *const argv[], char *const envp[])
             free(full);
             full = NULL;
             FUNCX;
-            if(errno == ENOEXEC) return -1;
-            return 0;
+            if(errno == ENOEXEC)
+            {
+                return -1;
+            } else {
+                return lastresult;
+            }
         }
 
         if(interpreter) {

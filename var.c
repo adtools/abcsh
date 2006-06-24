@@ -90,6 +90,10 @@ initvar(void)
                         { "PATH",               V_PATH },
                         { "POSIXLY_CORRECT",    V_POSIXLY_CORRECT },
                         { "TMPDIR",             V_TMPDIR },
+#ifdef HISTORY
+                        { "HISTFILE",		V_HISTFILE },
+                        { "HISTSIZE",		V_HISTSIZE },
+#endif /* HISTORY */
                         { "RANDOM",             V_RANDOM },
                         { "SECONDS",            V_SECONDS },
                         { "TMOUT",              V_TMOUT },
@@ -281,7 +285,7 @@ str_val(struct tbl *vp)
         else {                          /* integer source */
                 /* worst case number length is when base=2, so use BITS(long) */
                              /* minus base #     number    null */
-                static char strbuf[1 + 2 + 1 + BITS(long) + 1];
+                char strbuf[1 + 2 + 1 + BITS(long) + 1];
                 const char *digits = (vp->flag & UCASEV_AL) ?
                                   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                 : "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -310,6 +314,8 @@ str_val(struct tbl *vp)
                         *--s = '-';
                 if (vp->flag & (RJUST|LJUST)) /* case already dealt with */
                         s = formatstr(vp, s);
+                else
+                        s = str_save(s, ATEMP);
         }
         return s;
 }
@@ -909,6 +915,13 @@ getspec(struct tbl *vp)
                 setint(vp, (long) (rand() & 0x7fff));
                 vp->flag |= SPECIAL;
                 break;
+#ifdef HISTORY
+          case V_HISTSIZE:
+                vp->flag &= ~SPECIAL;
+                setint(vp, (long) histsize);
+                vp->flag |= SPECIAL;
+                break;
+#endif /* HISTORY */
           case V_OPTIND:
                 vp->flag &= ~SPECIAL;
                 setint(vp, (long) user_opt.uoptind);
@@ -962,6 +975,16 @@ setspec(struct tbl *vp)
                                 tmpdir = str_save(s, APERM);
                 }
                 break;
+#ifdef HISTORY
+          case V_HISTSIZE:
+                vp->flag &= ~SPECIAL;
+                sethistsize((int) intval(vp));
+                vp->flag |= SPECIAL;
+                break;
+          case V_HISTFILE:
+                sethistfile(str_val(vp));
+                break;
+#endif /* HISTORY */
           case V_RANDOM:
                 vp->flag &= ~SPECIAL;
                 srand((unsigned int)intval(vp));
@@ -1038,11 +1061,11 @@ arraysearch(struct tbl *vp, int val)
 
         vp->flag |= ARRAY|DEFINED;
 
-        /* The table entry is always [0] */
-        if (val == 0) {
                 vp->index = 0;
+        /* The table entry is always [0] */
+        if (val == 0)
                 return vp;
-        }
+
         prev = vp;
         curr = vp->u.array;
         while (curr && curr->index < val) {

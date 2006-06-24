@@ -4,12 +4,16 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "abc-shell 0.1.00"
+#define ABC_VERSION "abc-shell 0.1.09"
 
 /* Start of common headers */
 
 #ifdef __amigaos4__
 #define __USE_INLINE__
+#endif
+
+#ifdef NEWLIB
+# define sig_t _sig_func_ptr
 #endif
 
 #include <stdio.h>
@@ -52,15 +56,17 @@ void *memmove(void *, const void *, size_t);
 #include <limits.h>
 #include <signal.h>
 
-#ifdef AMIGA
-#define NSIG    32
-#define SIGQUIT 7
-#define SIGCHLD 8
-#define SIGCLD  8
-#define SIGHUP  9
-#define SIGPIPE 10
-#define SIGKILL 11
-#define SIGALRM 12
+#if defined(AMIGA) && !defined(NEWLIB)
+# define NSIG    32
+# define SIGQUIT 7
+# define SIGCHLD 8
+# define SIGCLD  8
+# define SIGHUP  9
+# define SIGPIPE 10
+# define SIGKILL 11
+# define SIGALRM 12
+#else
+# define NSIG    32
 #endif
 
 #define KSH_SA_FLAGS   0
@@ -78,11 +84,11 @@ typedef void (*handler_t)(int);  /* signal handler */
 /* Special cases for execve(2) */
 #define ksh_execve(p, av, ev, flags)    execve(p, av, ev)
 
-#ifdef AMIGA
-#define ksh_dupbase(fd, base) amigaos_dupbbase(fd, base)
-#else
+//#ifdef AMIGA
+//#define ksh_dupbase(fd, base) amigaos_dupbbase(fd, base)
+//#else
 #define ksh_dupbase(fd, base) fcntl(fd, F_DUPFD, base)
-#endif
+//#endif
 
 #define ksh_sigsetjmp(env,sm)   setjmp(env)
 #define ksh_siglongjmp(env,v)   longjmp((env), (v))
@@ -305,6 +311,7 @@ enum sh_flag {
         FNOCLOBBER,     /* -C: don't overwrite existing files */
         FNOEXEC,        /* -n: don't execute any commands */
         FNOGLOB,        /* -f: don't do file globbing */
+        FNOLOG,		/* don't save functions in history (ignored) */
         FNOUNSET,       /* -u: using an unset var is an error */
         FPHYSICAL,      /* -o physical: don't do logical cd's/pwd's */
         FPOSIX,         /* -o posix: be posixly correct */

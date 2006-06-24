@@ -268,7 +268,9 @@ c_read(char **wp)
 #else
         int fd = 0;
 #endif
+#ifndef NEWLIB
         struct shf *shf;
+#endif
         int optc;
         const char *emsg;
         XString cs, xs;
@@ -303,7 +305,7 @@ c_read(char **wp)
         wp += builtin_opt.optind;
 
         if (*wp == NULL)
-                *--wp = "REPLY";
+                *--wp = strdup("REPLY");
 
         /* Since we can't necessarily seek backwards on non-regular files,
          * don't buffer them so we can't read too much.

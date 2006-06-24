@@ -49,7 +49,7 @@ execute(struct op * volatile t,
         char *s, *cp;
         struct ioword **iowp;
         struct tbl *tp = NULL;
-#if defined(AMIGA) && !defined(CLIBHACK)
+#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
         int savefd[2];
 #endif
         if (t == NULL)
@@ -153,7 +153,7 @@ execute(struct op * volatile t,
                 flags |= XFORK;
                 flags &= ~XEXEC;
 
-#if defined(AMIGA) && !defined(CLIBHACK)
+#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
                savefd[0] = amigain;
                savefd[1] = amigaout;
 #else
@@ -162,7 +162,7 @@ execute(struct op * volatile t,
 #endif
 
                 while (t->type == TPIPE) {
-#if defined(AMIGA) && !defined(CLIBHACK)
+#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
                         pipe(pv);
                         amigaout = pv[1];
 #else
@@ -217,7 +217,7 @@ execute(struct op * volatile t,
                         chain=true;
 
                 }
-#if defined(AMIGA) && !defined(CLIBHACK)
+#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
                 amigaout = savefd[1];
 #else
                 restfd(1, e->savefd[1]); /* stdout of last */
@@ -779,7 +779,7 @@ scriptexec(struct op *tp, char **ap)
         if (shell && *shell)
                 shell = search(shell, path, X_OK, (int *) 0);
         if (!shell || !*shell)
-                shell = EXECSHELL;
+                shell = strdup(EXECSHELL);
 
         *tp->args-- = tp->str;
         *tp->args = shell;
@@ -1550,7 +1550,7 @@ blk_copy(struct block *src)
         *rw = NULL;
     }
     else {
-        static char *const empty[] = {null};
+        static char *empty[] = {NULL};
         l->argv = (char **)empty;
         l->argv[0] = src->argv[0]; /* preserve only $0 */
     }

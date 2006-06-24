@@ -81,6 +81,16 @@ void    init_histvec(void);
 void    hist_init(Source *);
 void    hist_finish(void);
 void    histsave(int, const char *, int);
+#ifdef HISTORY
+int	c_fc(char **);
+void	sethistsize(int);
+void	sethistfile(const char *);
+char **	histpos(void);
+int	histnum(int);
+int	findhist(int, int, const char *, int);
+int	findhistrel(const char *);
+char  **hist_get_newest(int);
+#endif /* HISTORY */
 /* io.c */
 void    errorf(const char *, ...)
         __attribute__((__noreturn__, __format__ (printf, 1, 2)));

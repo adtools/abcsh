@@ -160,78 +160,25 @@
  * we have SA_NOCLDSTOP defined.
  */
 
-#define USE_SIGNAL
-
-/*
- * if we haven't been told,
- * try and guess what we should implement with.
- */
-#if !defined(USE_SIGSET) && !defined(USE_SIGMASK) && !defined(USE_SIGNAL)
-# if defined(sigmask) || defined(BSD) || defined(_BSD) && !defined(BSD41)
-#   define USE_SIGMASK
-# else
-#   ifndef NO_SIGSET
-#     define USE_SIGSET
-#   else
-#     define USE_SIGNAL
-#   endif
-# endif
-#endif
-/*
- * if we still don't know, we're in trouble
- */
-#if !defined(USE_SIGSET) && !defined(USE_SIGMASK) && !defined(USE_SIGNAL)
-error must know what to implement with
-#endif
-
 #include "sigact.h"
 
-/*
- * in case signal() has been mapped to our _Signal().
- */
-#undef signal
-
 int
-sigaction(sig, act, oact)
-  int sig;
-  struct sigaction *act, *oact;
+sigaction(int sig, struct sigaction *act, struct sigaction *oact)
 {
   handler_t oldh;
 
   if (act)
   {
-#ifdef USE_SIGSET
-    oldh = sigset(sig, act->sa_handler);
-#else
-# ifdef USE_SIGMASK
-    struct sigvec nsv,osv;
-
-    nsv.sv_handler = act->sa_handler;
-    nsv.sv_mask = 0;                    /* punt */
-    nsv.sv_flags = SV_INTERRUPT;        /* punt */
-    sigvec(sig, &nsv, &osv);
-    oldh = osv.sv_handler;
-# else /* USE_SIGMASK */
     oldh = signal(sig, act->sa_handler);
-# endif /* USE_SIGMASK */
-#endif
   }
   else
   {
     if (oact)
     {      
-#ifdef USE_SIGSET
-      oldh = sigset(sig, SIG_IGN);
-#else
       oldh = signal(sig, SIG_IGN);
-#endif
       if (oldh != SIG_IGN && oldh !=  SIG_ERR)
       {
-#ifdef USE_SIGSET
-        (void) sigset(sig, oldh);
-#else
         (void) signal(sig, oldh);
-#endif
       }
     }
   }
@@ -242,83 +189,25 @@ sigaction(sig, act, oact)
   return 0;                             /* hey we're faking it */
 }
 
-
-int
-sigaddset(mask, sig)
-  sigset_t *mask;
-  int sig;
+#ifndef NEWLIB
+int sigaddset(sigset_t *mask, int sig)
 {
   *mask |= sigmask(sig);
   return 0;
 }
 
-
-#ifndef IS_KSH
 int
-sigdelset(mask, sig)
-  sigset_t *mask;
-  int sig;
-{
-  *mask &= ~(sigmask(sig));
-  return 0;
-}
-#endif /* IS_KSH */
-
-
-int
-sigemptyset(mask)
-  sigset_t *mask;
+sigemptyset(sigset_t *mask)
 {
   *mask = 0;
   return 0;
 }
-
-
-#ifndef IS_KSH
-int
-sigfillset(mask)
-  sigset_t *mask;
-{
-  *mask = ~0;
-  return 0;
-}
-#endif /* IS_KSH */
-
-
-#ifndef IS_KSH
-int
-sigismember(mask, sig)
-  sigset_t *mask;
-  int sig;
-{
-  return ((*mask) & sigmask(sig));
-}
-#endif /* IS_KSH */
-
-
-#ifndef IS_KSH
-int
-sigpending(set)
-  sigset_t *set;
-{
-  return 0;                             /* faking it! */
-}
-#endif /* IS_KSH */
-
-
-int
-sigprocmask(how, set, oset)
-  int how;
-#ifdef AMIGA
-  const sigset_t *set;
-  sigset_t *oset;
-#else  
-  sigset_t *set, *oset;
-#endif  
-{
-#ifdef USE_SIGSET
-  int i;
 #endif
+
+#ifndef CLIB2
+int
+sigprocmask(int how, const sigset_t *set, sigset_t *oset)
+{
   static sigset_t sm;
   static int once = 0;
 
@@ -330,11 +219,7 @@ sigprocmask(how, set, oset)
      * thing we did.
      */
     once++;
-#ifdef USE_SIGMASK
-    sm = sigblock(0);
-#else
     sm = 0;
-#endif
   }
   
   if (oset)
@@ -353,72 +238,10 @@ sigprocmask(how, set, oset)
       sm = *set;
       break;
     }
-#ifdef USE_SIGMASK
-    (void) sigsetmask(sm);
-#else
-# ifdef USE_SIGSET
-    for (i = 1; i < NSIG; i++)
-    {
-      if (how == SIG_UNBLOCK)
-      {
-        if (*set & sigmask(i))
-          sigrelse(i);
-      }
-      else
-        if (sm & sigmask(i))
-        {
-          sighold(i);
-        }
-    }
-# endif
-#endif
   }
   return 0;
 }
-
-
-int
-sigsuspend(mask)
-  sigset_t *mask;
-{
-#ifdef USE_SIGMASK
-  sigpause(*mask);
-#else
-  int i;
-
-# ifdef USE_SIGSET
-
-  for (i = 1; i < NSIG; i++)
-  {
-    if (*mask & sigmask(i))
-    {
-      /* not the same sigpause() as above! */
-      sigpause(i);                      
-      break;
-    }
-  }
-# else /* signal(2) only */
-  handler_t oldh;
-
-  /*
-   * make sure that signals in mask will not
-   * be ignored.
-   */
-  for (i = 1; i < NSIG; i++)
-  {
-    if (*mask & sigmask(i))
-    {
-      if ((oldh = signal(i, SIG_DFL)) !=  SIG_ERR &&
-          oldh != SIG_IGN &&
-          oldh != SIG_DFL)
-        (void) signal(i, oldh);         /* restore handler */
-    }
-  }
-  pause();                              /* wait for a signal */
-# endif
 #endif
-  return 0;
-}
 
 #if !defined(void)
 # define void void
@@ -427,37 +250,3 @@ sigsuspend(mask)
 # define SIG_ERR        (void (*)())-1
 #endif
 
-/*
- * an implementation of signal() using sigaction().
- */
-
-#ifndef IS_KSH
-handler_t _Signal(sig, handler)
-  int sig;
-  handler_t handler;
-{
-  struct sigaction act, oact;
-
-  act.sa_handler = handler;
-  sigemptyset(&act.sa_mask);
-  act.sa_flags = 0;
-  if (sigaction(sig, &act, &oact) < 0)
-    return (SIG_ERR);
-  return (oact.sa_handler);
-}
-#endif /* IS_KSH */
-
-#ifndef IS_KSH
-#if !defined(USE_SIGNAL) && !defined(USE_SIGMASK) && !defined(NO_SIGNAL)
-/*
- * ensure we avoid signal mayhem
- */
-
-handler_t signal(sig, handler)
-  int sig;
-  handler_t handler;
-{
-  return (_Signal(sig, handler));
-}
-#endif
-#endif /* IS_KSH */

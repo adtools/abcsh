@@ -20,6 +20,7 @@ struct source {
         char    ugbuf[2];       /* buffer for ungetsc() (SREREAD) and
                                  * alias (SALIAS) */
         int     line;           /* line number */
+        int     cmd_offset;     /* line number - command number */
         int     errline;        /* line the error occured on (0 if not set) */
         const char *file;       /* input file name */
         int     flags;          /* SF_* */
@@ -117,3 +118,11 @@ EXTERN  Source *source;         /* yyparse/yylex source */
 EXTERN  YYSTYPE yylval;         /* result from yylex */
 EXTERN  struct ioword *heres [HERES], **herep;
 EXTERN  char    ident [IDENT+1];
+
+#ifdef HISTORY
+# define HISTORYSIZE	500	/* size of saved history */
+
+EXTERN	char  **history;	/* saved commands */
+EXTERN	char  **histptr;	/* last history item */
+EXTERN	int	histsize;	/* history size */
+#endif /* HISTORY */

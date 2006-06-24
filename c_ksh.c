@@ -1307,6 +1307,22 @@ c_getopts(char **wp)
         return optc < 0 ? 1 : ret;
 }
 
+/* contact command - to ensure that people know that they are able to contact me - hnl_dk */
+
+int
+c_contact(char **wp)
+{
+//        const char *const white = "\033[32m";
+        const char *const blue = "\033[33m";
+//        const char *const red = "\033[34m";
+        const char *const normal = "\033[39m";
+
+        shprintf("This is "ABC_VERSION", the AmigaOS4 POSIX shell\n");
+        shprintf("the project page of abc-shell: %shttp://sf.net/projects/abc-shell%s\n", blue, normal);
+        shprintf("you are welcome to contact me (Henning Nielsen Lund) at %shnl_dk@amigaos.dk%s\n", blue, normal);
+        return 0;
+}
+
 /* A leading = means assignments before command are kept;
  * a leading * means a POSIX special builtin;
  * a leading + means a POSIX regular builtin
@@ -1318,6 +1334,9 @@ const struct builtin kshbuiltins [] = {
         {"+command", c_command},
         {"echo", c_print},
         {"*=export", c_typeset},
+#ifdef HISTORY
+        {"+fc", c_fc},
+#endif /* HISTORY */
         {"+getopts", c_getopts},
         {"+jobs", c_jobs},
         {"+kill", c_kill},
@@ -1328,5 +1347,6 @@ const struct builtin kshbuiltins [] = {
         {"=typeset", c_typeset},
         {"+unalias", c_unalias},
         {"whence", c_whence},
+        {"contact", c_contact},   /* special abc-shell builtin */
         {NULL, NULL}
 };
