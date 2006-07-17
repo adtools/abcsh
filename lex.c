@@ -1068,7 +1068,6 @@ special_prompt_expand(char *str)
         return str;
 }
 
-
 void
 set_prompt(int to, Source *s)
 {
@@ -1351,7 +1350,7 @@ dopprompt(const char *sp, int ntruncate, const char **spp, int doprint)
                                 totlen += len;
                         continue;
                 }
-                if (ntruncate)
+                if (counting && ntruncate)
                         --ntruncate;
                 else if (doprint) {
                         shf_putc(c, shl_out);

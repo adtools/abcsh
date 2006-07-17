@@ -386,11 +386,13 @@ test_eaccess(const char *path, int mode)
 {
         int res;
 
-        res = access(path, mode);
 #if AMIGA
-                APTR old_proc_window;
-                old_proc_window = SetProcWindow((APTR)-1);
+        APTR old_proc_window;
+        old_proc_window = SetProcWindow((APTR)-1);
 #endif
+
+        res = access(path, mode);
+
         /*
          * On most (all?) unixes, access() says everything is executable for
          * root - avoid this on files by using stat().
@@ -407,7 +409,7 @@ test_eaccess(const char *path, int mode)
                                 0 : -1;
         }
 #if AMIGA
-                SetProcWindow(old_proc_window);
+        SetProcWindow(old_proc_window);
 #endif
         return res;
 }
