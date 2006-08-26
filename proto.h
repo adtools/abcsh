@@ -263,7 +263,6 @@ unsigned int alarm(unsigned int);
 int getppid(void);
 int fork(void);
 int wait(int *);
-int execve(const char *, char *const argv[], char *const envp[]);
 int pause(void);
 int amigaos_dupbbase(int, int);
 int pipe(int filedes[]);

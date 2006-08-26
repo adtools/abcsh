@@ -4,7 +4,7 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "abc-shell 0.1.09"
+#define ABC_VERSION "abc-shell 0.1.12"
 
 /* Start of common headers */
 
@@ -80,9 +80,6 @@ typedef void (*handler_t)(int);  /* signal handler */
 #endif
 
 #define killpg(p, s)    kill(-(p), (s))
-
-/* Special cases for execve(2) */
-#define ksh_execve(p, av, ev, flags)    execve(p, av, ev)
 
 //#ifdef AMIGA
 //#define ksh_dupbase(fd, base) amigaos_dupbbase(fd, base)

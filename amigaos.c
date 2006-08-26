@@ -29,6 +29,52 @@
 /* clib2 specific controls */
 BOOL __open_locale = FALSE;
 //char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOSE";
+
+void __execve_exit(int return_code)
+{
+	return 0;
+}
+
+int __execve_environ_init(char * const envp[])
+{
+    if (envp == NULL)
+        return 0;
+
+    /* Set a loal var to indicate to any subsequent sh that it is not */
+    /* The top level shell and so should only inherit local amigaos vars */
+    SetVar("ABCSH_IMPORT_LOCAL","true",5,GVF_LOCAL_ONLY);
+
+    while (*envp != NULL)
+    {
+        int len;
+        char *var;
+        char *val;
+
+        if ((len = strlen(*envp)))
+        {
+            size_t size = len + 1;
+            if ((var = malloc(size)))
+            {
+                memcpy(var, *envp, size);
+
+                val = strchr(var,'=');
+                if(val)
+                {
+                    *val++='\0';
+                    if (*val)
+                    {
+                        SetVar(var,val,strlen(val)+1,GVF_LOCAL_ONLY);
+                    }
+                }
+                free(var);
+                var = NULL;
+            }
+        }
+        envp++;
+    }
+    return 0;
+}
+
 #else
 int lastresult;
 #endif
@@ -315,6 +361,7 @@ char *convert_path_u2a(const char *filename)
         return strdup(filename);
 }
 
+#ifdef NEWLIB
 static void
 createvars(char * const* envp)
 {
@@ -626,6 +673,7 @@ int execve(const char *filename, char *const argv[], char *const envp[])
         FUNCX;
         return -1;
 }
+#endif /* newlib */
 
 int pause(void)
 {
@@ -641,7 +689,6 @@ struct userdata
         int flags;
         struct Task *parent;
 };
-
 
 LONG execute_child(STRPTR args, int len)
 {
