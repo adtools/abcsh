@@ -207,6 +207,13 @@ main(int argc, char *argv[])
                 setstr(vp, "/SDK/C/gmake", KSH_RETURN_ERROR);
         }
 
+        /* Set LD. */
+        {
+                struct tbl *vp = global("LD");
+                /* setstr can't fail here */
+                setstr(vp, "ld", KSH_RETURN_ERROR);
+        }
+
         /* Turn on brace expansion by default.  At&t ksh's that have
          * alternation always have it on.  BUT, posix doesn't have
          * brace expansion, so set this before setting up FPOSIX
