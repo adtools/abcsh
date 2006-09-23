@@ -151,6 +151,15 @@ main(int argc, char *argv[])
                 setstr(vp, "/", KSH_RETURN_ERROR);
         }
 
+        /* Set DISABLE_COMMANDLINE_WILDCARD_EXPANSION - to disable
+	 * wildcard expansion in applications using clib2 >= 1.201
+	 */
+        {
+                struct tbl *vp = global("DISABLE_COMMANDLINE_WILDCARD_EXPANSION");
+                /* setstr can't fail here */
+                setstr(vp, "true", KSH_RETURN_ERROR);
+        }
+
         /* Set SHELL. */
         {
                 struct tbl *vp = global("SHELL");

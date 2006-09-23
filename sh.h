@@ -4,7 +4,7 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "abc-shell 0.1.14"
+#define ABC_VERSION "abc-shell 0.1.15"
 
 /* Start of common headers */
 
