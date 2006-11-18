@@ -452,7 +452,7 @@ execute(struct op * volatile t,
 #endif
                 restoresigs();
                 cleanup_proc_env();
-                if(execve(t->str, t->args, ap) < 0)
+                if(ksh_execve(t->str, t->args, ap, (flags & XINTACT) ? 1 : 0) < 0)
                 {
                     if (errno == ENOEXEC)
                         scriptexec(t, ap);
