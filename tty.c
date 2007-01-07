@@ -50,11 +50,13 @@ tty_init(int init_ttystate)
         if ((tty_fd = fcntl(tfd, F_DUPFD, FDBASE)) < 0) {
                 warningf(false, "j_ttyinit: dup of tty fd failed: %s",
                     strerror(errno));
+#ifndef __amigaos4__
         } else if (fcntl(tty_fd, F_SETFD, FD_CLOEXEC) < 0) {
-//                warningf(false, "j_ttyinit: can't set close-on-exec flag: %s",
-//                    strerror(errno));
+                warningf(false, "j_ttyinit: can't set close-on-exec flag: %s",
+                    strerror(errno));
                 close(tty_fd);
                 tty_fd = -1;
+#endif
         } else if (init_ttystate)
                 tcgetattr(tty_fd, &tty_state);
         if (do_close)

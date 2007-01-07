@@ -29,7 +29,6 @@
 /* clib2 specific controls */
 BOOL __open_locale = FALSE;
 BOOL __expand_wildcard_args = FALSE;
-//char * __stdio_window_specification = "CON:20/20/600/150/"ABC_VERSION"/AUTO/CLOSE";
 
 void __execve_exit(int return_code)
 {

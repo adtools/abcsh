@@ -4,7 +4,9 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "abc-shell 0.1.16"
+#define ABC_VERSION "52.1"
+#define RELEASE_DATE "7.1.2007"
+#define RELEASE_COMMENT ""
 
 /* Start of common headers */
 
@@ -37,10 +39,6 @@ void *memmove(void *, const void *, size_t);
 #ifndef O_ACCMODE
 # define O_ACCMODE      (O_RDONLY|O_WRONLY|O_RDWR)
 #endif /* !O_ACCMODE */
-
-#ifndef FD_CLOEXEC
-# define FD_CLOEXEC      1
-#endif /* !FD_CLOEXEC */
 
 #ifndef DEFFILEMODE
 # define DEFFILEMODE     (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)

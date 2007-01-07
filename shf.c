@@ -117,8 +117,10 @@ shf_fdopen(int fd, int sflags, struct shf *shf)
         shf->bsize = bsize;
         shf->ispipe = false;
 
+#ifndef __amigaos4__
         if (sflags & SHF_CLEXEC)
                 fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
         return shf;
 }
 
@@ -158,8 +160,10 @@ shf_reopen(int fd, int sflags, struct shf *shf)
 	shf->flags = (shf->flags & (SHF_ALLOCS | SHF_ALLOCB)) | sflags;
 	shf->errno_ = 0;
 	shf->ispipe = false;
+#ifndef __amigaos4__
 	if (sflags & SHF_CLEXEC)
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
 	return shf;
 }
 

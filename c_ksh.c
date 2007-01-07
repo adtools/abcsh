@@ -1317,7 +1317,7 @@ c_contact(char **wp)
 //        const char *const red = "\033[34m";
         const char *const normal = "\033[39m";
 
-        shprintf("This is "ABC_VERSION", the AmigaOS4 POSIX shell\n");
+        shprintf("This is abc-shell "ABC_VERSION", the AmigaOS4 POSIX shell\n");
         shprintf("the project page of abc-shell: %shttp://sf.net/projects/abc-shell%s\n", blue, normal);
         shprintf("you are welcome to contact me (Henning Nielsen Lund) at %shnl_dk@amigaos.dk%s\n", blue, normal);
         return 0;

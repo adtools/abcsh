@@ -880,14 +880,16 @@ c_exec(char ** wp)
                 for (i = 0; i < NUFILE; i++) {
                         if (e->savefd[i] > 0)
                                 close(e->savefd[i]);
+#ifndef __amigaos4__
                         /*
                          * For ksh keep anything > 2 private,
                          * for sh, let them be (POSIX says what
                          * happens is unspecified and the bourne shell
                          * keeps them open).
                          */
-                        if (!Flag(FSH) &&i > 2 && e->savefd[i])
+                        if (!Flag(FSH) && i > 2 && e->savefd[i])
                                 fcntl(i, F_SETFD, FD_CLOEXEC);
+#endif
                 }
                 e->savefd = NULL; 
         }

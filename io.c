@@ -248,7 +248,9 @@ savefd(int fd)
                 }
         } else
                 nfd = fd;
+#ifndef __amigaos4__
         fcntl(nfd, F_SETFD, FD_CLOEXEC);
+#endif
         return nfd;
 }
 

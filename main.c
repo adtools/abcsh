@@ -57,7 +57,7 @@ static const char *const initcoms [] = {
 
 #define version_param  (initcoms[2])
 
-const char *amiversion __attribute__((used)) = "$VER: " ABC_VERSION;
+const char *amiversion __attribute__((used)) = "$VER: abc-shell " ABC_VERSION " (" RELEASE_DATE ") " RELEASE_COMMENT "\0";
 
 int
 main(int argc, char *argv[])
