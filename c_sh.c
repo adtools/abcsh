@@ -7,14 +7,6 @@
 #include "ksh_time.h"
 #include "ksh_times.h"
 
-#if defined(AMIGA) && !defined(CLIBHACK)
-extern int amigain;
-
-int amigaos_read(int fd, void *b, int len);
-char amigaos_getc(int fd);
-int amigaos_getstdfd(int fd);
-#endif
-
 static char * clocktos(int);
 #if 0 /* not used at the moment */
 static void p_time(struct shf *, int, struct timeval *, int, char *, char *);
@@ -263,11 +255,7 @@ c_read(char **wp)
         int expanding;
         int ecode = 0;
         char *cp;
-#if defined(AMIGA) && !defined(CLIBHACK)
-        int fd = amigaos_getstdfd(amigain);
-#else
         int fd = 0;
-#endif
 #ifndef NEWLIB
         struct shf *shf;
 #endif
@@ -310,9 +298,7 @@ c_read(char **wp)
         /* Since we can't necessarily seek backwards on non-regular files,
          * don't buffer them so we can't read too much.
          */
-#if !defined(AMIGA) || defined(CLIBHACK)
         shf = shf_reopen(fd, SHF_RD | SHF_INTERRUPT | can_seek(fd), shl_spare);
-#endif
         
         if ((cp = strchr(*wp, '?')) != NULL) {
                 *cp = 0;
@@ -346,15 +332,9 @@ c_read(char **wp)
                         if (c == '\n' || c == EOF)
                                 break;
                         while (1) {
-#if  defined(AMIGA) && !defined(CLIBHACK)
-                                c = amigaos_getc(fd);
-                                c = (c == 255 ? -1 : c);
-#else
                                 c = shf_getc(shf);
-#endif
                                 if (c == '\0')
                                         continue;
-#if !defined(AMIGA) || defined(CLIBHACK)
                                 if (c == EOF && shf_error(shf) &&
                                         shf_errno(shf) == EINTR)
                                 {
@@ -370,7 +350,6 @@ c_read(char **wp)
                                                 continue;
                                         }
                                 }
-#endif
                                 break;
                         }
                         if (history) {
@@ -413,31 +392,19 @@ c_read(char **wp)
                 vp = global(*wp);
                 /* Must be done before setting export. */
                 if (vp->flag & RDONLY) {
-#if defined(AMIGA) && !defined(CLIBHACK)
-                    close(fd);
-#else
                     shf_flush(shf);
-#endif
                     bi_errorf("%s is read only", *wp);
                     return 1;
                 }
                 if (Flag(FEXPORT))
                         typeset(*wp, EXPORTV, 0, 0, 0);
                 if (!setstr(vp, Xstring(cs, cp), KSH_RETURN_ERROR)) {
-#if defined(AMIGA) && !defined(CLIBHACK)
-                    close(fd);
-#else
                     shf_flush(shf);
-#endif                  
                     return 1;
                 }
         }
 
-#if defined(AMIGA) && !defined(CLIBHACK)
-    close(fd);
-#else
     shf_flush(shf);
-#endif         
         if (history) {
                 Xput(xs, xp, '\0');
                 source->line++;

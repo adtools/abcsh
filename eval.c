@@ -7,24 +7,6 @@
 #include <sys/stat.h>
 #include "sh.h"
 
-#if  defined(AMIGA) && !defined(CLIBHACK)
-char amigaos_getc(int fd);
-int amigaos_ungetc(char c, int fd);
-
-/*structure for linked comsub() pipe input fd list*/
-struct linkedfd{
-        struct  linkedfd *prev;
-        int fd;
-        struct  linkedfd *next;
-};
-struct linkedfd  *xxcom_nextin_p = NULL;/*current nextin*/
-struct linkedfd  *nextin_tmp_p; /*from swapping etc*/
-extern int  amigain , amigaout;
-int amigaos_comsub = 0, /*counter of inputs*/
-    xxcom_nextin;       /*holds the current fd*/
-#endif
-
-
 /*
  * string expansion
  *
@@ -66,7 +48,6 @@ static char     *maybe_expand_tilde(char *, XString *, char **, int);
 static  char   *tilde(char *);
 static  char   *homedir(char *);
 static void     alt_expand(XPtrV *, char *, char *, char *, int);
-
 
 /* compile and expand word */
 char *
@@ -278,7 +259,7 @@ expand(char *cp,                /* input word */
                           {
                                 char *varname = ++sp; /* skip the { or x (}) */
                                 int stype;
-                                int slen;
+                                int slen = 0;
 
                                 sp = strchr(sp, '\0') + 1; /* skip variable */
                                 type = varsub(&x, varname, sp, &stype, &slen);
@@ -517,40 +498,6 @@ expand(char *cp,                /* input word */
                                 c = '\n';
                                 --newlines;
                         } else {
-#if  defined(AMIGA) && !defined(CLIBHACK)
-/*pending input pipe*/
-                                if(amigaos_comsub > 0)
-                                {
-//                                      printf("input pipe fd%d\n",xxcom_nextin);fflush(stdout);
-                                        while((c=amigaos_getc(xxcom_nextin))==0 || c == '\n')
-                                        {
-                                                if (c == '\n')
-                                                    newlines++; /* Save newlines */
-                                        }
-/*translate amigaos EOF to EOF*/
-                                        c = (c == 255) ? EOF : c;
-
-                                        if (newlines && c != EOF) {
-                                                amigaos_ungetc(c, xxcom_nextin);
-                                                c = '\n';
-                                                --newlines;
-                                        }
-                                }
-/*end reading amiga pipe*/
-                                else
-                                {
-                                        while ((c = shf_getc(x.u.shf)) == 0 || c == '\n')
-                                        {
-                                            if (c == '\n')
-                                                    newlines++; /* Save newlines */
-                                        }
-                                        if (newlines && c != EOF) {
-                                                shf_ungetc(c, x.u.shf);
-                                                c = '\n';
-                                                --newlines;
-                                        }
-                                }
-#else
                                 while ((c = shf_getc(x.u.shf)) == 0 || c == '\n')
                                 {
                                     if (c == '\n')
@@ -561,40 +508,10 @@ expand(char *cp,                /* input word */
                                         c = '\n';
                                         --newlines;
                                 }
-#endif
                         }
-#if  defined(AMIGA) && !defined(CLIBHACK)
-/*translate amigaos EOF to EOF*/
-                        c = (c == 255) ? EOF : c;
-#endif
                         if (c == EOF) {
                                 newlines = 0;
-#if  defined(AMIGA) && !defined(CLIBHACK)
-/*close amiga pipe, delete last in list, decrease count*/
-                                if (amigaos_comsub > 0)
-                                {
-                                        amigaos_comsub--;
-//                                      printf("closing %d\n", xxcom_nextin);
-                                        close(xxcom_nextin);
-                                        if(xxcom_nextin_p)
-                                        {
-                                                nextin_tmp_p = (struct linkedfd *)xxcom_nextin_p->prev;
-                                                free(xxcom_nextin_p);
-                                                xxcom_nextin_p = nextin_tmp_p;
-                                                if(xxcom_nextin_p)
-                                                        xxcom_nextin_p->next = NULL;
-                                        }
-                                        if(xxcom_nextin_p)
-                                                xxcom_nextin =  xxcom_nextin_p->fd;
-                                        else
-                                                xxcom_nextin =  -1;
-/*end amiga pipe closing*/
-                                }
-                                else
-                                        shf_close(x.u.shf);
-#else
                                 shf_close(x.u.shf);
-#endif
                                 if (x.split)
                                         subst_exstat = waitlast();
                                 type = XBASE;
@@ -948,39 +865,10 @@ comsub(Expand *xp, char *cp)
                 xp->split = 0;  /* no waitlast() */
         } else {
                 int ofd1, pv[2];
-#if  defined(AMIGA) && !defined(CLIBHACK)
-/*just get the pipe, no moving in shell/user space is needed*/
-                pipe(pv);
-#else
                 openpipe(pv);//printf("PIPE\n"); fflush(stdout);
                 shf = shf_fdopen(pv[0], SHF_RD, (struct shf *) 0);//printf("fdopen\n"); fflush(stdout);
                 shf->ispipe = true;
-#endif
 
-#if defined(AMIGA) && !defined(CLIBHACK)
-/*same rotation as abov using fd only, output pipe is passed as amigaout*/
-                ofd1 = amigaout;
-                amigaout= pv[1];
-                execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);
-                amigaout = ofd1;
-/*open pipe input - add pipe fle to link list*/
-                if(!xxcom_nextin_p)
-                {
-                        xxcom_nextin_p = (struct linkedfd *)malloc(sizeof(struct linkedfd));
-                        xxcom_nextin_p->prev = NULL;
-                        xxcom_nextin_p->next = NULL;
-                }
-                else
-                {
-                        xxcom_nextin_p->next= (struct linkedfd *)malloc(sizeof(struct linkedfd));
-                        nextin_tmp_p = xxcom_nextin_p;
-                        xxcom_nextin_p = xxcom_nextin_p->next;
-                        xxcom_nextin_p->prev = nextin_tmp_p;
-                }
-                xxcom_nextin = xxcom_nextin_p->fd = pv[0];
-/*count new pipe instance*/
-                amigaos_comsub++;
-#else
                 ofd1 = savefd(1);    /* fd 1 may be closed... *///printf("Savefd\n"); fflush(stdout);
                 ksh_dup2(pv[1], 1, false);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);
@@ -993,7 +881,6 @@ comsub(Expand *xp, char *cp)
                 restoreenv(&globenv);
                 //execute(t, XFORK|XXCOM|XPIPEO); //printf("execute\n"); fflush(stdout);
                 restfd(1, ofd1);//printf("restfd\n"); fflush(stdout);
-#endif
                 startlast();//printf("!\n"); fflush(stdout);
                 xp->split = 1;  /* waitlast() */
         }
@@ -1218,47 +1105,6 @@ globit(XString *xs,             /* dest string */
                 *--np = odirsep;
 }
 
-#if 0
-/* Check if p contains something that needs globbing; if it does, 0 is
- * returned; if not, p is copied into xs/xp after stripping any MAGICs
- */
-static int      copy_non_glob(XString *xs, char **xpp, char *p);
-static int
-copy_non_glob(XString *xs, char **xpp, char *p)
-{
-        char *xp;
-        int len = strlen(p);
-
-        XcheckN(*xs, *xpp, len);
-        xp = *xpp;
-        for (; *p; p++) {
-                if (ISMAGIC(*p)) {
-                        int c = *++p;
-
-                        if (c == '*' || c == '?')
-                                return 0;
-                        if (*p == '[') {
-                                char *q = p + 1;
-
-                                if (ISMAGIC(*q) && q[1] == NOT)
-                                        q += 2;
-                                if (ISMAGIC(*q) && q[1] == ']')
-                                        q += 2;
-                                for (; *q; q++)
-                                        if (ISMAGIC(*q) && *++q == ']')
-                                                return 0;
-                                /* pass a literal [ through */
-                        }
-                        /* must be a MAGIC-MAGIC, or MAGIC-!, MAGIC--, etc. */
-                }
-                *xp++ = *p;
-        }
-        *xp = '\0';
-        *xpp = xp;
-        return 1;
-}
-#endif /* 0 */
-
 /* remove MAGIC from string */
 char *
 debunk(char *dp, const char *sp, size_t dlen)
@@ -1372,7 +1218,6 @@ homedir(char *name)
         }
         return ap->val.s;
 }
-
 
 static void
 alt_expand(XPtrV *wp, char *start, char *exp_start, char *end, int fdo)

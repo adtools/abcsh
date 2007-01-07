@@ -6,12 +6,6 @@
 #include <ctype.h>
 #include "sh.h"
 
-#if defined(AMIGA) && !defined(CLIBHACK)
-extern int amigaout;
-int amigaos_write(int fd, void *b, int len);
-int amigaos_getstdfd(int fd);
-#endif
-
 int
 c_cd(char **wp)
 {
@@ -205,11 +199,7 @@ c_print(char **wp)
 #define PO_HIST         BIT(3)  /* print to history instead of stdout */
 #define PO_COPROC       BIT(4)  /* printing to coprocess: block SIGPIPE */
 
-#if defined(AMIGA) && !defined(CLIBHACK)
-        int fd = amigaos_getstdfd(amigaout);
-#else
         int fd = 1;
-#endif
         int flags = PO_EXPAND|PO_NL;
         char *s;
         const char *emsg;
@@ -365,11 +355,7 @@ c_print(char **wp)
                         opipe = block_pipe();
                 }
                 for (s = Xstring(xs, xp); len > 0; ) {
-#if defined(AMIGA) && !defined(CLIBHACK)
-                        n = amigaos_write(fd, s, len);
-#else
                         n = write(fd, s, len);
-#endif
                         if (n < 0) {
                                 if (flags & PO_COPROC)
                                         restore_pipe(opipe);

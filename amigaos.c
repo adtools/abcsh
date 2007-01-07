@@ -11,9 +11,6 @@
 #include "sh.h"
 
 #include <dos/dos.h>
-#ifndef CLIBHACK
-#include <dos/dostags.h>
-#endif
 #include <proto/dos.h>
 #include <proto/exec.h>
 #include <proto/utility.h>
@@ -80,35 +77,6 @@ int lastresult;
 #endif
 
 /*used to stdin/out fds*/
-#ifndef CLIBHACK
-int amigain = -1, amigaout = -1;
-
-
-char amigaos_getc(int fd)
-{
-        return FGetC(fd);
-}
-
-int amigaos_write(int fd, void *b, int len)
-{
-        return Write(fd, b, len);
-}
-
-int amigaos_read(int fd, void *b, int len)
-{
-        return Read(fd, b, len);
-}
-
-int amigaos_ungetc(char c, int fd)
-{
-        return UnGetC(fd, c) ;
-}
-
-int amigaos_getstdfd(int fd)
-{
-        return (fd == -1 ? Open("CONSOLE:",MODE_OLDFILE) : fd);
-}
-#endif /*CLIBHACK*/
 
 int amigaos_isabspath(const char *path)
 {FUNC;
@@ -194,27 +162,15 @@ int pipe(int filedes[2])
 #endif
 #endif
 
-#ifdef CLIBHACK
         filedes[1] = open(pipe_name, O_WRONLY|O_CREAT);
         filedes[0] = open(pipe_name, O_RDONLY);
-#else
-        filedes[1] = Open(pipe_name, MODE_NEWFILE);
-        filedes[0] = Open(pipe_name, MODE_OLDFILE);
-#endif/*CLIBHACK*/
 
     if (filedes[0] == -1 || filedes[1] == -1)
         {
-#ifdef CLIBHACK
                 if (filedes[0] != -1)
                     close(filedes[0]);
                 if (filedes[1] != -1)
                     close(filedes[1]);
-#else
-                if (filedes[0] != -1)
-                    Close(filedes[0]);
-                if (filedes[1] != -1)
-                    Close(filedes[1]);
-#endif/*CLIBHACK*/
 
                 FUNCX;
                 return -1;
@@ -726,17 +682,11 @@ int
 exchild(struct op *t, int flags,
         int close_fd)   /* used if XPCLOSE or XCCLOSE */
 {
-#ifdef CLIBHACK
 /*current input output*/
         int i;
 /*close conditions*/
         long amigafd[3];
         int amigafd_close[3] = {0, 0, 0};
-#else
-        /*current input output*/
-        long amigafd[2];
-        int amigafd_close[2] = {1, 1};
-#endif
         struct Process *proc = NULL;
         struct Task *thisTask = FindTask(0);
         struct userdata taskdata;
@@ -767,35 +717,11 @@ exchild(struct op *t, int flags,
         taskdata.t      = t;
         taskdata.flags  = flags & (XEXEC | XERROK);
         taskdata.parent = thisTask;
-#ifdef CLIBHACK
         for(i = 0; i < 3; i++)
         {
             __get_default_file(i, &amigafd[i]);
             if(close_fd == i) amigafd_close[i] = true;
         }
-#else
-    if (t->type == 21)
-        {
-            if (amigain != -1)
-            {
-                amigafd_close[0] = false;
-                amigafd[0] = amigain;
-            }
-            else
-                amigafd[0] = Open("CONSOLE:",MODE_OLDFILE);
-
-            if (amigaout != -1)
-                amigafd[1] = amigaout;
-            else
-                amigafd[1] = Open("CONSOLE:",MODE_OLDFILE);
-
-        }
-        else
-        {
-            amigafd[1] = Open("CONSOLE:",MODE_OLDFILE);
-            amigafd[0] = Open("CONSOLE:",MODE_OLDFILE);
-        }
-#endif /*CLIBHACK*/
 
         if(t->str) {
             name = strdup(t->str);
@@ -810,15 +736,10 @@ exchild(struct op *t, int flags,
             NP_StackSize,            ((struct Process *)thisTask)->pr_StackSize,
             NP_Input,                amigafd[0],
             NP_Output,               amigafd[1],
-#ifdef CLIBHACK
             NP_CloseOutput,          false,
             NP_CloseInput,           false,
             NP_Error,                amigafd[2],
             NP_CloseError,           false,
-#else
-            NP_CloseOutput,          amigafd_close[1] ,
-            NP_CloseInput,           amigafd_close[0] ,
-#endif/*CLIBHACK*/
             NP_Cli,                  true,
             NP_Name,                 name,
             NP_CommandName,          name,
@@ -840,7 +761,6 @@ exchild(struct op *t, int flags,
 
         free(name);
         name = NULL;
-#ifdef CLIBHACK
 //        for(i=0; i < 3; i++)
 //            if(amigafd_close[i]  && (flags & (XPCLOSE)))
 //            {
@@ -876,13 +796,6 @@ exchild(struct op *t, int flags,
 #endif  /* USE_TEMPFILES */
 
            }
-#else
-/*close pipe input*/
-        if (!amigafd_close[0])
-                Close(amigafd[0]);
-/*restore to stdin/out*/
-        amigain = amigaout = -1;
-#endif /*CLIBHACK*/
 
         FUNCX;
         return lastresult;

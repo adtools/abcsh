@@ -7,7 +7,6 @@
 #include "sh.h"
 #include "c_test.h"
 
-
 /* Does ps4 get parameter substitutions done? */
 #define PS4_SUBSTITUTE(s)      substitute((s), 0)
 
@@ -30,10 +29,6 @@ static void     tbl_copy(struct table *src, struct table *dst, Area *ap);
 static void printflags(struct tbl *t);
 #endif
 
-#if defined(AMIGA) && !defined(CLIBHACK)
-extern int  amigain, amigaout;
-#endif
-
 /*
  * execute command tree
  */
@@ -49,10 +44,8 @@ execute(struct op * volatile t,
         char *s, *cp;
         struct ioword **iowp;
         struct tbl *tp = NULL;
-#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
-        int savefd[2];
-#endif
-        if (t == NULL)
+
+	if (t == NULL)
                 return 0;
 
         /* Is this the end of a pipeline?  If so, we want to evaluate the
@@ -153,31 +146,19 @@ execute(struct op * volatile t,
                 flags |= XFORK;
                 flags &= ~XEXEC;
 
-#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
-               savefd[0] = amigain;
-               savefd[1] = amigaout;
-#else
                 e->savefd[0] = savefd(0);
                 e->savefd[1] = savefd(1);
-#endif
 
                 while (t->type == TPIPE) {
-#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
-                        pipe(pv);
-                        amigaout = pv[1];
-#else
                         openpipe(pv);
                         (void) ksh_dup2(pv[1], 1, false); /* stdout of curr */
-#endif
-                        /* Let exchild() close pv[0] in child
+
+			/* Let exchild() close pv[0] in child
                          * (if this isn't done, commands like
                          *    (: ; cat /etc/termcap) | sleep 1
                          *  will hang forever).
                          */
                         exchild(t->left, flags|XPIPEO|XCCLOSE, pv[0]);
-#if defined(AMIGA) && !defined(CLIBHACK)
-                        amigain = pv[0];
-#else
                         /* at this point if were in a chain of pipes */
                         /* then we are clsing the ouyput of the previous */
                         /* pipe. But we may not have read all data so drain it here */
@@ -211,19 +192,14 @@ execute(struct op * volatile t,
                             }
                         }
 #endif /* USE_TEMPFILES */
-#endif /* AMIGA & !CLIBHACK */
                         flags |= XPIPEI;
                         t = t->right;
                         chain=true;
 
                 }
-#if defined(AMIGA) && !defined(CLIBHACK) && !defined(NEWLIB)
-                amigaout = savefd[1];
-#else
                 restfd(1, e->savefd[1]); /* stdout of last */
                 e->savefd[1] = 0; /* no need to re-restore this */
                 /* Let exchild() close 0 in parent, after fork, before wait */
-#endif
                 i = exchild(t, flags|XPCLOSE, 0);
                 if (!(flags&XBGND) && !(flags&XXCOM))
                         rv = i;
