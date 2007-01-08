@@ -13,7 +13,7 @@ DEBUG = -DNDEBUG
 CC = ppc-amigaos-gcc
 STRIP = ppc-amigaos-strip -R.comment $@
 
-CFLAGS = -mcrt=$(CRT) -O2 $(DEBUG)
+CFLAGS = -mcrt=$(CRT) -Wall -Wwrite-strings -O2 $(DEBUG)
 LDFLAGS = -mcrt=$(CRT)
 CPPFLAGS = -mcrt=$(CRT) -DAMIGA -DPOSIXLY_CORRECT -DHISTORY -DAUTOINIT -D__STDC_VERSION__=199901L
 
