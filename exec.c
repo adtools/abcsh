@@ -443,9 +443,9 @@ execute(struct op * volatile t,
         if ((flags&XEXEC))
                 unwind(LEXIT);  /* exit child */
         if (rv != 0 && !rv_prop && !(flags & XERROK)) {
+                trapsig(SIGERR_);
                 if (Flag(FERREXIT))
                         unwind(LERROR);
-                trapsig(SIGERR_);
         }
         return rv;
 }
@@ -951,7 +951,13 @@ findcom(const char *name, int flags)
                 npath = search(name, flags & FC_DEFPATH ? def_path : path,
                                 X_OK, &tp->u2.errno_);
                 if (npath) {
-                        tp->val.s = tp == &temp ? npath : str_save(npath, APERM);
+                        if (tp == &temp) {
+                                tp->val.s = npath;
+                        } else {
+                                tp->val.s = str_save(npath, APERM);
+                                if (npath != name)
+                                        afree(npath, ATEMP);
+                        }
                         tp->flag |= ISSET|ALLOC;
                 } else if ((flags & FC_FUNC)
                            && (fpath = str_val(global("FPATH"))) != null

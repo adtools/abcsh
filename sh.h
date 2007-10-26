@@ -4,8 +4,8 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "52.2"
-#define RELEASE_DATE "7.1.2007"
+#define ABC_VERSION "52.3"
+#define RELEASE_DATE "24.10.2007"
 #define RELEASE_COMMENT "alpha"
 
 /* Start of common headers */

@@ -424,8 +424,8 @@ c_read(char **wp)
 int
 c_eval(char **wp)
 {
-        struct source *s,*olds=source;
-        int retval, errexitflagtmp;
+        struct source *s;
+        int rv;
 
         if (ksh_getopt(wp, &builtin_opt, null) == '?')
                 return 1;
@@ -443,27 +443,25 @@ c_eval(char **wp)
                  * A strict reading of POSIX says we don't do this (though
                  * it is traditionally done). [from 1003.2-1992]
                  *    3.9.1: Simple Commands
-                 *      ... If there is a command name, execution shall
-                 *      continue as described in 3.9.1.1.  If there
-                 *      is no command name, but the command contained a command
-                 *      substitution, the command shall complete with the exit
-                 *      status of the last command substitution
+                 *        ... If there is a command name, execution shall
+                 *        continue as described in 3.9.1.1.  If there
+                 *        is no command name, but the command contained a command
+                 *        substitution, the command shall complete with the exit
+                 *        status of the last command substitution
                  *    3.9.1.1: Command Search and Execution
-                 *      ...(1)...(a) If the command name matches the name of
-                 *      a special built-in utility, that special built-in
-                 *      utility shall be invoked.
+                 *        ...(1)...(a) If the command name matches the name of
+                 *        a special built-in utility, that special built-in
+                 *        utility shall be invoked.
                  * 3.14.5: Eval
-                 *      ... If there are no arguments, or only null arguments,
-                 *      eval shall return an exit status of zero.
+                 *        ... If there are no arguments, or only null arguments,
+                 *        eval shall return an exit status of zero.
                  */
                 exstat = subst_exstat;
         }
-        errexitflagtmp = Flag(FERREXIT);
-        Flag(FERREXIT) = 0;
-        retval=shell(s, false);
-        Flag(FERREXIT) = errexitflagtmp;
-        source=olds;
-        return retval;
+
+        rv = shell(s, false);
+        afree(s, ATEMP);
+        return (rv);
 }
 
 int
@@ -611,7 +609,8 @@ c_brkcont(char **wp)
                  * shall be used.  Doesn't say to print an error but we
                  * do anyway 'cause the user messed up.
                  */
-                last_ep->flags &= ~EF_BRKCONT_PASS;
+                if (last_ep)
+                        last_ep->flags &= ~EF_BRKCONT_PASS;
                 warningf(true, "%s: can only %s %d level(s)",
                         wp[0], wp[0], n - quit);
         }
@@ -660,7 +659,6 @@ c_unset(char **wp)
 {
         char *id;
         int optc, unset_var = 1;
-        int ret = 0;
 
         while ((optc = ksh_getopt(wp, &builtin_opt, "fv")) != -1)
                 switch (optc) {
@@ -678,18 +676,15 @@ c_unset(char **wp)
                 if (unset_var) {        /* unset variable */
                         struct tbl *vp = global(id);
 
-                        if (!(vp->flag & ISSET))
-                            ret = 1;
                         if ((vp->flag&RDONLY)) {
                                 bi_errorf("%s is read only", vp->name);
                                 return 1;
                         }
                         unset(vp, strchr(id, '[') ? 1 : 0);
                 } else {                /* unset function */
-                        if (define(id, (struct op *) NULL))
-                                ret = 1;
+                        define(id, (struct op *) NULL);
                 }
-        return ret;
+        return 0;
 }
 
 #if 0 /* not used at the moment */

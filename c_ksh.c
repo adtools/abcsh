@@ -20,6 +20,7 @@ c_cd(char **wp)
         char *dir, *try, *pwd;
         int phys_path;
         char *cdpath;
+        char *fdir = NULL;
 
         while ((optc = ksh_getopt(wp, &builtin_opt, "LP")) != -1)
                 switch (optc) {
@@ -77,15 +78,15 @@ c_cd(char **wp)
                 olen = strlen(wp[0]);
                 nlen = strlen(wp[1]);
                 elen = strlen(current_wd + ilen + olen) + 1;
-                dir = alloc(ilen + nlen + elen, ATEMP);
+                fdir = dir = alloc(ilen + nlen + elen, ATEMP);
                 memcpy(dir, current_wd, ilen);
                 memcpy(dir + ilen, wp[1], nlen);
                 memcpy(dir + ilen + nlen, current_wd + ilen + olen, elen);
                 printpath++;
 
-        } else {
+	} else {
                 bi_errorf("too many arguments");
-                return 1;
+	        return 1;
         }
 
         Xinit(xs, xp, PATH, ATEMP);
@@ -111,6 +112,8 @@ c_cd(char **wp)
                         bi_errorf("%s: bad directory", dir);
                 else
                         bi_errorf("%s - %s", try, strerror(errno));
+                if (fdir)
+                        afree(fdir, ATEMP);
                 return 1;
         }
 
@@ -146,7 +149,8 @@ c_cd(char **wp)
         }
         if (printpath || cdnode)
                 shprintf("%s\n", pwd);
-
+        if (fdir)
+                afree(fdir, ATEMP);
         return 0;
 }
 
@@ -155,7 +159,7 @@ c_pwd(char **wp)
 {
         int optc;
         int physical = Flag(FPHYSICAL);
-        char *p;
+        char *p, *freep = NULL;
 
         while ((optc = ksh_getopt(wp, &builtin_opt, "LP")) != -1)
                 switch (optc) {
@@ -179,7 +183,7 @@ c_pwd(char **wp)
         if (p && access(p, R_OK) < 0)
                 p = (char *) 0;
         if (!p) {
-                p = ksh_get_wd((char *) 0, 0);
+                freep = p = ksh_get_wd((char *) 0, 0);
                 if (!p) {
                         bi_errorf("can't get current directory - %s",
                                 strerror(errno));
@@ -187,6 +191,8 @@ c_pwd(char **wp)
                 }
         }
         shprintf("%s\n", p);
+        if (freep)
+                afree(freep, ATEMP);
         return 0;
 }
 

@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include "sh.h"
 
-
 /*
  * Variables
  *
@@ -151,7 +150,7 @@ global(const char *n)
         struct block *l = e->loc;
         struct tbl *vp;
         int c;
-        unsigned h;
+        unsigned int h;
         bool   array;
         int      val;
 
@@ -232,7 +231,7 @@ local(const char *n, bool copy)
 {
         struct block *l = e->loc;
         struct tbl *vp;
-        unsigned h;
+        unsigned int h;
         bool   array;
         int      val;
 
@@ -338,6 +337,7 @@ intval(struct tbl *vp)
 int
 setstr(struct tbl *vq, const char *s, int error_ok)
 {
+        const char *fs = NULL;
         int no_ro_check = error_ok & 0x4;
         error_ok &= ~0x4;
         if ((vq->flag & RDONLY) && !no_ro_check) {
@@ -359,7 +359,7 @@ setstr(struct tbl *vq, const char *s, int error_ok)
                 vq->flag &= ~(ISSET|ALLOC);
                 vq->type = 0;
                 if (s && (vq->flag & (UCASEV_AL|LCASEV|LJUST|RJUST)))
-                        s = formatstr(vq, s);
+                        fs = s = formatstr(vq, s);
                 if ((vq->flag&EXPORTV))
                         export(vq, s);
                 else {
@@ -373,6 +373,8 @@ setstr(struct tbl *vq, const char *s, int error_ok)
         vq->flag |= ISSET;
         if ((vq->flag&SPECIAL))
                 setspec(vq);
+        if (fs)
+                afree((char *)fs, ATEMP);
         return 1;
 }
 
@@ -826,7 +828,7 @@ makenv(void)
                             && (vp->flag&(ISSET|EXPORTV))==(ISSET|EXPORTV)) {
                                 struct block *l2;
                                 struct tbl *vp2;
-                                unsigned h = hash(vp->name);
+                                unsigned int h = hash(vp->name);
 
                                 /* unexport any redefined instances */
                                 for (l2 = l->next; l2 != NULL; l2 = l2->next) {

@@ -845,6 +845,7 @@ comsub(Expand *xp, char *cp)
         s->start = s->str = cp;
         sold = source;
         t = compile(s);
+        afree(s, ATEMP);
         source = sold;
 
         if (t == NULL)
