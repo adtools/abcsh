@@ -800,3 +800,55 @@ exchild(struct op *t, int flags,
         FUNCX;
         return lastresult;
 }
+
+/* AmiUpdate compatibility code - http://www.amiupdate.net */
+
+/**********************************************************
+**
+** The following function saves the variable name passed in 
+** 'varname' to the ENV(ARC) system so that the application 
+** can become AmiUpdate aware.
+**
+**********************************************************/
+void
+SetAmiUpdateENVVariable(const char *varname)
+{
+	/* AmiUpdate support code */
+	BPTR lock;
+	APTR oldwin;
+
+	/* obtain the lock to the home directory */
+	if((lock = GetProgramDir()) != 0)
+	{
+		TEXT progpath[2048];
+		TEXT varpath[1024] = "AppPaths";
+
+		/*
+		 * get a unique name for the lock,
+		 * this call uses device names,
+		 * as there can be multiple volumes
+		 * with the same name on the system
+		 */
+
+		if(DevNameFromLock(lock, progpath, sizeof(progpath),
+					DN_FULLPATH))
+		{
+			/* stop any "Insert volume..." type requesters */
+			oldwin = SetProcWindow((APTR)-1);
+
+			/*
+			 * finally set the variable to the
+			 * path the executable was run from
+			 * don't forget to supply the variable
+			 * name to suit your application
+			 */
+
+			AddPart(varpath, varname, 1024);
+			SetVar(varpath, progpath, -1,
+					GVF_GLOBAL_ONLY|GVF_SAVE_VAR);
+
+			/* turn requesters back on */
+			SetProcWindow(oldwin);
+		}
+	}
+}

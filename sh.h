@@ -4,9 +4,11 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "52.3"
-#define RELEASE_DATE "24.10.2007"
-#define RELEASE_COMMENT "alpha"
+#define ABC_VERSION "52.7"
+#define RELEASE_DATE "10.11.2007"
+#define RELEASE_COMMENT "Beta"
+
+#define STACK_SIZE "5000000"
 
 /* Start of common headers */
 

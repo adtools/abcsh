@@ -1304,15 +1304,21 @@ c_getopts(char **wp)
 int
 c_contact(char **wp)
 {
-//        const char *const white = "\033[32m";
-        const char *const blue = "\033[33m";
-//        const char *const red = "\033[34m";
-        const char *const normal = "\033[39m";
-
-        shprintf("This is abc-shell "ABC_VERSION", the AmigaOS4 POSIX shell\n");
-        shprintf("the project page of abc-shell: %shttp://sf.net/projects/abc-shell%s\n", blue, normal);
-        shprintf("you are welcome to contact me (Henning Nielsen Lund) at %shnl_dk@amigaos.dk%s\n", blue, normal);
-        return 0;
+	shprintf("   .............................................................................\n");
+	shprintf("   :                                                                           :\n");
+	shprintf("   : _____.___.                  _______        .____.                         :\n");
+	shprintf("_____\\__  :   |____________      \\  ___/___.____|    |_______________    _____ :\n");
+	shprintf("\\    __       __       ___/___ /__\\___     :    |__  :   __    /    /___/_   /_____\n");
+	shprintf(" \\   \\|       |/   .   |/    ///    (_\\        ___/      |/   /_   /_\\      /_\\    \\\n");
+	shprintf("  \\_______._______/|________///____________.    |____._________/____________________\\\n");
+	shprintf("                            /              |____|\n");
+	shprintf("   :                                                                           : spot\n");
+	shprintf("   :             This is abc-shell "ABC_VERSION", the AmigaOS4 POSIX shell              :\n");
+	shprintf("   :      the project page of abc-shell: http://sf.net/projects/abc-shell      :\n");
+	shprintf("   : you are welcome to contact me (Henning Nielsen Lund) at hnl_dk@amigaos.dk :\n");
+	shprintf("   :                                                                           :\n");
+	shprintf("   :...........................................................................:\n");
+	return 0;
 }
 
 /* A leading = means assignments before command are kept;

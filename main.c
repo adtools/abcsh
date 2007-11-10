@@ -29,7 +29,7 @@ static const char initsubs[] = "${PS2=> } ${PS3=#? } ${PS4=+ }";
 static const char *const initcoms [] = {
         "typeset", "-r", "KSH_VERSION", NULL,
         "typeset", "-x", "SHELL", "PATH", "HOME", "TMPDIR", "tmp", "LOGNAME",
-        "USER", "HISTFILE", "MAKE", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", NULL,
+        "USER", "HISTFILE", "MAKE", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", "DATE", "INSTALL", "DIR", NULL,
         "typeset", "-i", "PPID", NULL,
         "typeset", "-i", "OPTIND=1", NULL,
         "alias",
@@ -46,6 +46,9 @@ static const char *const initcoms [] = {
           "r=fc -e -",
          /* Aliases that are builtin commands in at&t */
           "newgrp=exec newgrp",
+         /* Aliases that are AmigaOS4 specific - coreutils renames */
+          "date=gdate", "dir=gdir", "install=ginstall", "env=genv",
+          "make=gmake", "info=ginfo", "/dev/null=/nil",
           NULL,
         /* this is what at&t ksh seems to track, with the addition of emacs */
         "alias", "-tU",
@@ -58,6 +61,7 @@ static const char *const initcoms [] = {
 #define version_param  (initcoms[2])
 
 const char *amiversion __attribute__((used)) = "$VER: abc-shell " ABC_VERSION " (" RELEASE_DATE ") " RELEASE_COMMENT "\0";
+const char * stack_cookie __attribute__((used)) = "$STACK: " STACK_SIZE "\0";
 
 int
 main(int argc, char *argv[])
@@ -73,9 +77,7 @@ main(int argc, char *argv[])
 
         /* make sure argv[] is sane */
         if (!*argv) {
-                static const char *empty_argv[] = {
-                        "sh", (char *) 0
-                };
+                static const char *empty_argv[] = {"sh", (char *) 0};
 
                 argv = (char **) empty_argv;
                 argc = 1;
@@ -296,7 +298,6 @@ main(int argc, char *argv[])
                         ;
         }
 
-
         ksheuid = geteuid();
         kshuid = getuid();
         kshgid = getgid();
@@ -362,7 +363,6 @@ main(int argc, char *argv[])
         l->argv = &argv[argi - 1];
         l->argc = argc - argi;
         l->argv[0] = (char *) kshname;
-//	l->argv[0] = (char *) convert_path_multi(kshname);
         getopts_reset(1);
 
         errexit = Flag(FERREXIT);
@@ -371,18 +371,18 @@ main(int argc, char *argv[])
         if (!current_wd[0] && Flag(FTALKING))
                 warningf(false, "Cannot determine current working directory");
 
-                char *env_file;
+        char *env_file;
 
-                /* include $ENV */
-                env_file = str_val(global("ENV"));
+        /* include $ENV */
+        env_file = str_val(global("ENV"));
 
-                /* If env isn't set, include default environment */
-                if (env_file == null)
-                        env_file = strdup("/SDK/Data/abc-shell/variables");
+        /* If env isn't set, include default environment */
+        if (env_file == null)
+                env_file = strdup("/SDK/Data/abc-shell/variables");
 
-                env_file = substitute(env_file, DOTILDE);
-                if (*env_file != '\0')
-                        include(env_file, 0, (char **) 0, 1);
+        env_file = substitute(env_file, DOTILDE);
+        if (*env_file != '\0')
+                include(env_file, 0, (char **) 0, 1);
 
         if (errexit)
                 Flag(FERREXIT) = 1;
@@ -392,6 +392,9 @@ main(int argc, char *argv[])
                 alarm_init();
         } else
                 Flag(FTRACKALL) = 1;    /* set after ENV */
+
+        /* Set AmiUpdate Environmental variable - AmigaOS4 */
+        SetAmiUpdateENVVariable(kshname);
 
         shell(s, true); /* doesn't return */
         return 0;

@@ -1,0 +1,7 @@
+IF EXISTS SDK:
+   Copy SDK/#? SDK: ALL CLONE QUIET
+ELSE
+   Set sh_path `GetEnv AppPaths/sh`
+   CopyStore SDK/C/sh "$sh_path"
+   UnSet sh_path
+ENDIF
