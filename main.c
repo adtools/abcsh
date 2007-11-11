@@ -29,7 +29,7 @@ static const char initsubs[] = "${PS2=> } ${PS3=#? } ${PS4=+ }";
 static const char *const initcoms [] = {
         "typeset", "-r", "KSH_VERSION", NULL,
         "typeset", "-x", "SHELL", "PATH", "HOME", "TMPDIR", "tmp", "LOGNAME",
-        "USER", "HISTFILE", "MAKE", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", "DATE", "INSTALL", "DIR", NULL,
+        "USER", "HISTFILE", "MAKE", "PREFIX", "PATH_SEPARATOR", "DIR_SEPARATOR", "LD", NULL,
         "typeset", "-i", "PPID", NULL,
         "typeset", "-i", "OPTIND=1", NULL,
         "alias",
