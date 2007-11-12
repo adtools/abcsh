@@ -801,6 +801,7 @@ exchild(struct op *t, int flags,
         return lastresult;
 }
 
+#if 0
 /* AmiUpdate compatibility code - http://www.amiupdate.net */
 
 /**********************************************************
@@ -852,3 +853,4 @@ SetAmiUpdateENVVariable(const char *varname)
 		}
 	}
 }
+#endif /* 0 */

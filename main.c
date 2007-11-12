@@ -393,9 +393,6 @@ main(int argc, char *argv[])
         } else
                 Flag(FTRACKALL) = 1;    /* set after ENV */
 
-        /* Set AmiUpdate Environmental variable - AmigaOS4 */
-        SetAmiUpdateENVVariable(kshname);
-
         shell(s, true); /* doesn't return */
         return 0;
 }
