@@ -1120,8 +1120,8 @@ c_kill(char **wp)
         }
         if ((lflag && t) || (!wp[i] && !lflag)) {
                 shf_fprintf(shl_out,
-                        "Usage: kill [ -s signame | -signum | -signame ] {pid|job}...\n"
-                        "       kill -l [exit_status]\n");
+                        "usage: kill [-s signame | -signum | -signame] { job | pid | pgrp } ...\n"
+                        "      kill -l [exit_status ...]\n");
                 bi_errorf(null);
                 return 1;
         }

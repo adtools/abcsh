@@ -704,4 +704,5 @@ iofree(struct ioword **iow, Area *ap)
                         afree((void*)p->heredoc, ap);
                 afree((void*)p, ap);
         }
+        afree(iow, ap);
 }

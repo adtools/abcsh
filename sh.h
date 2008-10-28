@@ -4,8 +4,8 @@
 
 /* $Id$ */
 
-#define ABC_VERSION "52.10"
-#define RELEASE_DATE "12.11.2007"
+#define ABC_VERSION "53.1"
+#define RELEASE_DATE "28.10.2008"
 #define RELEASE_COMMENT "Beta"
 
 #define STACK_SIZE "500000"

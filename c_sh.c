@@ -730,7 +730,6 @@ timex(struct op *t, int f)
         INT32 t0t, t1t = 0;
         int tf = 0;
         extern INT32 j_usrtime, j_systime; /* computed by j_wait */
-        char opts[1];
 
         t0t = ksh_times(&t0);
         if (t->left) {
@@ -743,11 +742,9 @@ timex(struct op *t, int f)
                  * really work as it only counts the last job).
                  */
                 j_usrtime = j_systime = 0;
-                if (t->left->type == TCOM)
-                        t->left->str = opts;
-                opts[0] = 0;
                 rv = execute(t->left, f | XTIME);
-                tf |= opts[0];
+                if (t->left->type == TCOM)
+                        tf |= t->left->str[0];
                 t1t = ksh_times(&t1);
         } else
                 tf = TF_NOARGS;

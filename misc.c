@@ -75,7 +75,7 @@ str_save(const char *s, Area *ap)
                 return NULL;
         len = strlen(s)+1;
         p = alloc(len, ap);
-        strlcpy(p, s, len+1);
+        strlcpy(p, s, len);
         return (p);
 }
 
