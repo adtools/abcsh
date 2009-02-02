@@ -174,8 +174,8 @@ int     gmatch(const char *, const char *, int);
 int     has_globbing(const char *, const char *);
 const unsigned char *pat_scan(const unsigned char *, const unsigned char *,
         int);
-void    qsortp(void **, size_t, int (*)(void *, void *));
-int     xstrcmp(void *, void *);
+void    qsortp(void **, size_t, int (*)(const void *, const void *));
+int     xstrcmp(const void *, const void *);
 void    ksh_getopt_reset(Getopt *, int);
 int     ksh_getopt(char **, Getopt *, const char *);
 void    print_value_quoted(const char *);
