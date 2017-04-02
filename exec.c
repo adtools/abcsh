@@ -1042,8 +1042,15 @@ search(const char *name, const char *path,
                 if (search_access(name, mode, errnop) == 0)
                 {
 #ifdef AMIGA
+                    int len = 0;
                     if((name[0] == '.') && (name[1] == '/'))
-                        return (char *) &name[2];
+                    {
+                       len = strlen(&name[2]);
+                       memmove((void *)name,&name[2],len);
+                       ((char *)name)[len] = '\0';
+                       return (char *) name;
+                       // was originaly return (char *)&name[2]; this will crash when freed via afree!
+                    }
 #endif
                     return (char *) name;
                 }
@@ -1073,8 +1080,10 @@ search(const char *name, const char *path,
                     sp = Xclose(xs, xp + namelen);
                     if((sp[0] == '.') && (sp[1] == '/') && !strcmp(&sp[2], name))
                     {
-                        sp =strdup(name);
-                        Xfree(xs, xp);
+// originally 
+//sp =strdup(name); Can't strdup as this mem may be freed via afree();
+// we know that sp has space for the extra ./ so strcpy() should be safe.
+                        sp =strcpy(sp,name);
                     }
                     return (char *) sp;
 #else
