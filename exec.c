@@ -45,7 +45,7 @@ execute(struct op * volatile t,
         struct ioword **iowp;
         struct tbl *tp = NULL;
 
-	if (t == NULL)
+        if (t == NULL)
                 return 0;
 
         /* Is this the end of a pipeline?  If so, we want to evaluate the
@@ -153,7 +153,7 @@ execute(struct op * volatile t,
                         openpipe(pv);
                         (void) ksh_dup2(pv[1], 1, false); /* stdout of curr */
 
-			/* Let exchild() close pv[0] in child
+                        /* Let exchild() close pv[0] in child
                          * (if this isn't done, commands like
                          *    (: ; cat /etc/termcap) | sleep 1
                          *  will hang forever).
@@ -1184,6 +1184,7 @@ iosetup(struct ioword *iop, struct tbl *tp)
           }
         }
         if (do_open) {
+        simplify_path(cp);
                 u = open(cp, flags, 0666);
         }
         if (u < 0) {
