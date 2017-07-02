@@ -650,15 +650,18 @@ LONG execute_child(STRPTR args, int len)
 {
         struct op *t;
         int flags;
+#if !defined(__amigaos4__)
         struct Task *parent;
+#endif
         struct Task *this;
         struct globals globenv;
 
         this = FindTask(0);
         t = ((struct userdata *)this->tc_UserData)->t;
         flags = ((struct userdata*)this->tc_UserData)->flags;
+#if !defined(__amigaos4__)
         parent = ((struct userdata*)this->tc_UserData)->parent;
-
+#endif
         copyenv(&globenv);
         e->type=E_SUBSHELL;
         if(!(ksh_sigsetjmp(e->jbuf,0)))
@@ -686,7 +689,6 @@ exchild(struct op *t, int flags,
         int i;
 /*close conditions*/
         long amigafd[3];
-        int amigafd_close[3] = {0, 0, 0};
         struct Process *proc = NULL;
         struct Task *thisTask = FindTask(0);
         struct userdata taskdata;
@@ -720,7 +722,6 @@ exchild(struct op *t, int flags,
         for(i = 0; i < 3; i++)
         {
             __get_default_file(i, &amigafd[i]);
-            if(close_fd == i) amigafd_close[i] = true;
         }
 
         if(t->str) {
@@ -761,9 +762,7 @@ exchild(struct op *t, int flags,
 
         free(name);
         name = NULL;
-//        for(i=0; i < 3; i++)
-//            if(amigafd_close[i]  && (flags & (XPCLOSE)))
-//            {
+
           if((i=close_fd) >=0 && (flags & XPCLOSE) )
           {
 #ifdef USE_TEMPFILES

@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!SDK:Local/C/perl -w
 
 #
 # Test harness for pdksh tests.
@@ -384,8 +384,17 @@ run_test
     local(*test) = @_;
     local($name) = $test{':full-name'};
 
-    #print "Running test $name...\n" if $verbose;
-
+    print "Running test $name...\n" if $verbose;
+    
+	if (defined $test{'time-limit'} )
+	{
+		if ($^O eq "amigaos")
+		{
+			print "Skipping test $name as no alarm available\n";
+			return 0;
+		}
+	}
+	
     if (defined $test{'stdin'}) {
 	return undef if !&write_file($tempi, $test{'stdin'});
 	$ifile = $tempi;
@@ -501,9 +510,11 @@ run_test
 	}
 	push(@argv, $temps) if defined $test{'script'};
 	exec(@argv);
+
 	print STDERR "$prog: couldn't execute $test_prog - $!\n";
 	kill('TERM', $$);
 	exit(95);
+
     }
     $child_pid = $pid;
     $child_killed = 0;

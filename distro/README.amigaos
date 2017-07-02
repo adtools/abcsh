@@ -3,8 +3,12 @@ Amiga Bourne Compatible Shell (Bourne/POSIX shell)
 Just copy the files from the SDK directory to to SDK: and it is ready to run.
 
 If You have any questions, ideas or bugfixes, then contact us -
-https://sourceforge.net/projects/abc-shell - or me private - hnl_dk()amigaos.dk
+https://github.com/adtools/abcsh
 - thanks for Your support.
+
+broadblues - 53.4
+Fix new warnings from gcc 5.4 
+Rebuild against clib2 1.215
 
 broadblues - 53.3
 Fix 'corrupt memory' errors caused by removing the leading "./" from certain

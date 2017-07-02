@@ -868,7 +868,7 @@ pushs(int type, Area *areap)
         s->next = NULL;
         s->areap = areap;
         if (type == SFILE || type == SSTDIN) {
-                char *dummy;
+                __attribute__((unused)) char *dummy; // this needs to be real and non NULL  to avoid a DSI in the Xinit macro but gcc5 complians about it being unused
                 Xinit(s->xs, dummy, 256, s->areap);
         } else
                 memset(&s->xs, 0, sizeof(s->xs));

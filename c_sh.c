@@ -476,18 +476,23 @@ c_trap(char **wp)
         wp += builtin_opt.optind;
 
         if (*wp == NULL) {
+#if 0
                 int anydfl = 0;
-
+#endif
                 for (p = sigtraps, i = NSIG+1; --i >= 0; p++) {
                         if (p->trap == NULL)
+                        {
+#if 0
                                 anydfl = 1;
+#endif
+                        }
                         else {
                                 shprintf("trap -- ");
                                 print_value_quoted(p->trap);
                                 shprintf(" %s\n", p->name);
                         }
                 }
-#if 0 /* this is ugly and not clear POSIX needs it */
+#if 0  /* this is ugly and not clear POSIX needs it */
                 /* POSIX may need this so output of trap can be saved and
                  * used to restore trap conditions
                  */

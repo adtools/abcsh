@@ -142,7 +142,9 @@ execute(struct op * volatile t,
 
           case TPIPE:
                 {
+#ifdef USE_TEMPFILES
                 bool chain = false;
+#endif
                 flags |= XFORK;
                 flags &= ~XEXEC;
 
@@ -194,8 +196,9 @@ execute(struct op * volatile t,
 #endif /* USE_TEMPFILES */
                         flags |= XPIPEI;
                         t = t->right;
+#ifdef USE_TEMPFILES
                         chain=true;
-
+#endif
                 }
                 restfd(1, e->savefd[1]); /* stdout of last */
                 e->savefd[1] = 0; /* no need to re-restore this */
@@ -1083,7 +1086,7 @@ search(const char *name, const char *path,
 // originally 
 //sp =strdup(name); Can't strdup as this mem may be freed via afree();
 // we know that sp has space for the extra ./ so strcpy() should be safe.
-                        sp =strcpy(sp,name);
+                        sp =strcpy((char *)sp,name);
                     }
                     return (char *) sp;
 #else
