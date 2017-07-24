@@ -1313,9 +1313,8 @@ c_contact(char **wp)
 	shprintf("  \\_______._______/|________///____________.    |____._________/____________________\\\n");
 	shprintf("                            /              |____|\n");
 	shprintf("   :                                                                           : spot\n");
-	shprintf("   :             This is abc-shell "ABC_VERSION", the AmigaOS4 POSIX shell              :\n");
-	shprintf("   :      the project page of abc-shell: http://sf.net/projects/abc-shell      :\n");
-	shprintf("   : you are welcome to contact me (Henning Nielsen Lund) at hnl_dk@amigaos.dk :\n");
+	shprintf("   :             This is abc-shell "ABC_VERSION", the AmigaOS POSIX shell               :\n");
+	shprintf("   :      the project page of abc-shell: https://github.com/adtools/abcsh      :\n");
 	shprintf("   :                                                                           :\n");
 	shprintf("   :...........................................................................:\n");
 	return 0;
