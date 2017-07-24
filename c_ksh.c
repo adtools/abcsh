@@ -523,7 +523,7 @@ c_command(char **wp)
 int
 c_typeset(char **wp)
 {
-        struct block *l = e->loc;
+        struct block *l = genv->loc;
         struct tbl *vp, **p;
         Tflag fset = 0, fclr = 0;
         int thing = 0, func = 0, local = 0;
@@ -704,7 +704,7 @@ c_typeset(char **wp)
         /* list variables and attributes */
         flag = fset | fclr; /* no difference at this point.. */
         if (func) {
-            for (l = e->loc; l; l = l->next) {
+            for (l = genv->loc; l; l = l->next) {
                 for (p = ktsort(&l->funs); (vp = *p++); ) {
                     if (flag && (vp->flag & flag) == 0)
                             continue;
@@ -717,7 +717,7 @@ c_typeset(char **wp)
                 }
             }
         } else {
-            for (l = e->loc; l; l = l->next) {
+            for (l = genv->loc; l; l = l->next) {
                 for (p = ktsort(&l->vars); (vp = *p++); ) {
                     struct tbl *tvp;
                     int any_set = 0;
@@ -1232,15 +1232,15 @@ c_getopts(char **wp)
                 return 1;
         }
 
-        if (e->loc->next == (struct block *) 0) {
+        if (genv->loc->next == (struct block *) 0) {
                 internal_errorf(0, "c_getopts: no argv");
                 return 1;
         }
         /* Which arguments are we parsing... */
         if (*wp == (char *) 0)
-                wp = e->loc->next->argv;
+                wp = genv->loc->next->argv;
         else
-                *--wp = e->loc->next->argv[0];
+                *--wp = genv->loc->next->argv[0];
 
         /* Check that our saved state won't cause a core dump... */
         for (argc = 0; wp[argc]; argc++)

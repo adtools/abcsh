@@ -717,7 +717,7 @@ varsub(Expand *xp, char *sp, char *word,
                                 }
                         c = n; /* ksh88/ksh93 go for number, not max index */
                 } else if (c == '*' || c == '@')
-                        c = e->loc->argc;
+                        c = genv->loc->argc;
                 else {
                         p = str_val(global(sp));
                         zero_ok = p != null;
@@ -763,12 +763,12 @@ varsub(Expand *xp, char *sp, char *word,
                   case '#':
                         return -1;
                 }
-                if (e->loc->argc == 0) {
+                if (genv->loc->argc == 0) {
                         xp->str = null;
                         xp->var = global(sp);
                         state = c == '@' ? XNULLSUB : XSUB;
                 } else {
-                        xp->u.strv = (const char **) e->loc->argv + 1;
+                        xp->u.strv = (const char **) genv->loc->argv + 1;
                         xp->str = *xp->u.strv++;
                         xp->split = c == '@'; /* $@ */
                         state = XARG;
@@ -872,8 +872,8 @@ comsub(Expand *xp, char *cp)
                 ksh_dup2(pv[1], 1, false);//printf("dups2\n"); fflush(stdout);
                 close(pv[1]);//printf("close\n"); fflush(stdout);
                 copyenv(&globenv);
-                e->type = E_SUBSHELL;
-                if(!(ksh_sigsetjmp(e->jbuf,0)))
+                genv->type = E_SUBSHELL;
+                if(!(ksh_sigsetjmp(genv->jbuf,0)))
                 {
                     lastresult = execute(t,XXCOM|XPIPEO);
                 }

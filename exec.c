@@ -93,9 +93,9 @@ execute(struct op * volatile t,
         flags &= ~XTIME;
 
         if (t->ioact != NULL || t->type == TPIPE || t->type == TCOPROC) {
-                e->savefd = (short *) alloc(sizeofN(short, NUFILE), ATEMP);
+                genv->savefd = (short *) alloc(sizeofN(short, NUFILE), ATEMP);
                 /* initialize to not redirected */
-                memset(e->savefd, 0, sizeofN(short, NUFILE));
+                memset(genv->savefd, 0, sizeofN(short, NUFILE));
         }
 
         /* do redirection, to be restored in quitenv() */
@@ -124,8 +124,8 @@ execute(struct op * volatile t,
               //      rv = execute(t->left, flags|XFORK);
               struct globals globenv;
               copyenv(&globenv);
-              e->type = E_SUBSHELL;
-              if(!(ksh_sigsetjmp(e->jbuf,0)))
+              genv->type = E_SUBSHELL;
+              if(!(ksh_sigsetjmp(genv->jbuf,0)))
               {
                   rv = execute(t->left, flags);
               }
@@ -148,8 +148,8 @@ execute(struct op * volatile t,
                 flags |= XFORK;
                 flags &= ~XEXEC;
 
-                e->savefd[0] = savefd(0);
-                e->savefd[1] = savefd(1);
+                genv->savefd[0] = savefd(0);
+                genv->savefd[1] = savefd(1);
 
                 while (t->type == TPIPE) {
                         openpipe(pv);
@@ -200,8 +200,8 @@ execute(struct op * volatile t,
                         chain=true;
 #endif
                 }
-                restfd(1, e->savefd[1]); /* stdout of last */
-                e->savefd[1] = 0; /* no need to re-restore this */
+                restfd(1, genv->savefd[1]); /* stdout of last */
+                genv->savefd[1] = 0; /* no need to re-restore this */
                 /* Let exchild() close 0 in parent, after fork, before wait */
                 i = exchild(t, flags|XPCLOSE, 0);
                 if (!(flags&XBGND) && !(flags&XXCOM))
@@ -225,8 +225,8 @@ execute(struct op * volatile t,
                  * signal handler
                  */
                 sigprocmask(SIG_BLOCK, &sm_sigchld, &omask);
-                e->type = E_ERRH;
-                i = ksh_sigsetjmp(e->jbuf, 0);
+                genv->type = E_ERRH;
+                i = ksh_sigsetjmp(genv->jbuf, 0);
                 if (i) {
                         sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
                         quitenv(NULL);
@@ -241,8 +241,8 @@ execute(struct op * volatile t,
                 coproc_cleanup(true);
 
                 /* do this before opening pipes, in case these fail */
-                e->savefd[0] = savefd(0);
-                e->savefd[1] = savefd(1);
+                genv->savefd[0] = savefd(0);
+                genv->savefd[1] = savefd(1);
 
                 openpipe(pv);
                 if (pv[0] != 0) {
@@ -264,7 +264,7 @@ execute(struct op * volatile t,
                         ++coproc.id;
                 }
                 sigprocmask(SIG_SETMASK, &omask, (sigset_t *) 0);
-                e->type = E_EXEC; /* no more need for error handler */
+                genv->type = E_EXEC; /* no more need for error handler */
 
                 /* exchild() closes coproc.* in child after fork,
                  * will also increment coproc.njobs when the
@@ -318,13 +318,13 @@ execute(struct op * volatile t,
             {
                 volatile bool is_first = true;
                 ap = (t->vars != NULL) ? eval(t->vars, DOBLANK|DOGLOB|DOTILDE):
-                        e->loc->argv + 1;
-                e->type = E_LOOP;
+                        genv->loc->argv + 1;
+                genv->type = E_LOOP;
                 while (1) {
-                        i = ksh_sigsetjmp(e->jbuf, 0);
+                        i = ksh_sigsetjmp(genv->jbuf, 0);
                         if (!i)
                                 break;
-                        if ((e->flags&EF_BRKCONT_PASS) ||
+                        if ((genv->flags&EF_BRKCONT_PASS) ||
                                 (i != LBREAK && i != LCONTIN))
                         {
                                 quitenv(NULL);
@@ -358,12 +358,12 @@ execute(struct op * volatile t,
 
           case TWHILE:
           case TUNTIL:
-                e->type = E_LOOP;
+                genv->type = E_LOOP;
                 while (1) {
-                        i = ksh_sigsetjmp(e->jbuf, 0);
+                        i = ksh_sigsetjmp(genv->jbuf, 0);
                         if (!i)
                                 break;
-                        if ((e->flags&EF_BRKCONT_PASS) ||
+                        if ((genv->flags&EF_BRKCONT_PASS) ||
                                 (i != LBREAK && i != LCONTIN))
                         {
                                 quitenv(NULL);
@@ -635,16 +635,16 @@ comexec(struct op *t, struct tbl *volatile tp, char **ap, volatile int flags)
                         kshname = ap[0];
                 else
                         ap[0] = (char *) kshname;
-                e->loc->argv = ap;
+                genv->loc->argv = ap;
                 for (i = 0; *ap++ != NULL; i++)
                         ;
-                e->loc->argc = i - 1;
+                genv->loc->argc = i - 1;
                 /* ksh-style functions handle getopts sanely,
                  * bourne/posix functions are insane...
                  */
                 if (tp->flag & FKSH) {
-                        e->loc->flags |= BF_DOGETOPTS;
-                        e->loc->getopts_state = user_opt;
+                        genv->loc->flags |= BF_DOGETOPTS;
+                        genv->loc->getopts_state = user_opt;
                         getopts_reset(1);
                 }
 
@@ -654,8 +654,8 @@ comexec(struct op *t, struct tbl *volatile tp, char **ap, volatile int flags)
                 old_inuse = tp->flag & FINUSE;
                 tp->flag |= FINUSE;
 
-                e->type = E_FUNC;
-                i = ksh_sigsetjmp(e->jbuf, 0);
+                genv->type = E_FUNC;
+                i = ksh_sigsetjmp(genv->jbuf, 0);
                 if (i == 0) {
                         /* seems odd to pass XERROK here, but at&t ksh does */
                         exstat = execute(tp->val.t, flags & XERROK);
@@ -791,7 +791,7 @@ findfunc(const char *name, unsigned int h, int create)
         struct block *l;
         struct tbl *tp = (struct tbl *) 0;
 
-        for (l = e->loc; l; l = l->next) {
+        for (l = genv->loc; l; l = l->next) {
                 tp = ktsearch(&l->funs, name, h);
                 if (tp)
                         break;
@@ -1083,7 +1083,7 @@ search(const char *name, const char *path,
                     sp = Xclose(xs, xp + namelen);
                     if((sp[0] == '.') && (sp[1] == '/') && !strcmp(&sp[2], name))
                     {
-// originally 
+// originally
 //sp =strdup(name); Can't strdup as this mem may be freed via afree();
 // we know that sp has space for the extra ./ so strcpy() should be safe.
                         sp =strcpy((char *)sp,name);
@@ -1119,7 +1119,7 @@ call_builtin(struct tbl *tp, char **wp)
 }
 
 /*
- * set up redirection, saving old fd's in e->savefd
+ * set up redirection, saving old fd's in genv->savefd
  */
 static int
 iosetup(struct ioword *iop, struct tbl *tp)
@@ -1209,13 +1209,13 @@ iosetup(struct ioword *iop, struct tbl *tp)
                 return -1;
         }
         /* Do not save if it has already been redirected (i.e. "cat >x >y"). */
-        if (e->savefd[iop->unit] == 0) {
-                /* c_exec() assumes e->savefd[fd] set for any redirections.
+        if (genv->savefd[iop->unit] == 0) {
+                /* c_exec() assumes genv->savefd[fd] set for any redirections.
                  * Ask savefd() not to close iop->unit - allows error messages
                  * to be seen if iop->unit is 2; also means we can't lose
                  * the fd (eg, both dup2 below and dup2 in restfd() failing).
                  */
-                e->savefd[iop->unit] = savefd(iop->unit);
+                genv->savefd[iop->unit] = savefd(iop->unit);
         }
 
         if (do_close)
@@ -1269,7 +1269,7 @@ herein(const char *content, int sub)
         /* Create temp file to hold content (done before newenv so temp
          * doesn't get removed too soon).
          */
-        h = maketemp(ATEMP, TT_HEREDOC_EXP, &e->temps);
+        h = maketemp(ATEMP, TT_HEREDOC_EXP, &genv->temps);
         if (!(shf = h->shf) || (fd = open(h->name, O_RDONLY, 0)) < 0) {
                 warningf(true, "can't %s temporary file %s: %s",
                         !shf ? "create" : "open",
@@ -1281,7 +1281,7 @@ herein(const char *content, int sub)
 
         osource = source;
         newenv(E_ERRH);
-        i = ksh_sigsetjmp(e->jbuf, 0);
+        i = ksh_sigsetjmp(genv->jbuf, 0);
         if (i) {
                 source = osource;
                 quitenv(shf);
@@ -1530,7 +1530,7 @@ blk_copy(struct block *src)
         blk_copy(src->next);
 
     newblock();
-    struct block *l = e->loc;
+    struct block *l = genv->loc;
     l->argc = src->argc;
 
     if (l->argc) {
@@ -1618,7 +1618,7 @@ copyenv(struct globals *globenv )
 
     /* save pointers to current environment */
     globenv->aperm = aperm;
-    globenv->e = e;
+    globenv->e = genv;
     globenv->homedirs = homedirs;
     globenv->aliases = aliases;
     globenv->taliases = taliases;
@@ -1660,17 +1660,17 @@ copyenv(struct globals *globenv )
     tbl_copy(globenv->taliases, taliases, APERM);
     tbl_copy(globenv->aliases,  aliases, APERM);
 
-    struct block *b = e->loc;
-    short *old = e->savefd;
+    struct block *b = genv->loc;
+    short *old = genv->savefd;
 
     /* now transfer environment, and use the copy */
-    e = copy;
+    genv = copy;
     blk_copy(b);
 
     if (old) {
         size_t size = sizeofN(short, NUFILE);
-        e->savefd = (short*) alloc(size, ATEMP);
-        memcpy(e->savefd, old, size);
+        genv->savefd = (short*) alloc(size, ATEMP);
+        memcpy(genv->savefd, old, size);
     }
 
     /* setup the current_wd in our new APERM */
@@ -1705,13 +1705,13 @@ void
 restoreenv(struct globals *globenv)
 {
     /* free copy environment and it's ATEMP */
-    struct block *l = e->loc;
+    struct block *l = genv->loc;
     for(;l;l=l->next) {
         afreeall(&l->area);
     }
 
-    afreeall(&e->area);
-    free(e);
+    afreeall(&genv->area);
+    free(genv);
 
     /* simply free the aperm area */
     afreeall(aperm);
@@ -1722,7 +1722,7 @@ restoreenv(struct globals *globenv)
 
     /* restore old tables and environment */
     aperm = globenv->aperm;
-    e = globenv->e;
+    genv = globenv->e;
     homedirs = globenv->homedirs;
     aliases = globenv->aliases;
     taliases = globenv->taliases;

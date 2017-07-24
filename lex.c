@@ -65,6 +65,15 @@ static char     *special_prompt_expand(char *);
 static int backslash_skip;
 static int ignore_backslash_newline;
 
+Source *source;         /* yyparse/yylex source */
+YYSTYPE yylval;         /* result from yylex */
+struct ioword *heres[HERES], **herep;
+char ident[IDENT+1];
+
+char **history;	/* saved commands */
+char **histptr;	/* last history item */
+int	histsize;	/* history size */
+
 /* optimized getsc_bn() */
 #define getsc()         (*source->str != '\0' && *source->str != '\\' \
                          && !backslash_skip ? *source->str++ : getsc_bn())
@@ -1080,7 +1089,7 @@ set_prompt(int to, Source *s)
                 ps1 = str_save(str_val(global("PS1")), ATEMP);
                 saved_atemp = ATEMP;        /* ps1 is freed by substitute() */
                 newenv(E_ERRH);
-                if (ksh_sigsetjmp(e->jbuf, 0)) {
+                if (ksh_sigsetjmp(genv->jbuf, 0)) {
                         prompt = safe_prompt;
                         /* Don't print an error - assume it has already
                          * been printed.  Reason is we may have forked

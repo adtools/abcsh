@@ -22,7 +22,7 @@ c_label(char **wp)
 int
 c_shift(char **wp)
 {
-        struct block *l = e->loc;
+        struct block *l = genv->loc;
         int n;
         long val;
         char *arg;
@@ -210,7 +210,7 @@ c_dot(char **wp)
         /* Set positional parameters? */
         if (wp[builtin_opt.optind + 1]) {
                 argv = wp + builtin_opt.optind;
-                argv[0] = e->loc->argv[0]; /* preserve $0 */
+                argv[0] = genv->loc->argv[0]; /* preserve $0 */
                 for (argc = 0; argv[argc + 1]; argc++)
                         ;
         } else {
@@ -299,7 +299,7 @@ c_read(char **wp)
          * don't buffer them so we can't read too much.
          */
         shf = shf_reopen(fd, SHF_RD | SHF_INTERRUPT | can_seek(fd), shl_spare);
-        
+
         if ((cp = strchr(*wp, '?')) != NULL) {
                 *cp = 0;
                 if (isatty(fd)) {
@@ -552,7 +552,7 @@ c_exitreturn(char **wp)
                 /* need to tell if this is exit or return so trap exit will
                  * work right (POSIX)
                  */
-                for (ep = e; ep; ep = ep->oenv)
+                for (ep = genv; ep; ep = ep->oenv)
                         if (STOP_RETURN(ep->type)) {
                                 how = LRETURN;
                                 break;
@@ -593,7 +593,7 @@ c_brkcont(char **wp)
         }
 
         /* Stop at E_NONE, E_PARSE, E_FUNC, or E_INCL */
-        for (ep = e; ep && !STOP_BRKCONT(ep->type); ep = ep->oenv)
+        for (ep = genv; ep && !STOP_BRKCONT(ep->type); ep = ep->oenv)
                 if (ep->type == E_LOOP) {
                         if (--quit == 0)
                                 break;
@@ -608,7 +608,7 @@ c_brkcont(char **wp)
                  */
                 if (n == quit) {
                         warningf(true, "%s: cannot %s", wp[0], wp[0]);
-                        return 0; 
+                        return 0;
                 }
                 /* POSIX says if n is too big, the last enclosing loop
                  * shall be used.  Doesn't say to print an error but we
@@ -628,7 +628,7 @@ int
 c_set(char **wp)
 {
         int argi, setargs;
-        struct block *l = e->loc;
+        struct block *l = genv->loc;
         char **owp = wp;
 
         if (wp[1] == NULL) {
@@ -840,10 +840,10 @@ c_exec(char ** wp)
         int i;
 
         /* make sure redirects stay in place */
-        if (e->savefd != NULL) {
+        if (genv->savefd != NULL) {
                 for (i = 0; i < NUFILE; i++) {
-                        if (e->savefd[i] > 0)
-                                close(e->savefd[i]);
+                        if (genv->savefd[i] > 0)
+                                close(genv->savefd[i]);
 #ifndef __amigaos4__
                         /*
                          * For ksh keep anything > 2 private,
@@ -851,11 +851,11 @@ c_exec(char ** wp)
                          * happens is unspecified and the bourne shell
                          * keeps them open).
                          */
-                        if (!Flag(FSH) && i > 2 && e->savefd[i])
+                        if (!Flag(FSH) && i > 2 && genv->savefd[i])
                                 fcntl(i, F_SETFD, FD_CLOEXEC);
 #endif
                 }
-                e->savefd = NULL; 
+                genv->savefd = NULL;
         }
         return 0;
 }

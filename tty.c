@@ -1,8 +1,6 @@
 #include <sys/stat.h>
 #include "sh.h"
-#define EXTERN
 #include "tty.h"
-#undef EXTERN
 
 #ifdef AMIGA
 #define TIOCGETP 1
@@ -10,6 +8,10 @@
 #define TIOCSETN 3
 #define TIOCSETC 4
 #endif
+
+int		tty_fd = -1;	/* dup'd tty file descriptor */
+int		tty_devtty;	/* true if tty_fd is from /dev/tty */
+struct termios	tty_state;	/* saved tty state */
 
 /* Initialize tty_fd.  Used for saving/reseting tty modes upon
  * foreground job completion and for setting up tty process group.

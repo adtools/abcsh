@@ -663,8 +663,8 @@ LONG execute_child(STRPTR args, int len)
         parent = ((struct userdata*)this->tc_UserData)->parent;
 #endif
         copyenv(&globenv);
-        e->type=E_SUBSHELL;
-        if(!(ksh_sigsetjmp(e->jbuf,0)))
+        genv->type=E_SUBSHELL;
+        if(!(ksh_sigsetjmp(genv->jbuf,0)))
         {
             execute(t, flags & (XEXEC | XERROK));
         }
@@ -805,8 +805,8 @@ exchild(struct op *t, int flags,
 
 /**********************************************************
 **
-** The following function saves the variable name passed in 
-** 'varname' to the ENV(ARC) system so that the application 
+** The following function saves the variable name passed in
+** 'varname' to the ENV(ARC) system so that the application
 ** can become AmiUpdate aware.
 **
 **********************************************************/

@@ -12,6 +12,20 @@ If you have any questions, ideas or bugfixes, then visit
 
 - Fixed contact command to point to new github home.
 
+- Fixed Makefile to produce sh.debug to aid in debugging.
+
+- Removed unused attrib.h file.
+
+- Removed proto.h file and merged into sh.h to align with
+  OpenBSD ksh 5.2.14.
+
+- Merged in memory allocation module from OpenBSD ksh 5.2.14.
+
+- Merged changes to eliminate EXTERN define from OpenBSD ksh 5.2.14.
+
+- Replaced global struct env *e with more explicit *genv as in
+  OpenBSD ksh 5.2.14.
+
 
 53.4 broadblues
 
