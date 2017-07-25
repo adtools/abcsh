@@ -2,126 +2,207 @@ Amiga Bourne Compatible Shell (Bourne/POSIX shell)
 
 Just copy the files from the SDK directory to to SDK: and it is ready to run.
 
-If You have any questions, ideas or bugfixes, then contact us -
-https://github.com/adtools/abcsh
-- thanks for Your support.
+If you have any questions, ideas or bugfixes, then visit
+ https://github.com/adtools/abcsh
 
-broadblues - 53.4
-Fix new warnings from gcc 5.4 
-Rebuild against clib2 1.215
 
-broadblues - 53.3
-Fix 'corrupt memory' errors caused by removing the leading "./" from certain
-paths and then 'freeing' the resulatant pointer. (git hub issue #10)
+53.5 ssolie
 
-Fix failing redirection on non normalised paths (git hub #issue 9)
+- Reformatted history and fixed contact info.
 
-hnl_dk - 53.2
-Using clib2 qsort() instead of pdksh version.
-Compiled using clib2 1.204
+- Fixed contact command to point to new github home.
 
-hnl_dk - 53.1
-Applied bugfixes from the OpenBSD ksh.
-Compiled using clib2 1.203
+- Fixed Makefile to produce sh.debug to aid in debugging.
 
-20080309 - Fixed new lines in the autoinstall script
+- Removed unused attrib.h file.
 
-hnl_dk - 52.10
-There was a problem with newer versions of gmake, this is fixed now.
-The stacksize has now been lowered.
+- Removed proto.h file and merged into sh.h to align with
+  OpenBSD ksh 5.2.14.
 
-hnl_dk - 52.7
-Add support for AmiUpdate on the request of "Rene W. Olsen".
-Add alias for make=gmake and date=gdate on the request of "Johan Samuelsson" and
-a few on my own dir=gdir, env=genv and install=ginstall.
-Set the stack cookie on the request of "Damien Stewart" - I have set it high at
-the moment, but will lower it when I get some response on it.
-Updated "contact" with ascii graphics contributed by "Johan Samuelsson".
+- Merged in memory allocation module from OpenBSD ksh 5.2.14.
 
-hnl_dk - 52.3
-A few fixes, including changes from the OpenBSD version.
+- Merged changes to eliminate EXTERN define from OpenBSD ksh 5.2.14.
 
-hnl_dk - 52.1
-Simon Archer (Rigo) has requested that I use a correct Amiga version string, so
-from now on, do we do that.
-As clib2 and newlib do not support FD_CLOEXEC, is there no need to try to use
-it.
+- Replaced global struct env *e with more explicit *genv as in
+  OpenBSD ksh 5.2.14.
 
-hnl_dk - 0.1.16
-please check this site for what is new:
-http://utilitybase.com/forum/index.php?action=vthread&forum=18&topic=617
 
-hnl_dk - 0.1.08
-spot (Johan Samuelsson) reported a problem with the color in the new builtin
-command "contact"... it should be fixed now... big thanks to Johan :-)
+53.4 broadblues
 
-hnl_dk - 0.1.07 Prerelease
-I have changed the path of the environmental settings file, as I have got a
-request from Nicolas and from Philippe... SDK:Data/abc-shell/variables
+- Fix new warnings from gcc 5.4
 
-The same goes for the historyfile... SDK:Data/abc-shell/history
+- Rebuild against clib2 1.215
 
-I have also updated the new "contact" command, so please check it ;-)
 
-hnl_dk - 0.1.06 Prerelease
-a few fixes and updates
+53.3 broadblues
 
-hnl_dk - 0.1.05 Prerelease
-Jörg Strohmayer reported that abc-shell was writing to its Read Only Data...
-with this version should the problem have been solved :-)
+- Fix 'corrupt memory' errors caused by removing the leading "./" from certain
+  paths and then 'freeing' the resulatant pointer. (git hub issue #10)
 
-hnl_dk - 0.1.04 Prerelease
-spotUP (Johan Samuelsson) discovered a problem with config.sub I have fixed it.
+- Fix failing redirection on non normalised paths (git hub #issue 9)
 
-I have also made a new builtin command "contact"... please test that command :-)
 
-hnl_dk - 0.1.03 Prerelease
-Frak (Jonny Högsten) discovered a problem with 'sh -n' and I have for now
-disabled that...
+53.2 hnl_dk
 
-I have also set the environmental variable MAKE to 'gmake', so the created
-makefiles should not be using 'make'
+- Using clib2 qsort() instead of pdksh version.
 
-hnl_dk - 0.1.02 Prerelease
-if you use your own environmental settings, then do you need to know that I have
-changed the name of the file... S:variables.ksh
+- Compiled using clib2 1.204
 
-and abc-shell is now saving a historyfile when you exit the shell (if you keep
-forgetting what variables you have used for configure scripts is this very
-usefull)... S:history.ksh
 
-if enough people complain about the files being in the global S: directory, will
-I find another place to put it...
+53.1 hnl_dk
 
-hnl_dk - 0.1.00
-updates for SDK 51.22 (has only been released in the SDK)
+- Applied bugfixes from the OpenBSD ksh.
 
-hnl_dk - 0.0.38:
-abc-shell is now able to handle absolute Amiga style paths
+- Compiled using clib2 1.203
+
+
+52.10 hnl_dk
+
+- There was a problem with newer versions of gmake, this is fixed now.
+
+- The stacksize has now been lowered.
+
+
+52.7 hnl_dk
+
+- Add support for AmiUpdate on the request of "Rene W. Olsen".
+
+- Add alias for make=gmake and date=gdate on the request of
+  "Johan Samuelsson" and a few on my own dir=gdir, env=genv and
+  install=ginstall.
+
+- Set the stack cookie on the request of "Damien Stewart" - I have set
+  it high at the moment, but will lower it when I get some response on it.
+
+- Updated "contact" with ascii graphics contributed by "Johan Samuelsson".
+
+
+52.3 hnl_dk
+
+- A few fixes, including changes from the OpenBSD version.
+
+
+52.1 hnl_dk
+
+- Simon Archer (Rigo) has requested that I use a correct Amiga version
+  string, so from now on, do we do that.
+
+- As clib2 and newlib do not support FD_CLOEXEC, is there no need to
+  try to use it.
+
+
+0.1.16 hnl_dk
+
+- please check this site for what is new:
+  http://utilitybase.com/forum/index.php?action=vthread&forum=18&topic=617
+
+
+0.1.08 hnl_dk
+
+- spot (Johan Samuelsson) reported a problem with the color in the new
+  builtin command "contact"... it should be fixed now...
+  big thanks to Johan :-)
+
+
+0.1.07 Prerelease hnl_dk
+
+- I have changed the path of the environmental settings file, as I have got a
+  request from Nicolas and from Philippe... SDK:Data/abc-shell/variables
+
+- The same goes for the historyfile... SDK:Data/abc-shell/history
+
+- I have also updated the new "contact" command, so please check it ;-)
+
+
+0.1.06 Prerelease hnl_dk
+
+- a few fixes and updates
+
+
+0.1.05 Prerelease hnl_dk
+
+- Joerg Strohmayer reported that abc-shell was writing to its
+  Read Only Data... with this version should the problem have been solved :-)
+
+
+0.1.04 Prerelease hnl_dk
+
+- spotUP (Johan Samuelsson) discovered a problem with config.sub
+  I have fixed it.
+
+- I have also made a new builtin command "contact"...
+  please test that command :-)
+
+
+0.1.03 Prerelease hnl_dk
+
+- Frak (Jonny Hagsten) discovered a problem with 'sh -n' and I have for now
+  disabled that...
+
+- I have also set the environmental variable MAKE to 'gmake', so the created
+  makefiles should not be using 'make'
+
+
+0.1.02 Prerelease hnl_dk
+
+- if you use your own environmental settings, then do you need to know that
+  I have changed the name of the file... S:variables.ksh
+
+- abc-shell is now saving a historyfile when you exit the shell (if you keep
+  forgetting what variables you have used for configure scripts is this very
+  usefull)... S:history.ksh
+
+- if enough people complain about the files being in the global S:
+  directory, will I find another place to put it...
+
+
+0.1.00 hnl_dk
+
+- updates for SDK 51.22 (has only been released in the SDK)
+
+
+0.0.38 hnl_dk
+
+- abc-shell is now able to handle absolute Amiga style paths
+
 - You should still be using tools that understand *nix paths though!
-Some other fixes to make it more easy to use
 
-hnl_dk - 0.0.37:
-You should now without much trouble be able to run configure scripts created by
-newer versions of autoconf.
+- Some other fixes to make it more easy to use
 
-hnl_dk - 0.0.36:
-fixed bugs
-Is now showing the current directory
 
-hnl_dk - 0.0.34:
-Updated with the latest bug-fixes from Debian and OpenBSD pdksh
-Add /SDK/Local/C to the default path
+0.0.37 hnl_dk
 
-Steven Solie - 0.0.33-1:
-This is a patched version of abc-shell included with the
-OS4 SDK 51.15 which fixes the following issues:
-- memory leaks in environ handling
-- premature process exiting
+- You should now without much trouble be able to run configure scripts
+  created by newer versions of autoconf.
 
-The following enhancements were made:
-- added a modernized makefile with no dependencies on sh itself
-- removed all compile warnings
-- optimized and stripped binary
-- uses process ID for unique file names
-- updated to use clib2 from CVS dated 2005-10-26
+
+0.0.36 hnl_dk
+
+- fixed bugs
+
+- Is now showing the current directory
+
+
+0.0.34 hnl_dk
+
+- Updated with the latest bug-fixes from Debian and OpenBSD pdksh
+  Add /SDK/Local/C to the default path
+
+
+0.0.33-1 Steven Solie
+
+- This is a patched version of abc-shell included with SDK 51.15
+
+- Fixed memory leaks in environ handling
+
+- Fixed premature process exiting
+
+- Added a modernized makefile with no dependencies on sh itself
+
+- Removed all compile warnings
+
+- Optimized and stripped binary
+
+- Uses process ID for unique file names
+
+- Updated to use clib2 from CVS dated 2005-10-26

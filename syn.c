@@ -518,7 +518,7 @@ casepart(int endtok)
 }
 
 static struct op *
-function_body(char *name, 
+function_body(char *name,
         int ksh_func)   /* function foo { ... } vs foo() { .. } */
 {
         char *sname, *p;
@@ -551,8 +551,8 @@ function_body(char *name,
                 REJECT;
         }
 
-        old_func_parse = e->flags & EF_FUNC_PARSE;
-        e->flags |= EF_FUNC_PARSE;
+        old_func_parse = genv->flags & EF_FUNC_PARSE;
+        genv->flags |= EF_FUNC_PARSE;
         if ((t->left = get_command(CONTIN)) == (struct op *) 0) {
                 /*
                  * Probably something like foo() followed by eof or ;.
@@ -572,7 +572,7 @@ function_body(char *name,
                 t->left->lineno = 1;
         }
         if (!old_func_parse)
-                e->flags &= ~EF_FUNC_PARSE;
+                genv->flags &= ~EF_FUNC_PARSE;
 
         return t;
 }
@@ -773,7 +773,7 @@ compile(Source *s)
  *      a=[ab]
  *      $ x=typeset; $x a=[ab]; echo "$a"
  *      a=a
- *      $ 
+ *      $
  */
 static int
 assign_command(char *s)

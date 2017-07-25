@@ -136,11 +136,11 @@ struct tstate {
 };
 
 
-EXTERN  struct table *taliases;  /* tracked aliases */
-EXTERN  struct table builtins;  /* built-in commands */
-EXTERN  struct table *aliases;   /* aliases */
-EXTERN  struct table keywords;  /* keywords */
-EXTERN  struct table *homedirs;  /* homedir() cache */
+extern struct table *taliases;  /* tracked aliases */
+extern struct table builtins;  /* built-in commands */
+extern struct table *aliases;   /* aliases */
+extern struct table keywords;  /* keywords */
+extern struct table *homedirs;  /* homedir() cache */
 
 struct builtin {
         const char   *name;
@@ -171,9 +171,9 @@ extern const struct builtin shbuiltins [], kshbuiltins [];
 #define PS1     0               /* command */
 #define PS2     1               /* command continuation */
 
-EXTERN char *path;              /* copy of either PATH or def_path */
-EXTERN const char *def_path;    /* path to use if PATH not set */
-EXTERN char *tmpdir;            /* TMPDIR value */
-EXTERN const char *prompt;
-EXTERN int cur_prompt;          /* PS1 or PS2 */
-EXTERN int current_lineno;      /* LINENO value */
+extern char *path;              /* copy of either PATH or def_path */
+extern const char *def_path;    /* path to use if PATH not set */
+extern char *tmpdir;            /* TMPDIR value */
+extern const char *prompt;
+extern int cur_prompt;          /* PS1 or PS2 */
+extern int current_lineno;      /* LINENO value */

@@ -2,368 +2,131 @@
  * area-based allocation built on malloc/free
  */
 
+#include <stdint.h>
+#include <stdlib.h>
+
 #include "sh.h"
 
-#define ICELLS  200             /* number of Cells in small Block */
-
-typedef union Cell Cell;
-typedef struct Block Block;
-
-/*
- * The Cells in a Block are organized as a set of objects.
- * Each object (pointed to by dp) begins with the block it is in
- * (dp-2)->block, then has a size in (dp-1)->size, which is
- * followed with "size" data Cells.  Free objects are
- * linked together via dp->next.
- */
-
-#define NOBJECT_FIELDS  2       /* the block and size `fields' */
-
-union Cell {
-        size_t  size;
-        Cell   *next;
-        Block  *block;
-        struct {int _;} junk;   /* alignment */
-        double djunk;           /* alignment */
+struct link {
+	struct link *prev;
+	struct link *next;
 };
 
-struct Block {
-        Block  *next;           /* list of Blocks in Area */
-        Block  *prev;           /* previous block in list */
-        Cell   *freelist;       /* object free list */
-        Cell   *last;           /* &b.cell[size] */
-        Cell    cell [1];       /* [size] Cells for allocation */
-};
-
-static Block aempty = {&aempty, &aempty, aempty.cell, aempty.cell};
-
-static void ablockfree(Block *, Area *);
-static void *asplit(Area *, Block *, Cell *, Cell *, int);
-
-/* create empty Area */
 Area *
 ainit(Area *ap)
 {
-        ap->freelist = &aempty;
-        return ap;
+	ap->freelist = NULL;
+	return ap;
 }
 
-/* free all object in Area */
 void
 afreeall(Area *ap)
 {
-        Block *bp;
-        Block *tmp;
+	struct link *l, *l2;
 
-        bp = ap->freelist;
-        if (bp != NULL && bp != &aempty) {
-                do {
-                        tmp = bp;
-                        bp = bp->next;
-                        free((void*)tmp);
-                } while (bp != ap->freelist);
-                ap->freelist = &aempty;
-        }
+	for (l = ap->freelist; l != NULL; l = l2) {
+		l2 = l->next;
+		free(l);
+	}
+	ap->freelist = NULL;
 }
 
-/* allocate object from Area */
+#define L2P(l)	( (void *)(((char *)(l)) + sizeof(struct link)) )
+#define P2L(p)	( (struct link *)(((char *)(p)) - sizeof(struct link)) )
+
 void *
 alloc(size_t size, Area *ap)
 {
-        int cells, acells;
-        Block *bp = 0;
-        Cell *fp = 0, *fpp = 0;
+	struct link *l;
 
-        if (size <= 0)
-                internal_errorf(1, "allocate bad size");
-        cells = (unsigned)(size + sizeof(Cell) - 1) / sizeof(Cell);
+	/* ensure that we don't overflow by allocating space for link */
+	if (size > SIZE_MAX - sizeof(struct link))
+		internal_errorf(1, "unable to allocate memory");
 
-        /* allocate at least this many cells */
-        acells = cells + NOBJECT_FIELDS;
+	l = calloc(1, sizeof(struct link) + size);
+	if (l == NULL)
+		internal_errorf(1, "unable to allocate memory");
+	l->next = ap->freelist;
+	l->prev = NULL;
+	if (ap->freelist)
+		ap->freelist->prev = l;
+	ap->freelist = l;
 
-        /*
-         * Only attempt to track small objects - let malloc deal
-         * with larger objects. (this way we don't have to deal with
-         * coalescing memory, or with releasing it to the system)
-         */
-        if (cells <= ICELLS) {
-                /* find free Cell large enough */
-                for (bp = ap->freelist; ; bp = bp->next) {
-                        for (fpp = NULL, fp = bp->freelist;
-                             fp != bp->last; fpp = fp, fp = fp->next)
-                        {
-                                if ((fp-1)->size >= cells)
-                                        goto Found;
-                        }
-                        /* wrapped around Block list, create new Block */
-                        if (bp->next == ap->freelist) {
-                                bp = 0;
-                                break;
-                        }
-                }
-                /* Not much free space left?  Allocate a big object this time */
-                acells += ICELLS;
-        }
-        if (bp == 0) {
-                bp = (Block*) malloc(offsetof(Block, cell) +
-                                     acells * sizeof(Cell));
-                if (bp == NULL)
-                        internal_errorf(1, "cannot allocate");
-                if (ap->freelist == &aempty) {
-                        ap->freelist = bp->next = bp->prev = bp;
-                } else {
-                        bp->next = ap->freelist->next;
-                        ap->freelist->next->prev = bp;
-                        ap->freelist->next = bp;
-                        bp->prev = ap->freelist;
-                }
-                bp->last = bp->cell + acells;
-                /* initial free list */
-                fp = bp->freelist = bp->cell + NOBJECT_FIELDS;
-                (fp-1)->size = acells - NOBJECT_FIELDS;
-                (fp-2)->block = bp;
-                fp->next = bp->last;
-                fpp = NULL;
-        }
-
-  Found:
-        return asplit(ap, bp, fp, fpp, cells);
+	return L2P(l);
 }
 
-/* Do the work of splitting an object into allocated and (possibly) unallocated
- * objects.  Returns the `allocated' object.
+/*
+ * Copied from calloc().
+ *
+ * This is sqrt(SIZE_MAX+1), as s1*s2 <= SIZE_MAX
+ * if both s1 < MUL_NO_OVERFLOW and s2 < MUL_NO_OVERFLOW
  */
-static void *
-asplit(Area *ap, Block *bp, Cell *fp, Cell *fpp, int cells)
-{
-        Cell *dp = fp;  /* allocated object */
-        int split = (fp-1)->size - cells;
+#define MUL_NO_OVERFLOW	(1UL << (sizeof(size_t) * 4))
 
-        if (split < 0)
-                internal_errorf(1, "allocated object too small");
-        if (split <= NOBJECT_FIELDS) {  /* allocate all */
-                fp = fp->next;
-        } else {                /* allocate head, free tail */
-                Cell *next = fp->next; /* needed, as cells may be 0 */
-                ap->freelist = bp; /* next time, start looking for space here */
-                (fp-1)->size = cells;
-                fp += cells + NOBJECT_FIELDS;
-                (fp-1)->size = split - NOBJECT_FIELDS;
-                (fp-2)->block = bp;
-                fp->next = next;
-        }
-        if (fpp == NULL)
-                bp->freelist = fp;
-        else
-                fpp->next = fp;
-        return (void*) dp;
+void *
+areallocarray(void *ptr, size_t nmemb, size_t size, Area *ap)
+{
+	/* condition logic cloned from calloc() */
+	if ((nmemb >= MUL_NO_OVERFLOW || size >= MUL_NO_OVERFLOW) &&
+	    nmemb > 0 && SIZE_MAX / nmemb < size) {
+		internal_errorf(1, "unable to allocate memory");
+	}
+
+	return aresize(ptr, nmemb * size, ap);
 }
 
-/* change size of object -- like realloc */
 void *
 aresize(void *ptr, size_t size, Area *ap)
 {
-        int cells;
-        Cell *dp = (Cell*) ptr;
-        int oldcells = dp ? (dp-1)->size : 0;
+	struct link *l, *l2, *lprev, *lnext;
 
-        if (size <= 0)
-                internal_errorf(1, "allocate bad size");
-        /* New size (in cells) */
-        cells = (unsigned)(size - 1) / sizeof(Cell) + 1;
+	if (ptr == NULL)
+		return alloc(size, ap);
 
-        /* Is this a large object?  If so, let malloc deal with it
-         * directly (unless we are crossing the ICELLS border, in
-         * which case the alloc/free below handles it - this should
-         * cut down on fragmentation, and will also keep the code
-         * working (as it assumes size < ICELLS means it is not
-         * a `large object').
-         */
-        if (oldcells > ICELLS && cells > ICELLS 
-            && ((dp-2)->block->last == dp+oldcells) && (((Cell*)((dp-2)->block+1))+NOBJECT_FIELDS == dp) /* don't destroy blocks which have grown! */
-           ) {
-                Block *bp = (dp-2)->block;
-                Block *nbp;
-                /* Saved in case realloc fails.. */
-                Block *next = bp->next, *prev = bp->prev;
+	/* ensure that we don't overflow by allocating space for link */
+	if (size > SIZE_MAX - sizeof(struct link))
+		internal_errorf(1, "unable to allocate memory");
 
-                if (bp->freelist != bp->last)
-                        internal_errorf(1, "allocation resizing free pointer");
-                nbp = realloc((void *) bp,
-                              offsetof(Block, cell) +
-                              (cells + NOBJECT_FIELDS) * sizeof(Cell));
-                if (!nbp) {
-                        /* Have to clean up... */
-                        /* NOTE: If this code changes, similar changes may be
-                         * needed in ablockfree().
-                         */
-                        if (next == bp) /* only block */
-                                ap->freelist = &aempty;
-                        else {
-                                next->prev = prev;
-                                prev->next = next;
-                                if (ap->freelist == bp)
-                                        ap->freelist = next;
-                        }
-                        internal_errorf(1, "cannot re-allocate");
-                }
-                /* If location changed, keep pointers straight... */
-                if (nbp != bp) {
-                        if (next == bp) /* only one block */
-                                nbp->next = nbp->prev = nbp;
-                        else {
-                                next->prev = nbp;
-                                prev->next = nbp;
-                        }
-                        if (ap->freelist == bp)
-                                ap->freelist = nbp;
-                        dp = nbp->cell + NOBJECT_FIELDS;
-                        (dp-2)->block = nbp;
-                }
-                (dp-1)->size = cells;
-                nbp->last = nbp->cell + cells + NOBJECT_FIELDS;
-                nbp->freelist = nbp->last;
+	l = P2L(ptr);
+	lprev = l->prev;
+	lnext = l->next;
 
-                return (void*) dp;
-        }
+	l2 = realloc(l, sizeof(struct link) + size);
+	if (l2 == NULL)
+		internal_errorf(1, "unable to allocate memory");
+	if (lprev)
+		lprev->next = l2;
+	else
+		ap->freelist = l2;
+	if (lnext)
+		lnext->prev = l2;
 
-        /* Check if we can just grow this cell
-         * (need to check that cells < ICELLS so we don't make an
-         * object a `large' - that would mess everything up).
-         */
-        if (dp && cells > oldcells) {
-                Cell *fp, *fpp;
-                Block *bp = (dp-2)->block;
-                int need = cells - oldcells - NOBJECT_FIELDS;
-
-                /* XXX if we had a flag in an object indicating
-                 * if the object was free/allocated, we could
-                 * avoid this loop (perhaps)
-                 */
-                for (fpp = NULL, fp = bp->freelist;
-                     fp != bp->last
-                     && dp + oldcells + NOBJECT_FIELDS <= fp
-                     ; fpp = fp, fp = fp->next)
-                {
-                        if (dp + oldcells + NOBJECT_FIELDS == fp
-                            && (fp-1)->size >= need)
-                        {
-                                Cell *np = asplit(ap, bp, fp, fpp, need);
-                                /* May get more than we need here */
-                                (dp-1)->size += (np-1)->size + NOBJECT_FIELDS;
-                                return ptr;
-                        }
-                }
-        }
-
-        /* Check if we can just shrink this cell
-         * (if oldcells > ICELLS, this is a large object and we leave
-         * it to malloc...)
-         * Note: this also handles cells == oldcells (a no-op).
-         */
-        if (dp && cells <= oldcells) {
-                int split;
-
-                split = oldcells - cells;
-                if (split <= NOBJECT_FIELDS) /* cannot split */
-                        ;
-                else {          /* shrink head, free tail */
-                        Block *bp = (dp-2)->block;
-
-                        (dp-1)->size = cells;
-                        dp += cells + NOBJECT_FIELDS;
-                        (dp-1)->size = split - NOBJECT_FIELDS;
-                        (dp-2)->block = bp;
-                        afree((void*)dp, ap);
-                }
-                /* ACHECK() done in afree() */
-                return ptr;
-        }
-
-        /* Have to do it the hard way... */
-        ptr = alloc(size, ap);
-        if (dp != NULL) {
-                size_t s = (dp-1)->size * sizeof(Cell);
-                if (s > size)
-                        s = size;
-                memcpy(ptr, dp, s);
-                afree((void *) dp, ap);
-        }
-        return ptr;
+	return L2P(l2);
 }
 
 void
 afree(void *ptr, Area *ap)
 {
-        Block *bp;
-        Cell *fp, *fpp;
-        Cell *dp = (Cell*)ptr;
+	struct link *l, *l2;
 
-        if (ptr == 0)
-                internal_errorf(1, "freeing null pointer");
-        bp = (dp-2)->block;
+	if (!ptr)
+		return;
 
-        /* If this is a large object, just free it up... */
-        /* Release object... */
-        if ((dp-1)->size > ICELLS
-            && (bp->last == dp + (dp-1)->size) && (((Cell*)(bp+1))+NOBJECT_FIELDS == dp) /* don't free non-free blocks which have grown! */
-           ) {
-                ablockfree(bp, ap);
-                return;
-        }
+	l = P2L(ptr);
 
-        if (dp < &bp->cell[NOBJECT_FIELDS] || dp >= bp->last)
-                internal_errorf(1, "freeing memory outside of block (corrupted?)");
+	for (l2 = ap->freelist; l2 != NULL; l2 = l2->next) {
+		if (l == l2)
+			break;
+	}
+	if (l2 == NULL)
+		internal_errorf(1, "afree: %p not present in area %p", ptr, ap);
 
-        /* find position in free list */
-        /* XXX if we had prev/next pointers for objects, this loop could go */
-        for (fpp = NULL, fp = bp->freelist; fp < dp; fpp = fp, fp = fp->next)
-                ;
+	if (l->prev)
+		l->prev->next = l->next;
+	else
+		ap->freelist = l->next;
+	if (l->next)
+		l->next->prev = l->prev;
 
-        if (fp == dp)
-                internal_errorf(1, "freeing free object");
-
-        /* join object with next */
-        if (dp + (dp-1)->size == fp-NOBJECT_FIELDS) { /* adjacent */
-                (dp-1)->size += (fp-1)->size + NOBJECT_FIELDS;
-                dp->next = fp->next;
-        } else                  /* non-adjacent */
-                dp->next = fp;
-
-        /* join previous with object */
-        if (fpp == NULL)
-                bp->freelist = dp;
-        else if (fpp + (fpp-1)->size == dp-NOBJECT_FIELDS) { /* adjacent */
-                (fpp-1)->size += (dp-1)->size + NOBJECT_FIELDS;
-                fpp->next = dp->next;
-        } else                  /* non-adjacent */
-                fpp->next = dp;
-
-        /* If whole block is free (and we have some other blocks
-         * around), release this block back to the system...
-         */
-        if (bp->next != bp && bp->freelist == bp->cell + NOBJECT_FIELDS
-            && bp->freelist + (bp->freelist-1)->size == bp->last
-            /* XXX and the other block has some free memory? */
-            )
-                ablockfree(bp, ap);
+	free(l);
 }
-
-static void
-ablockfree(Block *bp, Area *ap)
-{
-        /* NOTE: If this code changes, similar changes may be
-         * needed in alloc() (where realloc fails).
-         */
-
-        if (bp->next == bp) /* only block */
-                ap->freelist = &aempty;
-        else {
-                bp->next->prev = bp->prev;
-                bp->prev->next = bp->next;
-                if (ap->freelist == bp)
-                        ap->freelist = bp->next;
-        }
-        free((void*) bp);
-}
-

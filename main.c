@@ -2,8 +2,6 @@
  * startup, main loop, environments and error handling
  */
 
-#define EXTERN                          /* define EXTERNs in sh.h */
-
 #include <sys/stat.h>
 #include <pwd.h>
 #include "sh.h"
@@ -17,6 +15,53 @@ extern char **environ;
 
 static void     reclaim(void);
 static void     remove_temps(struct temp *tp);
+
+const char *kshname;
+pid_t kshpid;
+pid_t procpid;
+uid_t ksheuid;
+int kshegid;
+uid_t kshuid;
+int kshgid;
+int exstat;
+int subst_exstat;
+const char *safe_prompt;
+
+Area perm_space;          /* permanent object space */
+Area *aperm;
+
+struct env *genv;
+
+char shell_flags [FNFLAGS];
+
+char null[] = "";
+char space[] = " ";
+char newline[] = "\n";
+
+int shl_stdout_ok;
+
+unsigned int ksh_tmout;
+enum tmout_enum ksh_tmout_state = TMOUT_EXECUTING;
+
+int really_exit;
+
+int ifs0 = ' ';
+
+volatile sig_atomic_t trap;
+volatile sig_atomic_t intrsig;
+volatile sig_atomic_t fatal_trap;
+
+Getopt builtin_opt;
+Getopt user_opt;
+
+struct coproc coproc;
+sigset_t sm_default, sm_sigchld;
+
+char *builtin_argv0;
+Tflag builtin_flag;
+
+char *current_wd;
+int current_wd_size;
 
 /*
  * shell initialization
@@ -92,7 +137,7 @@ main(int argc, char *argv[])
         memset(&env, 0, sizeof(env));
         env.type = E_NONE;
         ainit(&env.area);
-        e = &env;
+        genv = &env;
         newblock();             /* set up global l->vars and l->funs */
 
         /* Do this first so output routines (eg, errorf, shellf) can work */
@@ -359,7 +404,7 @@ main(int argc, char *argv[])
 
         j_init(i);
 
-        l = e->loc;
+        l = genv->loc;
         l->argv = &argv[argi - 1];
         l->argc = argc - argi;
         l->argv[0] = (char *) kshname;
@@ -411,19 +456,19 @@ include(const char *name, int argc, char **argv, int intr_ok)
                 return -1;
 
         if (argv) {
-                old_argv = e->loc->argv;
-                old_argc = e->loc->argc;
+                old_argv = genv->loc->argv;
+                old_argc = genv->loc->argc;
         } else {
                 old_argv = (char **) 0;
                 old_argc = 0;
         }
         newenv(E_INCL);
-        i = ksh_sigsetjmp(e->jbuf, 0);
+        i = ksh_sigsetjmp(genv->jbuf, 0);
         if (i) {
                 quitenv(s ? s->u.shf : NULL);
                 if (old_argv) {
-                        e->loc->argv = old_argv;
-                        e->loc->argc = old_argc;
+                        genv->loc->argv = old_argv;
+                        genv->loc->argc = old_argc;
                 }
                 switch (i) {
                   case LRETURN:
@@ -444,8 +489,8 @@ include(const char *name, int argc, char **argv, int intr_ok)
                 }
         }
         if (argv) {
-                e->loc->argv = argv;
-                e->loc->argc = argc;
+                genv->loc->argv = argv;
+                genv->loc->argc = argc;
         }
         s = pushs(SFILE, ATEMP);
         s->u.shf = shf;
@@ -453,8 +498,8 @@ include(const char *name, int argc, char **argv, int intr_ok)
         i = shell(s, false);
         quitenv(s->u.shf);
         if (old_argv) {
-                e->loc->argv = old_argv;
-                e->loc->argc = old_argc;
+                genv->loc->argv = old_argv;
+                genv->loc->argc = old_argc;
         }
         return i & 0xff;        /* & 0xff to ensure value not -1 */
 }
@@ -485,7 +530,7 @@ shell(Source *volatile s, volatile int toplevel)
         newenv(E_PARSE);
         if (interactive)
                 really_exit = 0;
-        i = ksh_sigsetjmp(e->jbuf, 0);
+        i = ksh_sigsetjmp(genv->jbuf, 0);
         if (i) {
                 switch (i) {
                   case LINTR: /* we get here if SIGINT not caught or ignored */
@@ -591,19 +636,19 @@ unwind(int i)
                 i = LLEAVE;
         }
         while (1) {
-                switch (e->type) {
+                switch (genv->type) {
                   case E_PARSE:
                   case E_FUNC:
                   case E_INCL:
                   case E_LOOP:
                   case E_ERRH:
                   case E_SUBSHELL:
-                        ksh_siglongjmp(e->jbuf, i);
+                        ksh_siglongjmp(genv->jbuf, i);
                         /*NOTREACHED*/
 
                   case E_NONE:
                         if (i == LINTR)
-                                e->flags |= EF_FAKE_SIGDIE;
+                                genv->flags |= EF_FAKE_SIGDIE;
                         /* FALLTHROUGH */
                   default:
                         quitenv(NULL);
@@ -620,17 +665,17 @@ newenv(int type)
         ep->type = type;
         ep->flags = 0;
         ainit(&ep->area);
-        ep->loc = e->loc;
+        ep->loc = genv->loc;
         ep->savefd = NULL;
-        ep->oenv = e;
+        ep->oenv = genv;
         ep->temps = NULL;
-        e = ep;
+        genv = ep;
 }
 
 void
 quitenv(struct shf *shf)
 {
-        struct env *ep = e;
+        struct env *ep = genv;
         int fd;
 
         if (ep->oenv && ep->oenv->loc != ep->loc)
@@ -679,7 +724,7 @@ quitenv(struct shf *shf)
                 shf_close(shf);
         reclaim();
 
-        e = e->oenv;
+        genv = genv->oenv;
         afree(ep, ATEMP);
 }
 
@@ -696,7 +741,7 @@ cleanup_parents_env(void)
          */
 
         /* close all file descriptors hiding in savefd */
-        for (ep = e; ep; ep = ep->oenv) {
+        for (ep = genv; ep; ep = ep->oenv) {
                 if (ep->savefd) {
                         for (fd = 0; fd < NUFILE; fd++)
                                 if (ep->savefd[fd] > 0)
@@ -705,7 +750,7 @@ cleanup_parents_env(void)
                         ep->savefd = (short *) 0;
                 }
         }
-        e->oenv = (struct env *) 0;
+        genv->oenv = (struct env *) 0;
 }
 
 /* Called just before an execve cleanup stuff temporary files */
@@ -714,7 +759,7 @@ cleanup_proc_env(void)
 {
         struct env *ep;
 
-        for (ep = e; ep; ep = ep->oenv)
+        for (ep = genv; ep; ep = ep->oenv)
                 remove_temps(ep->temps);
 }
 
@@ -722,9 +767,9 @@ cleanup_proc_env(void)
 static void
 reclaim(void)
 {
-        remove_temps(e->temps);
-        e->temps = NULL;
-        afreeall(&e->area);
+        remove_temps(genv->temps);
+        genv->temps = NULL;
+        afreeall(&genv->area);
 }
 
 static void

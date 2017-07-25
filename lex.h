@@ -114,15 +114,15 @@ typedef union {
 
 #define HERES   10              /* max << in line */
 
-EXTERN  Source *source;         /* yyparse/yylex source */
-EXTERN  YYSTYPE yylval;         /* result from yylex */
-EXTERN  struct ioword *heres [HERES], **herep;
-EXTERN  char    ident [IDENT+1];
+extern Source *source;         /* yyparse/yylex source */
+extern YYSTYPE yylval;         /* result from yylex */
+extern struct ioword *heres [HERES], **herep;
+extern char    ident [IDENT+1];
 
 #ifdef HISTORY
 # define HISTORYSIZE	500	/* size of saved history */
 
-EXTERN	char  **history;	/* saved commands */
-EXTERN	char  **histptr;	/* last history item */
-EXTERN	int	histsize;	/* history size */
+extern char  **history;	/* saved commands */
+extern char  **histptr;	/* last history item */
+extern int	histsize;	/* history size */
 #endif /* HISTORY */

@@ -189,7 +189,7 @@ c_fc(char **wp)
 
         /* Run editor on selected lines, then run resulting commands */
 
-        tf = maketemp(ATEMP, TT_HIST_EDIT, &e->temps);
+        tf = maketemp(ATEMP, TT_HIST_EDIT, &genv->temps);
         if (!(shf = tf->shf)) {
                 bi_errorf("cannot create temp file %s - %s",
                         tf->name, strerror(errno));

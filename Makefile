@@ -12,7 +12,7 @@ endif
 DEBUG = -DNDEBUG
 
 CC = ppc-amigaos-gcc
-STRIP = ppc-amigaos-strip -R.comment $@
+STRIP = ppc-amigaos-strip -R.comment $@.debug -o $@
 
 CFLAGS = -mcrt=$(CRT) -Wall -Wwrite-strings -O2 $(DEBUG)
 LDFLAGS = -mcrt=$(CRT)
@@ -33,12 +33,12 @@ DEPS = $(OBJS:.o=.d)
 all: sh
 	@echo done.
 
-debug: DEBUG = -ggdb
-debug: STRIP = 
+debug: DEBUG = -gstabs
+debug: STRIP =
 debug: all
 
 sh: $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+	$(CC) $(LDFLAGS) -o $@.debug $(OBJS) $(LIBS)
 	$(STRIP)
 
 %.o : %.c
